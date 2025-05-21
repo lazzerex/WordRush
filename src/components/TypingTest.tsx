@@ -1,11 +1,5 @@
 'use client';
 
-
-// Initialize the test
-  useEffect(() => {
-    resetTest();
-  }, []);
-  
   
 
 import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
