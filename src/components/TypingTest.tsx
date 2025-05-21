@@ -1,8 +1,6 @@
 'use client';
 
-  
-
-import React, { useState, useEffect, useRef, KeyboardEvent } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Define theme type
 type ThemeOption = 'light' | 'dark' | 'sepia' | 'neon' | 'ocean';
@@ -27,7 +25,46 @@ type ThemeMap = {
   [key in ThemeOption]: ThemeStyles;
 };
 
+// Custom hook for style injection
+const useCustomStyles = () => {
+  useEffect(() => {
+    // Only run this on the client side
+    if (typeof window === 'undefined') return;
+    
+    // Check if style already exists to prevent duplicates
+    const existingStyle = document.getElementById('typing-test-animations');
+    if (existingStyle) return;
+    
+    const style = document.createElement('style');
+    style.id = 'typing-test-animations';
+    style.textContent = `
+      @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      
+      @keyframes ping {
+        0% { transform: scale(0.5); opacity: 0; }
+        50% { transform: scale(1.5); opacity: 1; }
+        100% { transform: scale(2); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      // Fix: Add null check before removing the element
+      const styleElement = document.getElementById('typing-test-animations');
+      if (styleElement && styleElement.parentNode) {
+        styleElement.parentNode.removeChild(styleElement);
+      }
+    };
+  }, []);
+};
+
 const TypingTest: React.FC = () => {
+  // Use the custom hook for style injection
+  useCustomStyles();
+  
   // Sample text options
   const textOptions: string[] = [
     "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!",
@@ -125,31 +162,16 @@ const TypingTest: React.FC = () => {
     },
   };
 
+  // Initialize the app with a random text sample
   useEffect(() => {
-    // Add keyframe animations to document
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-      }
-      
-      @keyframes ping {
-        0% { transform: scale(0.5); opacity: 0; }
-        50% { transform: scale(1.5); opacity: 1; }
-        100% { transform: scale(2); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
+    const randomIndex = Math.floor(Math.random() * textOptions.length);
+    setCurrentText(textOptions[randomIndex]);
+    setTimeLeft(selectedDuration);
   }, []);
 
   // Handle timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | undefined;
     
     if (testActive && timeLeft > 0) {
       interval = setInterval(() => {
@@ -227,7 +249,7 @@ const TypingTest: React.FC = () => {
   };
 
   // Handle key press
-  const handleKeyPress = (e: KeyboardEvent<HTMLDivElement>): void => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     if (testCompleted) return;
     
     // Start test on first key press
@@ -415,7 +437,7 @@ const TypingTest: React.FC = () => {
   };
 
   // Render text with correct styling
-  const renderText = (): JSX.Element => {
+  const renderText = () => {
     const theme = themes[currentTheme];
     
     return (

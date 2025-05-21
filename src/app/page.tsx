@@ -1,7 +1,6 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect } from 'react';
 
 // Use dynamic import to avoid hydration issues
 const TypingTest = dynamic(() => import('../components/TypingTest'), {
@@ -9,25 +8,12 @@ const TypingTest = dynamic(() => import('../components/TypingTest'), {
 });
 
 export default function Home() {
-  // Add font imports at runtime
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;700;900&display=swap';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-    
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-  
   return (
     <main className="h-screen w-screen overflow-hidden font-['Inter',sans-serif]">
       <TypingTest />
     </main>
   );
 }
-
 
 
 
