@@ -48,6 +48,18 @@ const useCustomStyles = () => {
         50% { transform: scale(1.5); opacity: 1; }
         100% { transform: scale(2); opacity: 0; }
       }
+
+      @keyframes slideInFromTop {
+        0% { opacity: 0; transform: translateY(-30px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes bounceIn {
+        0% { opacity: 0; transform: scale(0.3); }
+        50% { opacity: 1; transform: scale(1.05); }
+        70% { transform: scale(0.9); }
+        100% { opacity: 1; transform: scale(1); }
+      }
     `;
     document.head.appendChild(style);
     
@@ -76,6 +88,7 @@ const TypingTest: React.FC = () => {
   ];
 
   // State variables
+  const [showMenu, setShowMenu] = useState<boolean>(true);
   const [currentTheme, setCurrentTheme] = useState<ThemeOption>('dark');
   const [currentText, setCurrentText] = useState<string>('');
   const [typedText, setTypedText] = useState<string>('');
@@ -194,10 +207,42 @@ const TypingTest: React.FC = () => {
 
   // Set focus when component loads
   useEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && !showMenu) {
       containerRef.current.focus();
     }
-  }, []);
+  }, [showMenu]);
+
+  // Start the typing game
+  const startTypingGame = (): void => {
+    setShowMenu(false);
+    // Focus the container after hiding menu
+    setTimeout(() => {
+      if (containerRef.current) {
+        containerRef.current.focus();
+      }
+    }, 100);
+  };
+
+  // Return to menu
+  const returnToMenu = (): void => {
+    setShowMenu(true);
+    // Reset all test states
+    const randomIndex = Math.floor(Math.random() * textOptions.length);
+    setCurrentText(textOptions[randomIndex]);
+    setTypedText('');
+    setStartTime(null);
+    setEndTime(null);
+    setWpm(0);
+    setAccuracy(100);
+    setCurrentCharIndex(0);
+    setCorrectChars(0);
+    setIncorrectChars(0);
+    setTestCompleted(false);
+    setTestActive(false);
+    setTimeLeft(selectedDuration);
+    setCursorPosition(0);
+    setCurrentWordIndex(0);
+  };
 
   // Start the test
   const startTest = (): void => {
@@ -390,12 +435,14 @@ const TypingTest: React.FC = () => {
     const nextIndex = (currentIndex + 1) % themeKeys.length;
     setCurrentTheme(themeKeys[nextIndex]);
     
-    // Focus the container after theme change
-    setTimeout(() => {
-      if (containerRef.current) {
-        containerRef.current.focus();
-      }
-    }, 50);
+    // Focus the container after theme change if not in menu
+    if (!showMenu) {
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.focus();
+        }
+      }, 50);
+    }
   };
 
   // Change test duration
@@ -421,11 +468,13 @@ const TypingTest: React.FC = () => {
       setCurrentWordIndex(0);
       
       // Focus the container after a short delay to ensure UI has updated
-      setTimeout(() => {
-        if (containerRef.current) {
-          containerRef.current.focus();
-        }
-      }, 50);
+      if (!showMenu) {
+        setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.focus();
+          }
+        }, 50);
+      }
     }
   };
 
@@ -473,6 +522,61 @@ const TypingTest: React.FC = () => {
 
   const theme = themes[currentTheme];
 
+  // Render menu screen
+  if (showMenu) {
+    return (
+      <div className={`min-h-screen ${theme.background} ${theme.text} flex flex-col items-center justify-center py-12 px-4 transition-colors duration-300 ${theme.gradient}`}>
+        <div className="w-full max-w-md">
+          {/* Main Menu Card */}
+          <div className={`${theme.card} rounded-lg ${theme.cardShadow} p-8 text-center animate-[slideInFromTop_0.8s_ease-out]`}>
+            {/* Title */}
+            <h1 className={`text-5xl font-bold mb-8 ${theme.highlightText} animate-[bounceIn_1s_ease-out]`}>
+              WORDRUSH
+            </h1>
+            <div className={`w-24 h-1 ${theme.background === 'bg-gray-900' ? 'bg-blue-600' : theme.background === 'bg-gray-100' ? 'bg-blue-500' : theme.background === 'bg-amber-50' ? 'bg-amber-600' : theme.background === 'bg-gray-950' ? 'bg-pink-500' : 'bg-teal-600'} mx-auto mb-8 rounded-full`}></div>
+            
+            {/* Start Game Button */}
+            <button 
+              onClick={startTypingGame}
+              className={`w-full ${theme.button} text-white py-4 px-6 rounded-lg text-xl font-semibold mb-4 transition-all duration-200 transform hover:scale-105 ${theme.cardShadow} animate-[fadeIn_1s_ease-out_0.2s_both]`}
+            >
+              START TYPING
+            </button>
+            
+            {/* Theme Toggle Button */}
+            <button 
+              onClick={toggleTheme}
+              className={`w-full border-2 ${theme.accent} ${theme.text} py-3 px-6 rounded-lg text-lg font-medium transition-all duration-200 transform hover:scale-105 hover:${theme.background === 'bg-gray-900' ? 'bg-gray-700' : theme.background === 'bg-gray-100' ? 'bg-gray-200' : theme.background === 'bg-amber-50' ? 'bg-amber-100' : theme.background === 'bg-gray-950' ? 'bg-gray-800' : 'bg-cyan-800'} animate-[fadeIn_1s_ease-out_0.4s_both]`}
+            >
+              🌙 TOGGLE THEME
+            </button>
+          </div>
+          
+          {/* How to Play Section */}
+          <div className={`${theme.card} rounded-lg ${theme.cardShadow} p-6 mt-6 animate-[fadeIn_1s_ease-out_0.6s_both]`}>
+            <h2 className={`text-2xl font-bold mb-4 text-center ${theme.highlightText}`}>
+              How to Play
+            </h2>
+            <div className="space-y-3 text-sm">
+              <p className={`${theme.text} leading-relaxed`}>
+                Type the displayed text as quickly and accurately as possible
+              </p>
+              <p className={`${theme.text} leading-relaxed`}>
+                Complete the test to see your speed (WPM) and accuracy percentage
+              </p>
+            </div>
+          </div>
+          
+          {/* Current Theme Display */}
+          <div className={`text-center mt-4 ${theme.text} text-sm opacity-70`}>
+            Current Theme: <span className="capitalize font-semibold">{currentTheme}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render typing test game
   return (
     <div 
       ref={containerRef}
@@ -498,6 +602,12 @@ const TypingTest: React.FC = () => {
             WordRush
           </h1>
           <div className="flex space-x-2">
+            <button 
+              onClick={returnToMenu}
+              className={`border-2 ${theme.accent} ${theme.text} py-2 px-4 rounded-md text-sm transition-all duration-200 transform hover:scale-105 hover:${theme.background === 'bg-gray-900' ? 'bg-gray-700' : theme.background === 'bg-gray-100' ? 'bg-gray-200' : theme.background === 'bg-amber-50' ? 'bg-amber-100' : theme.background === 'bg-gray-950' ? 'bg-gray-800' : 'bg-cyan-800'}`}
+            >
+              Menu
+            </button>
             <button 
               onClick={toggleTheme}
               className={`${theme.button} text-white py-2 px-4 rounded-md text-sm transition-all duration-200 transform hover:scale-105 ${theme.cardShadow}`}
