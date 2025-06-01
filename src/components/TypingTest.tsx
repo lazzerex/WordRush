@@ -525,7 +525,7 @@ const TypingTest: React.FC = () => {
   // Render menu screen
   if (showMenu) {
     return (
-      <div className={`min-h-screen ${theme.background} ${theme.text} flex flex-col items-center justify-center py-12 px-4 transition-colors duration-300 ${theme.gradient}`}>
+      <div className={`min-h-screen ${theme.background} ${theme.text} flex flex-col items-center justify-center py-8 px-4 transition-colors duration-300 ${theme.gradient} overflow-y-auto`}>
         <div className="w-full max-w-md">
           {/* Main Menu Card */}
           <div className={`${theme.card} rounded-lg ${theme.cardShadow} p-8 text-center animate-[slideInFromTop_0.8s_ease-out]`}>

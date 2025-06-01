@@ -9,7 +9,7 @@ const TypingTest = dynamic(() => import('../components/TypingTest'), {
 
 export default function Home() {
   return (
-    <main className="h-screen w-screen overflow-hidden font-['Inter',sans-serif]">
+    <main className="min-h-screen w-full font-['Inter',sans-serif]">
       <TypingTest />
     </main>
   );
