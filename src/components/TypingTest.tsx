@@ -77,20 +77,67 @@ const TypingTest: React.FC = () => {
   // Use the custom hook for style injection
   useCustomStyles();
   
-  // Sample text options
-  const textOptions: string[] = [
-    "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!",
-    "Programming is the process of creating a set of instructions that tell a computer how to perform a task. Programming can be done using many programming languages.",
-    "A library is a collection of books and other informational materials. Libraries contain a variety of resources, including books, periodicals, newspapers, and digital resources.",
-    "The Sun is the star at the center of the Solar System. It is a nearly perfect sphere of hot plasma, with internal convective motion that generates a magnetic field.",
-    "Typing speed is typically measured in words per minute, which is abbreviated as wpm. This is a measure of the number of words a person can accurately type in one minute.",
-    "The fields of machine learning and artificial intelligence have grown tremendously in recent years, leading to advancements in language models and computer vision systems.",
+  // Comprehensive word pool for random generation
+  const wordPool: string[] = [
+    // Common words
+    'the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that', 'he', 'was', 'for', 'on', 'are', 'as', 'with',
+    'his', 'they', 'i', 'at', 'be', 'this', 'have', 'from', 'or', 'one', 'had', 'by', 'word', 'but', 'not', 'what',
+    'all', 'were', 'we', 'when', 'your', 'can', 'said', 'there', 'each', 'which', 'she', 'do', 'how', 'their', 'if',
+    'will', 'up', 'other', 'about', 'out', 'many', 'then', 'them', 'these', 'so', 'some', 'her', 'would', 'make',
+    'like', 'into', 'him', 'time', 'has', 'two', 'more', 'very', 'after', 'words', 'first', 'where', 'most', 'know',
+    // Technology words
+    'computer', 'software', 'hardware', 'internet', 'website', 'database', 'network', 'server', 'client', 'program',
+    'algorithm', 'function', 'variable', 'array', 'object', 'method', 'class', 'interface', 'component', 'framework',
+    'library', 'application', 'development', 'programming', 'coding', 'debugging', 'testing', 'deployment', 'version',
+    'update', 'security', 'encryption', 'authentication', 'authorization', 'protocol', 'bandwidth', 'cloud', 'storage',
+    // Professional words
+    'business', 'company', 'organization', 'management', 'strategy', 'marketing', 'finance', 'accounting', 'sales',
+    'customer', 'service', 'product', 'project', 'team', 'meeting', 'presentation', 'report', 'analysis', 'research',
+    'development', 'innovation', 'solution', 'problem', 'opportunity', 'challenge', 'success', 'growth', 'profit',
+    'revenue', 'investment', 'budget', 'planning', 'execution', 'performance', 'quality', 'efficiency', 'productivity',
+    // Academic words
+    'education', 'learning', 'knowledge', 'information', 'study', 'research', 'university', 'college', 'student',
+    'teacher', 'professor', 'course', 'subject', 'lesson', 'assignment', 'homework', 'exam', 'test', 'grade',
+    'degree', 'certificate', 'diploma', 'scholarship', 'library', 'book', 'article', 'paper', 'thesis', 'theory',
+    'practice', 'experiment', 'observation', 'conclusion', 'evidence', 'proof', 'hypothesis', 'methodology', 'data',
+    // Nature and science words
+    'nature', 'environment', 'climate', 'weather', 'temperature', 'season', 'winter', 'summer', 'spring', 'autumn',
+    'water', 'air', 'earth', 'fire', 'energy', 'power', 'force', 'motion', 'speed', 'distance', 'time', 'space',
+    'matter', 'element', 'compound', 'molecule', 'atom', 'particle', 'wave', 'frequency', 'amplitude', 'physics',
+    'chemistry', 'biology', 'mathematics', 'science', 'technology', 'medicine', 'health', 'disease', 'treatment',
+    // Action words
+    'run', 'walk', 'jump', 'climb', 'swim', 'fly', 'drive', 'ride', 'travel', 'move', 'stop', 'start', 'begin',
+    'end', 'finish', 'complete', 'continue', 'pause', 'break', 'rest', 'sleep', 'wake', 'eat', 'drink', 'cook',
+    'clean', 'wash', 'build', 'create', 'make', 'design', 'plan', 'organize', 'arrange', 'prepare', 'practice',
+    'learn', 'teach', 'explain', 'understand', 'remember', 'forget', 'think', 'believe', 'hope', 'wish', 'want',
+    // Descriptive words
+    'good', 'bad', 'great', 'small', 'large', 'big', 'little', 'long', 'short', 'tall', 'high', 'low', 'fast',
+    'slow', 'quick', 'easy', 'hard', 'difficult', 'simple', 'complex', 'beautiful', 'ugly', 'nice', 'pretty',
+    'smart', 'intelligent', 'clever', 'wise', 'strong', 'weak', 'brave', 'scared', 'happy', 'sad', 'angry',
+    'excited', 'calm', 'peaceful', 'busy', 'free', 'empty', 'full', 'new', 'old', 'young', 'fresh', 'clean',
+    // Advanced vocabulary
+    'accomplish', 'achievement', 'advantage', 'appreciate', 'approach', 'appropriate', 'arrange', 'associate',
+    'assumption', 'attitude', 'attribute', 'availability', 'challenge', 'characteristic', 'circumstance', 'collaborate',
+    'commitment', 'communicate', 'community', 'competitive', 'comprehensive', 'concentrate', 'conclusion', 'confidence',
+    'consequence', 'consideration', 'consistent', 'contribution', 'conversation', 'cooperation', 'coordinate', 'creative',
+    'decision', 'demonstrate', 'determine', 'difference', 'difficulty', 'discover', 'discussion', 'distinction',
+    'distribute', 'economic', 'effective', 'efficient', 'encourage', 'environment', 'equipment', 'establish',
+    'evaluate', 'examination', 'experience', 'explanation', 'expression', 'extraordinary', 'foundation', 'generation',
+    'imagination', 'immediately', 'importance', 'impression', 'improvement', 'independence', 'individual', 'influence',
+    'initiative', 'inspiration', 'instruction', 'intelligence', 'international', 'investigation', 'knowledge',
+    'leadership', 'limitation', 'maintenance', 'management', 'measurement', 'motivation', 'opportunity', 'organization',
+    'participation', 'performance', 'personality', 'perspective', 'possibility', 'potential', 'preparation',
+    'presentation', 'probability', 'professional', 'recognition', 'recommendation', 'relationship', 'reputation',
+    'responsibility', 'satisfaction', 'significance', 'situation', 'specification', 'strategy', 'strength',
+    'structure', 'suggestion', 'supervision', 'technology', 'temperature', 'traditional', 'transformation',
+    'understanding', 'variation', 'vocabulary'
   ];
 
   // State variables
   const [showMenu, setShowMenu] = useState<boolean>(true);
   const [currentTheme, setCurrentTheme] = useState<ThemeOption>('dark');
   const [currentText, setCurrentText] = useState<string>('');
+  const [wordsToType, setWordsToType] = useState<string[]>([]);
   const [typedText, setTypedText] = useState<string>('');
   const [startTime, setStartTime] = useState<number | null>(null);
   const [endTime, setEndTime] = useState<number | null>(null);
@@ -175,10 +222,40 @@ const TypingTest: React.FC = () => {
     },
   };
 
-  // Initialize the app with a random text sample
+  // Function to generate random words for typing test
+  const generateRandomWords = (duration: number): string[] => {
+    // Estimate words needed based on duration and average typing speed
+    // Assuming average typing speed of 40 WPM for safety, generate 50% more words
+    const estimatedWordsNeeded = Math.ceil((duration / 60) * 40 * 1.5);
+    const minWords = Math.max(estimatedWordsNeeded, 50); // At least 50 words
+    
+    const randomWords: string[] = [];
+    const usedIndices = new Set<number>();
+    
+    // Generate unique random words
+    while (randomWords.length < minWords) {
+      const randomIndex = Math.floor(Math.random() * wordPool.length);
+      
+      // Avoid immediate repetition, but allow reuse after some words
+      if (!usedIndices.has(randomIndex) || usedIndices.size >= wordPool.length * 0.8) {
+        randomWords.push(wordPool[randomIndex]);
+        usedIndices.add(randomIndex);
+        
+        // Clear used indices periodically to allow word reuse
+        if (usedIndices.size >= wordPool.length * 0.8) {
+          usedIndices.clear();
+        }
+      }
+    }
+    
+    return randomWords;
+  };
+
+  // Initialize the app with random words
   useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * textOptions.length);
-    setCurrentText(textOptions[randomIndex]);
+    const randomWords = generateRandomWords(selectedDuration);
+    setWordsToType(randomWords);
+    setCurrentText(randomWords.join(' '));
     setTimeLeft(selectedDuration);
   }, []);
 
@@ -226,9 +303,10 @@ const TypingTest: React.FC = () => {
   // Return to menu
   const returnToMenu = (): void => {
     setShowMenu(true);
-    // Reset all test states
-    const randomIndex = Math.floor(Math.random() * textOptions.length);
-    setCurrentText(textOptions[randomIndex]);
+    // Reset all test states with new random words
+    const randomWords = generateRandomWords(selectedDuration);
+    setWordsToType(randomWords);
+    setCurrentText(randomWords.join(' '));
     setTypedText('');
     setStartTime(null);
     setEndTime(null);
@@ -405,10 +483,11 @@ const TypingTest: React.FC = () => {
     }
   };
 
-  // Reset the test with a new random text
+  // Reset the test with new random words
   const resetTest = (): void => {
-    const randomIndex = Math.floor(Math.random() * textOptions.length);
-    setCurrentText(textOptions[randomIndex]);
+    const randomWords = generateRandomWords(selectedDuration);
+    setWordsToType(randomWords);
+    setCurrentText(randomWords.join(' '));
     setTypedText('');
     setStartTime(null);
     setEndTime(null);
@@ -450,9 +529,10 @@ const TypingTest: React.FC = () => {
     if (selectedDuration !== duration) {
       setSelectedDuration(duration);
       
-      // Reset the test state completely
-      const randomIndex = Math.floor(Math.random() * textOptions.length);
-      setCurrentText(textOptions[randomIndex]);
+      // Reset the test state completely with new random words
+      const randomWords = generateRandomWords(duration);
+      setWordsToType(randomWords);
+      setCurrentText(randomWords.join(' '));
       setTypedText('');
       setStartTime(null);
       setEndTime(null);
@@ -559,10 +639,13 @@ const TypingTest: React.FC = () => {
             </h2>
             <div className="space-y-3 text-sm">
               <p className={`${theme.text} leading-relaxed`}>
-                Type the displayed text as quickly and accurately as possible
+                🎯 Type randomly generated words as fast and accurately as possible
               </p>
               <p className={`${theme.text} leading-relaxed`}>
-                Complete the test to see your speed (WPM) and accuracy percentage
+                ⏱️ Choose your time limit and beat the clock to improve your WPM
+              </p>
+              <p className={`${theme.text} leading-relaxed`}>
+                🔄 Each test generates unique random words for fresh challenges
               </p>
             </div>
           </div>
@@ -634,21 +717,23 @@ const TypingTest: React.FC = () => {
           ))}
         </div>
         
-        {/* Main card */}
-        <div className={`${theme.card} rounded-lg ${theme.cardShadow} p-6 mb-6 transition-all duration-300 transform hover:scale-[1.01]`}>
-          {/* Timer and stats */}
-          <div className="flex justify-between mb-4">
-            <div className="text-center">
-              <p className={`text-xl font-bold ${timeLeft <= 10 && timeLeft > 0 ? 'text-red-500 animate-pulse' : ''}`}>{formatTime(timeLeft)}</p>
-              <p className="text-xs">Time</p>
-            </div>
-            {!testCompleted && (
-              <div className="text-center">
-                <p className={`text-sm ${testActive ? 'animate-pulse' : ''}`}>{testActive ? 'Test in progress...' : 'Ready to start'}</p>
-              </div>
-            )}
+        {/* Stats Display */}
+        <div className="mb-6 grid grid-cols-4 gap-4">
+          <div className={`${theme.card} rounded-lg p-4 text-center ${theme.cardShadow}`}>
+            <p className={`text-2xl font-bold ${timeLeft <= 10 && timeLeft > 0 ? 'text-red-500 animate-pulse' : theme.highlightText}`}>
+              {formatTime(timeLeft)}
+            </p>
+            <p className="text-xs opacity-70">Time Left</p>
           </div>
-          
+         
+          <div className={`${theme.card} rounded-lg p-4 text-center ${theme.cardShadow}`}>
+            <p className={`text-2xl font-bold ${theme.highlightText}`}>{wordsToType.length}</p>
+            <p className="text-xs opacity-70">Total Words</p>
+          </div>
+        </div>
+        
+        {/* Main card */}
+        <div className={`${theme.card} rounded-lg ${theme.cardShadow} p-6 mb-6 transition-all duration-300 transform hover:scale-[1.01]`}>          
           {/* Text display */}
           <div 
             className={`p-4 rounded-md border ${theme.accent} min-h-36 max-h-56 overflow-y-auto mb-8 transition-all duration-300`}
@@ -661,7 +746,7 @@ const TypingTest: React.FC = () => {
             {!testActive && !testCompleted ? (
               <p>Click here and start typing to begin test</p>
             ) : testActive ? (
-              <p>Type the text above</p>
+              <p>Type the words above as fast and accurately as possible</p>
             ) : (
               <p>Test completed!</p>
             )}
@@ -673,7 +758,7 @@ const TypingTest: React.FC = () => {
               onClick={resetTest}
               className={`${theme.button} text-white py-2 px-6 rounded-md transition-all duration-200 transform hover:scale-105 ${theme.cardShadow}`}
             >
-              Reset
+              🔄 New Words
             </button>
           </div>
         </div>
@@ -692,14 +777,21 @@ const TypingTest: React.FC = () => {
                 <p className={`text-4xl font-bold ${theme.highlightText} animate-[pulse_2s_infinite]`}>{accuracy}<span className="text-sm font-normal">%</span></p>
               </div>
             </div>
-            <div className="mt-6">
-              <button 
-                onClick={resetTest}
-                className={`${theme.button} text-white py-3 px-8 rounded-md text-lg transition-all duration-200 transform hover:scale-105 ${theme.cardShadow}`}
-              >
-                Try Again
-              </button>
+            <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
+              <div className="text-center">
+                <p className={`font-bold ${theme.highlightText}`}>{correctChars}</p>
+                <p className="opacity-70">Correct</p>
+              </div>
+              <div className="text-center">
+                <p className={`font-bold ${theme.highlightText}`}>{incorrectChars}</p>
+                <p className="opacity-70">Incorrect</p>
+              </div>
+              <div className="text-center">
+                <p className={`font-bold ${theme.highlightText}`}>{Math.round((correctChars / 5))}</p>
+                <p className="opacity-70">Words Typed</p>
+              </div>
             </div>
+            
           </div>
         )}
       </div>
