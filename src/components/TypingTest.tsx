@@ -43,6 +43,8 @@ const TypingTest: React.FC = () => {
   const [wpm, setWpm] = useState<number>(0);
   const [accuracy, setAccuracy] = useState<number>(100);
   const [wordStatus, setWordStatus] = useState<('correct' | 'incorrect' | 'pending')[]>([]);
+  // Overlay visibility when user hasn't started (click) yet
+  const [overlayVisible, setOverlayVisible] = useState<boolean>(true);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +199,7 @@ const TypingTest: React.FC = () => {
     setAccuracy(100);
     setWordStatus(new Array(randomWords.length).fill('pending'));
     resultSavedRef.current = false;
+    setOverlayVisible(true);
     
     if (inputRef.current) {
       inputRef.current.focus();
@@ -219,6 +222,7 @@ const TypingTest: React.FC = () => {
     setAccuracy(100);
     setWordStatus(new Array(randomWords.length).fill('pending'));
     resultSavedRef.current = false;
+    setOverlayVisible(true);
   };
 
   // Render word with character-by-character coloring
@@ -352,17 +356,28 @@ const TypingTest: React.FC = () => {
                   ? 'ring-2 ring-yellow-500/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]' 
                   : 'ring-2 ring-yellow-600/50'
               }`}
-              onClick={() => inputRef.current?.focus()}
+              onClick={() => {
+                // hide the overlay immediately on click and focus the hidden input
+                setOverlayVisible(false);
+                inputRef.current?.focus();
+              }}
               tabIndex={0}
             >
               <div className="text-2xl leading-loose font-mono h-[220px] overflow-hidden">
                 {wordsToType.slice(0, 150).map((word, index) => renderWord(word, index))}
               </div>
               
-              {/* Click to focus overlay */}
+              {/* Click to focus overlay (will hide on container click or when test starts) */}
               {!testActive && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="bg-zinc-900/95 border-2 border-yellow-500/60 rounded-2xl px-8 py-4 backdrop-blur-sm animate-pulse-soft">
+                <div
+                  className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ease-out ${
+                    overlayVisible ? 'opacity-100 scale-100' : 'opacity-0 -translate-y-2'
+                  }`}
+                >
+                  <div className={`bg-zinc-900/95 border-2 border-yellow-500/60 rounded-2xl px-8 py-4 backdrop-blur-sm ${
+                    overlayVisible ? 'animate-pulse-soft' : ''
+                  }`}
+                  >
                     <div className="flex items-center gap-3 text-yellow-400">
                       <Keyboard className="w-6 h-6" />
                       <span className="text-lg font-semibold">Click here to start typing</span>
