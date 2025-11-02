@@ -2,6 +2,9 @@
 
 Try it here: https://word-rush-six.vercel.app/
 
+
+Update 13/06/2025: Completely rewrite the game mechanics. Words are now randomized for each test that you take.
+
 ![image](https://github.com/user-attachments/assets/59f66a7d-0c06-4141-8018-f027a726cdc7)
 
 ![image](https://github.com/user-attachments/assets/b0a8e8a7-7695-4364-95ab-07fe4184a75f)
