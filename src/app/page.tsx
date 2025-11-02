@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Navigation from '@/components/Navigation';
 
 // Use dynamic import to avoid hydration issues
 const TypingTest = dynamic(() => import('../components/TypingTest'), {
@@ -9,9 +10,12 @@ const TypingTest = dynamic(() => import('../components/TypingTest'), {
 
 export default function Home() {
   return (
-    <main className="min-h-screen w-full font-['Inter',sans-serif]">
-      <TypingTest />
-    </main>
+    <>
+      <Navigation />
+      <main className="min-h-screen w-full font-['Inter',sans-serif] pt-20">
+        <TypingTest />
+      </main>
+    </>
   );
 }
 
