@@ -7,6 +7,20 @@ import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { getUserStats } from '@/lib/typingResults';
 import type { UserStats } from '@/types/database';
+import Navigation from '@/components/Navigation';
+import {
+  User as UserIcon,
+  Mail,
+  CalendarDays,
+  ShieldCheck,
+  ShieldAlert,
+  LogOut,
+  Activity,
+  Zap,
+  Target,
+  History,
+  ArrowRight,
+} from 'lucide-react';
 
 interface AccountClientProps {
   user: User;
@@ -37,7 +51,6 @@ export default function AccountClient({ user }: AccountClientProps) {
     router.refresh();
   };
 
-  // Get username from metadata or use email
   const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
   const email = user.email || '';
   const createdAt = new Date(user.created_at).toLocaleDateString('en-US', {
@@ -47,221 +60,196 @@ export default function AccountClient({ user }: AccountClientProps) {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-indigo-600 hover:text-indigo-700 transition">
-            WordRush
-          </Link>
-          <button
-            onClick={handleSignOut}
-            disabled={loading}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50"
-          >
-            {loading ? 'Signing out...' : 'Sign Out'}
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Profile Header */}
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-12">
-            <div className="flex items-center space-x-6">
-              {/* Default Avatar */}
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <svg
-                  className="w-12 h-12 text-indigo-600"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
+    <div className="min-h-screen bg-zinc-900 text-zinc-100">
+      <Navigation />
+      <main className="pt-24 pb-12 px-4">
+        <div className="max-w-6xl mx-auto space-y-10">
+          <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)]">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-3xl font-semibold text-zinc-900 shadow-lg">
+                  {username.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Profile</p>
+                  <h1 className="text-3xl font-bold text-zinc-50 mt-1">{username}</h1>
+                  <p className="text-zinc-400 text-sm mt-1">Member since {createdAt}</p>
+                </div>
               </div>
 
-              {/* User Info */}
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white mb-2">{username}</h1>
-                <p className="text-indigo-100">{email}</p>
+              <div className="flex flex-wrap gap-3 lg:ml-auto">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-5 py-2.5 font-semibold hover:bg-yellow-400 transition shadow-lg shadow-yellow-500/20"
+                >
+                  <Zap className="w-4 h-4" />
+                  Take Test
+                </Link>
+                <Link
+                  href="/results"
+                  className="inline-flex items-center gap-2 rounded-xl bg-zinc-900/80 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-100 hover:bg-zinc-900 transition"
+                >
+                  <History className="w-4 h-4" />
+                  View Results
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-300 hover:bg-zinc-700 transition disabled:opacity-50"
+                >
+                  <LogOut className="w-4 h-4" />
+                  {loading ? 'Signing out...' : 'Sign Out'}
+                </button>
               </div>
             </div>
-          </div>
 
-          {/* Account Details */}
-          <div className="px-8 py-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Information</h2>
-
-            <div className="space-y-6">
-              {/* User ID */}
-              <div className="border-b border-gray-200 pb-4">
-                <label className="block text-sm font-medium text-gray-500 mb-1">User ID</label>
-                <p className="text-gray-900 font-mono text-sm bg-gray-50 px-3 py-2 rounded">
-                  {user.id}
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+                <div className="flex items-center gap-3 text-zinc-400 text-sm">
+                  <UserIcon className="w-4 h-4 text-zinc-500" />
+                  Username
+                </div>
+                <p className="mt-2 text-lg font-semibold text-zinc-100">{username}</p>
+              </div>
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+                <div className="flex items-center gap-3 text-zinc-400 text-sm">
+                  <Mail className="w-4 h-4 text-zinc-500" />
+                  Email
+                </div>
+                <p className="mt-2 text-lg font-mono text-zinc-200 break-all">{email}</p>
+              </div>
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+                <div className="flex items-center gap-3 text-zinc-400 text-sm">
+                  <CalendarDays className="w-4 h-4 text-zinc-500" />
+                  Account ID
+                </div>
+                <p className="mt-2 text-xs font-mono text-zinc-400 break-all">{user.id}</p>
+              </div>
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+                <div className="flex items-center gap-3 text-zinc-400 text-sm">
+                  {user.email_confirmed_at ? (
+                    <ShieldCheck className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <ShieldAlert className="w-4 h-4 text-yellow-400" />
+                  )}
+                  Email Status
+                </div>
+                <p className={`mt-2 text-lg font-semibold ${user.email_confirmed_at ? 'text-green-400' : 'text-yellow-300'}`}>
+                  {user.email_confirmed_at ? 'Verified' : 'Not Verified'}
                 </p>
               </div>
-
-              {/* Email */}
-              <div className="border-b border-gray-200 pb-4">
-                <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
-                <p className="text-gray-900">{email}</p>
-              </div>
-
-              {/* Username */}
-              <div className="border-b border-gray-200 pb-4">
-                <label className="block text-sm font-medium text-gray-500 mb-1">Username</label>
-                <p className="text-gray-900">{username}</p>
-              </div>
-
-              {/* Account Created */}
-              <div className="border-b border-gray-200 pb-4">
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Account Created
-                </label>
-                <p className="text-gray-900">{createdAt}</p>
-              </div>
-
-              {/* Email Verified */}
-              <div className="pb-4">
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Email Verified
-                </label>
-                <div className="flex items-center">
-                  {user.email_confirmed_at ? (
-                    <>
-                      <svg
-                        className="w-5 h-5 text-green-500 mr-2"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span className="text-green-700 font-medium">Verified</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-5 h-5 text-yellow-500 mr-2"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span className="text-yellow-700 font-medium">Not Verified</span>
-                    </>
-                  )}
-                </div>
-              </div>
             </div>
+          </section>
 
-            {/* Action Buttons */}
-            <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-              <Link
-                href="/"
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition text-center"
+          <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)]">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Performance</p>
+                <h2 className="mt-2 text-2xl font-bold text-zinc-50">Your Typing Stats</h2>
+                <p className="text-zinc-400 mt-1">Lifetime insights from your WordRush sessions</p>
+              </div>
+              <button
+                onClick={loadStats}
+                className="self-start inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition"
               >
-                Start Typing Test
-              </Link>
-              <Link
-                href="/results"
-                className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition text-center"
-              >
-                View All Results
-              </Link>
+                Refresh stats
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-        </div>
 
-        {/* Stats Section */}
-        <div className="mt-8 bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Stats</h2>
-          {loadingStats ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading statistics...</p>
-            </div>
-          ) : stats && stats.totalTests > 0 ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalTests}</div>
-                  <div className="text-gray-700 font-medium">Tests Completed</div>
-                </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
-                  <div className="text-3xl font-bold text-green-600 mb-2">{stats.averageWpm}</div>
-                  <div className="text-gray-700 font-medium">Avg. WPM</div>
-                </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">{stats.averageAccuracy}%</div>
-                  <div className="text-gray-700 font-medium">Avg. Accuracy</div>
-                </div>
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl">
-                  <div className="text-3xl font-bold text-yellow-600 mb-2">{stats.highestWpm}</div>
-                  <div className="text-gray-700 font-medium">Best WPM</div>
-                </div>
+            {loadingStats ? (
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
+                <div className="h-12 w-12 border-2 border-zinc-700 border-t-yellow-500 rounded-full animate-spin" />
+                <p className="mt-4 text-sm">Crunching numbers...</p>
               </div>
-
-              {/* Recent Tests Preview */}
-              {stats.recentTests.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Recent Tests</h3>
-                  <div className="space-y-3">
-                    {stats.recentTests.slice(0, 3).map((result) => (
-                      <div
-                        key={result.id}
-                        className="flex items-center justify-between bg-gray-50 p-4 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="text-2xl font-bold text-indigo-600">{result.wpm}</div>
-                          <div>
-                            <div className="text-sm text-gray-500">WPM</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <div>
-                            <div className="text-sm text-gray-700">{result.accuracy}% accuracy</div>
-                            <div className="text-xs text-gray-500">
-                              {result.duration}s • {result.theme}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(result.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+            ) : stats && stats.totalTests > 0 ? (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                    <div className="flex items-center justify-between text-sm text-zinc-500">
+                      Total Tests
+                      <Activity className="w-4 h-4 text-zinc-600" />
+                    </div>
+                    <p className="mt-3 text-3xl font-bold text-zinc-50">{stats.totalTests}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Sessions recorded</p>
                   </div>
-                  <Link
-                    href="/results"
-                    className="mt-4 block text-center text-indigo-600 hover:text-indigo-700 font-medium"
-                  >
-                    View all results →
-                  </Link>
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                    <div className="flex items-center justify-between text-sm text-zinc-500">
+                      Average WPM
+                      <Zap className="w-4 h-4 text-yellow-400" />
+                    </div>
+                    <p className="mt-3 text-3xl font-bold text-yellow-400">{stats.averageWpm}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Across all durations</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                    <div className="flex items-center justify-between text-sm text-zinc-500">
+                      Average Accuracy
+                      <Target className="w-4 h-4 text-green-400" />
+                    </div>
+                    <p className="mt-3 text-3xl font-bold text-green-400">{stats.averageAccuracy}%</p>
+                    <p className="text-xs text-zinc-500 mt-1">Precision matters</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                    <div className="flex items-center justify-between text-sm text-zinc-500">
+                      Personal Best
+                      <History className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <p className="mt-3 text-3xl font-bold text-purple-400">{stats.highestWpm}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Highest recorded WPM</p>
+                  </div>
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500 italic mb-4">
-                Start taking tests to see your statistics!
-              </p>
-              <Link
-                href="/"
-                className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
-              >
-                Take Your First Test
-              </Link>
-            </div>
-          )}
+
+                {stats.recentTests.length > 0 && (
+                  <div className="mt-10">
+                    <h3 className="text-lg font-semibold text-zinc-200 mb-4">Recent Sessions</h3>
+                    <div className="space-y-3">
+                      {stats.recentTests.slice(0, 4).map((result) => (
+                        <div
+                          key={result.id}
+                          className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4 rounded-2xl border border-zinc-700/50 bg-zinc-900/50 px-5 py-4"
+                        >
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">WPM</p>
+                            <p className="text-2xl font-semibold text-yellow-400">{result.wpm}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Accuracy</p>
+                            <p className="text-lg font-medium text-green-400">{result.accuracy}%</p>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Session</p>
+                            <p className="text-sm text-zinc-300">{result.duration}s • {result.theme}</p>
+                          </div>
+                          <div className="text-sm text-zinc-500 justify-self-end">
+                            {new Date(result.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Link
+                      href="/results"
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition"
+                    >
+                      View full history
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400">
+                <Activity className="w-12 h-12 text-zinc-600" />
+                <p className="mt-4 text-sm">Start taking tests to unlock your statistics.</p>
+                <Link
+                  href="/"
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-6 py-2.5 font-semibold hover:bg-yellow-400 transition"
+                >
+                  <Zap className="w-4 h-4" />
+                  Take your first test
+                </Link>
+              </div>
+            )}
+          </section>
         </div>
       </main>
     </div>

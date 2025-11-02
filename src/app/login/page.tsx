@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Navigation from '@/components/Navigation';
+import { LogIn, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -36,72 +38,81 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">WordRush</h1>
-          <p className="text-gray-600">Sign in to your account</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
+    <div className="min-h-screen bg-zinc-900 text-zinc-100">
+      <Navigation />
+      <div className="pt-24 pb-16 px-4 flex items-center justify-center">
+        <div className="w-full max-w-lg">
+          <div className="rounded-3xl border border-zinc-700/60 bg-zinc-800/60 p-10 backdrop-blur-md shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]">
+            <div className="text-center mb-10">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/90 text-zinc-900">
+                <LogIn className="w-5 h-5" />
+              </div>
+              <h1 className="mt-6 text-3xl font-bold text-zinc-50">Welcome back</h1>
+              <p className="mt-2 text-sm text-zinc-400">Sign in to continue your typing journey</p>
             </div>
-          )}
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-gray-900"
-              placeholder="you@example.com"
-            />
+            <form onSubmit={handleLogin} className="space-y-6">
+              {error && (
+                <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-zinc-300">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition"
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-zinc-300">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-2xl bg-yellow-500/90 px-4 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Signing in…' : 'Sign in'}
+              </button>
+            </form>
+
+            <div className="mt-8 text-center text-sm text-zinc-400">
+              <p>
+                Don't have an account?{' '}
+                <Link href="/register" className="font-semibold text-zinc-100 hover:text-yellow-400">
+                  Create one
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-6 text-center">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300">
+                <ArrowLeft className="w-4 h-4" />
+                Back to typing test
+              </Link>
+            </div>
           </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-gray-900"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-semibold">
-              Sign up
-            </Link>
-          </p>
-        </div>
-
-        <div className="mt-4 text-center">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
-            ← Back to typing test
-          </Link>
         </div>
       </div>
     </div>

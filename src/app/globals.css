@@ -109,6 +109,15 @@ html {
   }
 }
 
+@keyframes caret-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
 }
@@ -123,6 +132,10 @@ html {
 
 .animate-pulse-soft {
   animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-caret {
+  animation: caret-blink 1s steps(1) infinite;
 }
 
 /* Text effects */

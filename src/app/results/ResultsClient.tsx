@@ -7,6 +7,8 @@ import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { getUserResults, deleteResult } from '@/lib/typingResults';
 import type { TypingResult } from '@/types/database';
+import Navigation from '@/components/Navigation';
+import { ArrowRight, Trash2 } from 'lucide-react';
 
 interface ResultsClientProps {
   user: User;
@@ -28,12 +30,6 @@ export default function ResultsClient({ user }: ResultsClientProps) {
     const userResults = await getUserResults(100); // Get last 100 results
     setResults(userResults);
     setLoading(false);
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
   };
 
   const handleDelete = async (resultId: string) => {
@@ -66,170 +62,126 @@ export default function ResultsClient({ user }: ResultsClientProps) {
 
   const getThemeColor = (theme: string) => {
     const colors: { [key: string]: string } = {
-      light: 'bg-blue-100 text-blue-800',
-      dark: 'bg-gray-700 text-gray-100',
-      sepia: 'bg-amber-100 text-amber-800',
-      neon: 'bg-pink-100 text-pink-800',
-      ocean: 'bg-cyan-100 text-cyan-800',
+      light: 'border-blue-400/50 bg-blue-400/10 text-blue-200',
+      dark: 'border-zinc-600 bg-zinc-700/40 text-zinc-200',
+      sepia: 'border-amber-500/60 bg-amber-500/10 text-amber-200',
+      neon: 'border-pink-500/60 bg-pink-500/10 text-pink-200',
+      ocean: 'border-cyan-500/60 bg-cyan-500/10 text-cyan-200',
     };
-    return colors[theme] || 'bg-gray-100 text-gray-800';
+    return colors[theme] || 'border-zinc-600 bg-zinc-700/40 text-zinc-200';
   };
 
   const getWpmColor = (wpm: number) => {
-    if (wpm >= 80) return 'text-green-600';
-    if (wpm >= 60) return 'text-blue-600';
-    if (wpm >= 40) return 'text-yellow-600';
-    return 'text-gray-600';
+    if (wpm >= 80) return 'text-yellow-400';
+    if (wpm >= 60) return 'text-green-400';
+    if (wpm >= 40) return 'text-blue-400';
+    return 'text-zinc-400';
   };
 
   const getAccuracyColor = (accuracy: number) => {
-    if (accuracy >= 95) return 'text-green-600';
-    if (accuracy >= 85) return 'text-blue-600';
-    if (accuracy >= 75) return 'text-yellow-600';
-    return 'text-red-600';
+    if (accuracy >= 95) return 'text-green-400';
+    if (accuracy >= 85) return 'text-blue-400';
+    if (accuracy >= 75) return 'text-orange-400';
+    return 'text-red-400';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-indigo-600 hover:text-indigo-700 transition">
-            WordRush
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/account"
-              className="px-4 py-2 text-gray-700 hover:text-indigo-600 transition font-medium"
-            >
-              Account
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-zinc-900 text-zinc-100">
+      <Navigation />
+      <main className="max-w-6xl mx-auto px-4 pt-24 pb-12">
+        <div className="rounded-3xl border border-zinc-700/50 bg-zinc-800/60 p-6 md:p-10 backdrop-blur-sm shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Test History</h1>
-              <p className="text-gray-600 mt-2">View all your typing test results</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">History</p>
+              <h1 className="mt-2 text-3xl font-bold text-zinc-50">Test results</h1>
+              <p className="mt-2 text-sm text-zinc-400">Review your recent sessions and track progress.</p>
             </div>
             <Link
               href="/"
-              className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition"
+              className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400"
             >
-              New Test
+              Start new test
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading results...</p>
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+              <div className="h-12 w-12 rounded-full border-2 border-zinc-700 border-t-yellow-500 animate-spin" />
+              <p className="mt-4 text-sm">Loading results…</p>
             </div>
           ) : results.length === 0 ? (
-            <div className="text-center py-12">
-              <svg
-                className="w-24 h-24 text-gray-400 mx-auto mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No results yet</h3>
-              <p className="text-gray-600 mb-6">
-                Take your first typing test to see your results here!
-              </p>
+            <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400">
+              <p className="text-sm">No results yet.</p>
+              <p className="mt-1 text-xs text-zinc-500">Run a test to populate your history.</p>
               <Link
                 href="/"
-                className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400"
               >
-                Start Typing Test
+                Take your first test
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b-2 border-gray-200">
+                <thead className="border-b border-zinc-700/60 bg-zinc-900/40 text-xs uppercase tracking-[0.3em] text-zinc-500">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      WPM
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Accuracy
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Theme
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Characters
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">WPM</th>
+                    <th className="px-6 py-4">Accuracy</th>
+                    <th className="px-6 py-4">Duration</th>
+                    <th className="px-6 py-4">Theme</th>
+                    <th className="px-6 py-4">Characters</th>
+                    <th className="px-6 py-4">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-zinc-800/80">
                   {results.map((result) => (
-                    <tr key={result.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <tr key={result.id} className="transition-colors hover:bg-zinc-900/40">
+                      <td className="px-6 py-5 text-sm text-zinc-400">
                         {formatDate(result.created_at)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-2xl font-bold ${getWpmColor(result.wpm)}`}>
+                      <td className="px-6 py-5">
+                        <span className={`text-2xl font-semibold ${getWpmColor(result.wpm)}`}>
                           {result.wpm}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-5">
                         <span className={`text-lg font-semibold ${getAccuracyColor(result.accuracy)}`}>
                           {result.accuracy}%
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-5 text-sm text-zinc-300">
                         {result.duration}s
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-5">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getThemeColor(
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] ${getThemeColor(
                             result.theme
                           )}`}
                         >
                           {result.theme}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex flex-col">
-                          <span className="text-green-600">✓ {result.correct_chars}</span>
-                          <span className="text-red-600">✗ {result.incorrect_chars}</span>
+                      <td className="px-6 py-5 text-sm text-zinc-400">
+                        <div className="flex items-center gap-4">
+                          <div className="text-green-400 text-xs uppercase tracking-[0.2em]">
+                            ✓ {result.correct_chars}
+                          </div>
+                          <div className="text-red-400 text-xs uppercase tracking-[0.2em]">
+                            ✗ {result.incorrect_chars}
+                          </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-6 py-5 text-sm">
                         <button
                           onClick={() => handleDelete(result.id)}
                           disabled={deleting === result.id}
-                          className="text-red-600 hover:text-red-800 disabled:opacity-50 font-medium"
+                          className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 px-3 py-1.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-40"
                         >
-                          {deleting === result.id ? 'Deleting...' : 'Delete'}
+                          <Trash2 className="w-4 h-4" />
+                          {deleting === result.id ? 'Deleting…' : 'Delete'}
                         </button>
                       </td>
                     </tr>
@@ -241,30 +193,30 @@ export default function ResultsClient({ user }: ResultsClientProps) {
 
           {/* Summary Stats */}
           {results.length > 0 && (
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Summary</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Total Tests</div>
-                  <div className="text-2xl font-bold text-blue-600">{results.length}</div>
+            <div className="mt-10 border-t border-zinc-700/60 pt-8">
+              <h3 className="text-lg font-semibold text-zinc-200 mb-5">Summary</h3>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total tests</p>
+                  <p className="mt-3 text-2xl font-semibold text-zinc-100">{results.length}</p>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Highest WPM</div>
-                  <div className="text-2xl font-bold text-green-600">
+                <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Highest wpm</p>
+                  <p className="mt-3 text-2xl font-semibold text-yellow-400">
                     {Math.max(...results.map((r) => r.wpm))}
-                  </div>
+                  </p>
                 </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Best Accuracy</div>
-                  <div className="text-2xl font-bold text-purple-600">
+                <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Best accuracy</p>
+                  <p className="mt-3 text-2xl font-semibold text-green-400">
                     {Math.max(...results.map((r) => r.accuracy))}%
-                  </div>
+                  </p>
                 </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600">Total Characters</div>
-                  <div className="text-2xl font-bold text-yellow-600">
+                <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total characters</p>
+                  <p className="mt-3 text-2xl font-semibold text-zinc-100">
                     {results.reduce((sum, r) => sum + r.correct_chars + r.incorrect_chars, 0)}
-                  </div>
+                  </p>
                 </div>
               </div>
             </div>

@@ -225,60 +225,73 @@ const TypingTest: React.FC = () => {
   const renderWord = (word: string, index: number) => {
     const isCurrentWord = index === currentWordIndex;
     const status = wordStatus[index];
-    
-    if (index < currentWordIndex) {
-      // Past words
-      return (
-        <span
-          key={index}
-          className={`${
-            status === 'correct' 
-              ? 'text-zinc-300' 
-              : 'text-red-400'
-          } mr-3 inline-block`}
-        >
-          {word}
-        </span>
-      );
-    } else if (isCurrentWord) {
-      // Current word - character by character
-      return (
-        <span key={index} className="mr-3 relative inline-block">
-          {word.split('').map((char, charIndex) => {
-            const typedChar = currentInput[charIndex];
-            let className = 'text-zinc-500'; // Default (not typed yet)
-            let highlightClass = '';
-            
-            if (typedChar !== undefined) {
-              // Already typed
-              className = typedChar === char ? 'text-zinc-100' : 'text-red-400';
-            } else if (charIndex === currentInput.length) {
-              // Current character to type - highlight it
-              highlightClass = 'bg-zinc-700 rounded px-0.5';
-            }
-            
-            return (
-              <span key={charIndex} className={`${className} ${highlightClass}`}>
-                {char}
+
+    const baseWidthCh = Math.max(word.length, 1);
+    const displayWidthCh = isCurrentWord
+      ? Math.max(baseWidthCh, Math.max(currentInput.length, 1))
+      : baseWidthCh;
+    const cursorPositionCh = isCurrentWord ? Math.min(currentInput.length, displayWidthCh) : 0;
+
+    const wordElement = (
+      <span 
+        className="relative inline-block whitespace-nowrap align-top"
+        style={{
+          width: `${displayWidthCh}ch`,
+          marginRight: '0.75rem',
+        }}
+      >
+        {isCurrentWord ? (
+          // Current word - character by character
+          <>
+            {word.split('').map((char, charIndex) => {
+              const typedChar = currentInput[charIndex];
+              let className = 'text-zinc-500'; // Default (not typed yet)
+              let highlightClass = '';
+
+              if (typedChar !== undefined) {
+                // Already typed
+                className = typedChar === char ? 'text-zinc-100' : 'text-red-400';
+              } else if (charIndex === currentInput.length) {
+                // Current character to type - highlight it (no padding to avoid layout shift)
+                highlightClass = 'bg-zinc-700/80 rounded-sm outline outline-1 outline-zinc-700/60';
+              }
+
+              return (
+                <span key={charIndex} className={`${className} ${highlightClass}`}>
+                  {char}
+                </span>
+              );
+            })}
+            {/* Extra characters typed */}
+            {currentInput.length > word.length && (
+              <span className="text-red-400">
+                {currentInput.slice(word.length)}
               </span>
-            );
-          })}
-          {/* Extra characters typed */}
-          {currentInput.length > word.length && (
-            <span className="text-red-400">
-              {currentInput.slice(word.length)}
-            </span>
-          )}
-        </span>
-      );
-    } else {
-      // Future words
-      return (
-        <span key={index} className="text-zinc-600 mr-3 inline-block">
-          {word}
-        </span>
-      );
-    }
+            )}
+            <span
+              className="pointer-events-none absolute w-[2px] h-[1.4em] bg-yellow-400 rounded-full animate-caret"
+              style={{
+                left: `calc(${cursorPositionCh}ch)`,
+                top: '50%',
+                transform: 'translate(-1px, -50%)',
+              }}
+            />
+          </>
+        ) : index < currentWordIndex ? (
+          // Past words
+          <span className={status === 'correct' ? 'text-zinc-300' : 'text-red-400'}>
+            {word}
+          </span>
+        ) : (
+          // Future words
+          <span className="text-zinc-600">
+            {word}
+          </span>
+        )}
+      </span>
+    );
+    
+    return <React.Fragment key={index}>{wordElement}</React.Fragment>;
   };
 
   return (
@@ -331,14 +344,32 @@ const TypingTest: React.FC = () => {
           </div>
 
           {/* Words Display */}
-          <div
-            ref={containerRef}
-            className="bg-zinc-800/30 rounded-2xl p-12 min-h-[280px] focus:outline-none focus:ring-2 focus:ring-yellow-600/50 cursor-text"
-            onClick={() => inputRef.current?.focus()}
-            tabIndex={0}
-          >
-            <div className="text-2xl leading-loose font-mono flex flex-wrap overflow-hidden max-h-[320px]">
-              {wordsToType.slice(0, 100).map((word, index) => renderWord(word, index))}
+          <div className="relative">
+            <div
+              ref={containerRef}
+              className={`bg-zinc-800/30 rounded-2xl p-12 min-h-[280px] focus:outline-none cursor-text overflow-hidden transition-all ${
+                !testActive 
+                  ? 'ring-2 ring-yellow-500/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]' 
+                  : 'ring-2 ring-yellow-600/50'
+              }`}
+              onClick={() => inputRef.current?.focus()}
+              tabIndex={0}
+            >
+              <div className="text-2xl leading-loose font-mono h-[220px] overflow-hidden">
+                {wordsToType.slice(0, 150).map((word, index) => renderWord(word, index))}
+              </div>
+              
+              {/* Click to focus overlay */}
+              {!testActive && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="bg-zinc-900/95 border-2 border-yellow-500/60 rounded-2xl px-8 py-4 backdrop-blur-sm animate-pulse-soft">
+                    <div className="flex items-center gap-3 text-yellow-400">
+                      <Keyboard className="w-6 h-6" />
+                      <span className="text-lg font-semibold">Click here to start typing</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -355,13 +386,6 @@ const TypingTest: React.FC = () => {
             autoCorrect="off"
             spellCheck="false"
           />
-
-          {/* Instructions */}
-          {!testActive && (
-            <div className="text-center text-zinc-600 text-sm animate-pulse-soft">
-              Click above and start typing to begin...
-            </div>
-          )}
         </div>
       ) : (
         /* Results Screen */
