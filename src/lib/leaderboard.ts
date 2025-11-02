@@ -51,10 +51,38 @@ export async function getLeaderboard(
   }
 
   // Transform the data to match our interface
-  const leaderboard: LeaderboardEntry[] = (data || []).map((entry: any, index: number) => {
-    const username = entry.profiles?.username || `User ${entry.user_id.slice(0, 8)}`;
-    const email = entry.profiles?.email || '';
-    
+  // If profiles join worked, we'll already have username/email in entry.profiles
+  // But sometimes the join can fail or not return profiles — fetch profiles for all user_ids as a reliable fallback
+  const entries = (data || []) as any[];
+
+  // Collect unique user IDs
+  const userIds = Array.from(new Set(entries.map((e) => e.user_id).filter(Boolean)));
+
+  let profileMap: Record<string, { username?: string; email?: string }> = {};
+
+  if (userIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, email')
+      .in('id', userIds);
+
+    if (!profilesError && profilesData) {
+      profileMap = (profilesData as any[]).reduce((acc, p) => {
+        acc[p.id] = { username: p.username, email: p.email };
+        return acc;
+      }, {} as Record<string, { username?: string; email?: string }>);
+    }
+  }
+
+  const leaderboard: LeaderboardEntry[] = entries.map((entry: any, index: number) => {
+    const usernameFromJoin = entry.profiles?.username;
+    const emailFromJoin = entry.profiles?.email;
+
+    const profile = profileMap[entry.user_id] || {};
+
+    const username = usernameFromJoin || profile.username || `User ${entry.user_id?.slice(0, 8)}`;
+    const email = emailFromJoin || profile.email || '';
+
     return {
       id: entry.id,
       user_id: entry.user_id,

@@ -45,11 +45,27 @@ export default function AccountClient({ user }: AccountClientProps) {
   };
 
   const handleSignOut = async () => {
+    // This function will be called after the user confirms sign-out in the toast
     setLoading(true);
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    try {
+      await supabase.auth.signOut();
+
+      // Do NOT reload. Rely on the global auth listener (e.g. in Navigation) to update UI.
+      // Show a small success toast (brief) and stop loading.
+      setShowConfirm(false);
+      setShowToast({ message: 'Signed out', type: 'success' });
+      setTimeout(() => setShowToast(null), 2500);
+    } catch (err) {
+      console.error('Error signing out:', err);
+      setShowToast({ message: 'Sign out failed', type: 'error' });
+      setTimeout(() => setShowToast(null), 3000);
+      setLoading(false);
+    }
   };
+
+  // Local state for confirmation toast
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
   const email = user.email || '';
@@ -93,7 +109,7 @@ export default function AccountClient({ user }: AccountClientProps) {
                   View Results
                 </Link>
                 <button
-                  onClick={handleSignOut}
+                  onClick={() => setShowConfirm(true)}
                   disabled={loading}
                   className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-300 hover:bg-zinc-700 transition disabled:opacity-50"
                 >
@@ -140,6 +156,41 @@ export default function AccountClient({ user }: AccountClientProps) {
               </div>
             </div>
           </section>
+
+          {/* Confirmation toast (simple) */}
+          {showConfirm && (
+            <div className="fixed right-6 bottom-6 z-50 w-[320px] rounded-xl bg-zinc-900/95 border border-zinc-700/60 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-zinc-100">Confirm sign out</p>
+                  <p className="text-xs text-zinc-400 mt-1">Are you sure you want to sign out?</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    disabled={loading}
+                    className="px-3 py-1 rounded-md bg-yellow-500 text-zinc-900 text-sm font-semibold hover:bg-yellow-400 transition disabled:opacity-60"
+                  >
+                    {loading ? 'Signing out...' : 'Sign out'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Small ephemeral toast */}
+          {showToast && (
+            <div className="fixed right-6 bottom-6 z-50 w-[220px] rounded-lg p-3 shadow-lg "
+                 style={{ background: showToast.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="text-sm font-medium text-zinc-100">{showToast.message}</div>
+            </div>
+          )}
 
           <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)]">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
