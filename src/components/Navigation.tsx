@@ -47,6 +47,12 @@ export default function Navigation() {
           <h1 className="text-2xl font-bold text-indigo-600">WordRush</h1>
           
           <div className="flex items-center gap-4">
+            <Link
+              href="/leaderboard"
+              className="px-4 py-2 text-gray-700 hover:text-indigo-600 transition font-medium flex items-center gap-1"
+            >
+              🏆 Leaderboard
+            </Link>
             {user ? (
               <>
                 <span className="text-gray-700 hidden sm:inline">
