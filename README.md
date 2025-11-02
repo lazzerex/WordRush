@@ -1,3 +1,5 @@
+# WordRush - Typing Test Application
+
 Try it here: https://word-rush-six.vercel.app/
 
 ![image](https://github.com/user-attachments/assets/59f66a7d-0c06-4141-8018-f027a726cdc7)
@@ -10,44 +12,157 @@ Try it here: https://word-rush-six.vercel.app/
 
 ![image](https://github.com/user-attachments/assets/a2362b68-c2de-4f79-858c-b8b1aef18d10)
 
+## Features
 
+- 🎯 **Interactive Typing Test** - Test your typing speed with customizable duration (15s, 30s, 60s, 120s)
+- 🎨 **Multiple Themes** - Light, Dark, Sepia, Neon, and Ocean themes
+- 📊 **Real-time Stats** - Track WPM, accuracy, and errors as you type
+- 🔐 **User Authentication** - Register and login with Supabase
+- 👤 **User Accounts** - View your profile and account information
+- 📈 **Statistics Dashboard** - (Coming soon) Track your progress over time
 
+## Tech Stack
 
-
-
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Authentication**: Supabase Auth
+- **Database**: Supabase (PostgreSQL)
+- **Deployment**: Vercel
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ installed
+- A Supabase account (free tier is fine)
+- (Optional) DataGrip or any PostgreSQL client for database management
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/lazzerex/WordRush.git
+cd WordRush
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up Supabase:
+   - Follow the detailed guide in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
+   - Create a new Supabase project
+   - Get your project URL and anon key
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Configure environment variables:
+```bash
+# Copy the example file
+cp .env.example .env.local
 
-## Learn More
+# Edit .env.local and add your Supabase credentials
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-To learn more about Next.js, take a look at the following resources:
+5. Run the development server:
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+typing-test/
+├── src/
+│   ├── app/
+│   │   ├── account/          # User account page
+│   │   ├── login/            # Login page
+│   │   ├── register/         # Registration page
+│   │   ├── layout.tsx        # Root layout
+│   │   └── page.tsx          # Home page
+│   ├── components/
+│   │   ├── Navigation.tsx    # Navigation bar
+│   │   └── TypingTest.tsx    # Main typing test component
+│   └── lib/
+│       └── supabase/
+│           ├── client.ts     # Supabase client (browser)
+│           └── server.ts     # Supabase client (server)
+├── middleware.ts             # Auth middleware
+├── .env.local               # Environment variables (not in git)
+└── SUPABASE_SETUP.md        # Supabase setup guide
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Authentication Flow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Registration**: Users can create an account with email and password
+2. **Login**: Authenticated users can access their account page
+3. **Protected Routes**: Account page requires authentication
+4. **Session Management**: Automatic session refresh via middleware
+
+## Database Management with DataGrip
+
+See the [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) file for detailed instructions on:
+- Connecting DataGrip to your Supabase database
+- Running SQL queries
+- Viewing user data
+- Managing authentication tables
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push your code to GitHub
+2. Import your repository in Vercel
+3. Add environment variables in Vercel dashboard:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Update Supabase Authentication settings:
+   - Add your Vercel URL to Site URL
+   - Add redirect URLs for production
+
+## Future Features
+
+- [ ] Save typing test results to database
+- [ ] User statistics and progress tracking
+- [ ] Global leaderboard
+- [ ] Custom word lists
+- [ ] Practice mode with specific word categories
+- [ ] Social features (friends, challenges)
+- [ ] Dark mode preference persistence
+- [ ] Mobile app version
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## Support
+
+If you encounter any issues or have questions, please:
+1. Check the [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) guide
+2. Open an issue on GitHub
+3. Contact the maintainers
+
+## Acknowledgments
+
+- Built with [Next.js](https://nextjs.org)
+- Authentication powered by [Supabase](https://supabase.com)
+- Styled with [Tailwind CSS](https://tailwindcss.com)
+
+---
+
+Made with ❤️ by the WordRush team
