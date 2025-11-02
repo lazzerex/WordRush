@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
+import { getUserStats } from '@/lib/typingResults';
+import type { UserStats } from '@/types/database';
 
 interface AccountClientProps {
   user: User;
@@ -12,8 +14,21 @@ interface AccountClientProps {
 
 export default function AccountClient({ user }: AccountClientProps) {
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    setLoadingStats(true);
+    const userStats = await getUserStats();
+    setStats(userStats);
+    setLoadingStats(false);
+  };
 
   const handleSignOut = async () => {
     setLoading(true);
@@ -156,30 +171,97 @@ export default function AccountClient({ user }: AccountClientProps) {
               >
                 Start Typing Test
               </Link>
+              <Link
+                href="/results"
+                className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition text-center"
+              >
+                View All Results
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Stats Section (Placeholder for future features) */}
+        {/* Stats Section */}
         <div className="mt-8 bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Stats</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
-              <div className="text-3xl font-bold text-blue-600 mb-2">0</div>
-              <div className="text-gray-700 font-medium">Tests Completed</div>
+          {loadingStats ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading statistics...</p>
             </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
-              <div className="text-3xl font-bold text-green-600 mb-2">0</div>
-              <div className="text-gray-700 font-medium">Avg. WPM</div>
+          ) : stats && stats.totalTests > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalTests}</div>
+                  <div className="text-gray-700 font-medium">Tests Completed</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl">
+                  <div className="text-3xl font-bold text-green-600 mb-2">{stats.averageWpm}</div>
+                  <div className="text-gray-700 font-medium">Avg. WPM</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">{stats.averageAccuracy}%</div>
+                  <div className="text-gray-700 font-medium">Avg. Accuracy</div>
+                </div>
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl">
+                  <div className="text-3xl font-bold text-yellow-600 mb-2">{stats.highestWpm}</div>
+                  <div className="text-gray-700 font-medium">Best WPM</div>
+                </div>
+              </div>
+
+              {/* Recent Tests Preview */}
+              {stats.recentTests.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Recent Tests</h3>
+                  <div className="space-y-3">
+                    {stats.recentTests.slice(0, 3).map((result) => (
+                      <div
+                        key={result.id}
+                        className="flex items-center justify-between bg-gray-50 p-4 rounded-lg"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="text-2xl font-bold text-indigo-600">{result.wpm}</div>
+                          <div>
+                            <div className="text-sm text-gray-500">WPM</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div>
+                            <div className="text-sm text-gray-700">{result.accuracy}% accuracy</div>
+                            <div className="text-xs text-gray-500">
+                              {result.duration}s • {result.theme}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(result.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Link
+                    href="/results"
+                    className="mt-4 block text-center text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    View all results →
+                  </Link>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 italic mb-4">
+                Start taking tests to see your statistics!
+              </p>
+              <Link
+                href="/"
+                className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+              >
+                Take Your First Test
+              </Link>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl">
-              <div className="text-3xl font-bold text-purple-600 mb-2">0%</div>
-              <div className="text-gray-700 font-medium">Avg. Accuracy</div>
-            </div>
-          </div>
-          <p className="text-center text-gray-500 mt-6 italic">
-            Start taking tests to see your statistics!
-          </p>
+          )}
         </div>
       </main>
     </div>

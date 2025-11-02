@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { saveTypingResult } from '@/lib/typingResults';
 
 // Define theme type
 type ThemeOption = 'light' | 'dark' | 'sepia' | 'neon' | 'ocean';
@@ -157,6 +158,7 @@ const TypingTest: React.FC = () => {
 
   const textDisplayRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resultSavedRef = useRef<boolean>(false);
   
   // Theme options
   const themes: ThemeMap = {
@@ -329,6 +331,9 @@ const TypingTest: React.FC = () => {
       setTestActive(true);
       setTimeLeft(selectedDuration);
       
+      // Reset the result saved flag for new test
+      resultSavedRef.current = false;
+      
       // Trigger animation
       setShowAnimation(true);
       setAnimationKey(prev => prev + 1);
@@ -341,7 +346,12 @@ const TypingTest: React.FC = () => {
   };
 
   // Complete the test
-  const completeTest = (): void => {
+  const completeTest = async (): Promise<void> => {
+    // Prevent duplicate saves
+    if (resultSavedRef.current) {
+      return;
+    }
+    
     setEndTime(Date.now());
     setTestCompleted(true);
     setTestActive(false);
@@ -359,6 +369,17 @@ const TypingTest: React.FC = () => {
         ? Math.round((correctChars / totalAttemptedChars) * 100) 
         : 100;
       setAccuracy(calculatedAccuracy);
+
+      // Save result to database (only once)
+      resultSavedRef.current = true;
+      await saveTypingResult({
+        wpm: finalWpm,
+        accuracy: calculatedAccuracy,
+        correctChars: correctChars,
+        incorrectChars: incorrectChars,
+        duration: selectedDuration,
+        theme: currentTheme,
+      });
     }
     
     // Trigger animation
@@ -502,6 +523,9 @@ const TypingTest: React.FC = () => {
     setCursorPosition(0);
     setCurrentWordIndex(0);
     
+    // Reset the result saved flag for new test
+    resultSavedRef.current = false;
+    
     if (containerRef.current) {
       containerRef.current.focus();
     }
@@ -546,6 +570,9 @@ const TypingTest: React.FC = () => {
       setTimeLeft(duration);
       setCursorPosition(0);
       setCurrentWordIndex(0);
+      
+      // Reset the result saved flag for new test
+      resultSavedRef.current = false;
       
       // Focus the container after a short delay to ensure UI has updated
       if (!showMenu) {
