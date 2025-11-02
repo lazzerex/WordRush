@@ -3,7 +3,7 @@
 Try it here: https://word-rush-six.vercel.app/
 
 
-Update 13/06/2025: Completely rewrite the game mechanics. Words are now randomized for each test that you take.
+Words are randomized for each test that you take. Login and start typing now to save your progress and see your statistics overtime!
 
 ![image](https://github.com/user-attachments/assets/59f66a7d-0c06-4141-8018-f027a726cdc7)
 
