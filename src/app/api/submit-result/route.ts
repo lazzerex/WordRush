@@ -55,31 +55,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Verify timing is realistic (allow 2 second tolerance)
-    const actualDuration = Date.now() - startTime;
-    const expectedDurationMs = duration * 1000;
-    
-    if (Math.abs(actualDuration - expectedDurationMs) > 2000) {
-      console.warn(`Timing mismatch: actual=${actualDuration}, expected=${expectedDurationMs}`);
-      return NextResponse.json(
-        { error: 'Invalid timing - test duration mismatch' }, 
-        { status: 400 }
-      );
-    }
-
-    // 4. Verify keystroke timestamps are sequential and within test duration
+    // 3. Verify keystroke timestamps are sequential and within test duration
     const sortedKeystrokes = [...keystrokes].sort((a, b) => a.timestamp - b.timestamp);
     const firstKeystroke = sortedKeystrokes[0]?.timestamp || startTime;
     const lastKeystroke = sortedKeystrokes[sortedKeystrokes.length - 1]?.timestamp || startTime;
+    const expectedDurationMs = duration * 1000;
+    const toleranceMs = 5000; // Allow some tolerance for latency and clock drift
+    const actualDurationFromKeystrokes = lastKeystroke - startTime;
+
+    if (actualDurationFromKeystrokes < -2000) {
+      return NextResponse.json(
+        { error: 'Invalid timing - keystrokes precede recorded start time' },
+        { status: 400 }
+      );
+    }
     
-    if (firstKeystroke < startTime - 1000 || lastKeystroke > startTime + expectedDurationMs + 1000) {
+    if (firstKeystroke < startTime - 1000 || lastKeystroke > startTime + expectedDurationMs + toleranceMs) {
       return NextResponse.json(
         { error: 'Invalid keystroke timestamps' }, 
         { status: 400 }
       );
     }
 
-    // 5. Server-side recalculation of stats
+    if (actualDurationFromKeystrokes > expectedDurationMs + toleranceMs) {
+      console.warn(
+        `Timing mismatch: keystroke duration ${actualDurationFromKeystrokes}ms exceeds expected ${expectedDurationMs}ms`
+      );
+      return NextResponse.json(
+        { error: 'Invalid timing - test duration mismatch' },
+        { status: 400 }
+      );
+    }
+
+  // 4. Server-side recalculation of stats
     let correctChars = 0;
     let incorrectChars = 0;
     let totalWords = 0;
@@ -108,13 +116,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Calculate WPM and accuracy
+  // 5. Calculate WPM and accuracy
     const timeInMinutes = duration / 60;
     const wpm = timeInMinutes > 0 ? Math.round((correctChars / 5) / timeInMinutes) : 0;
     const totalChars = correctChars + incorrectChars;
     const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
 
-    // 7. Validate results are humanly possible
+  // 6. Validate results are humanly possible
     if (wpm > 300) {
       return NextResponse.json(
         { error: 'WPM exceeds human capability (max 300 WPM)' }, 
@@ -129,7 +137,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. Check for suspicious patterns (e.g., too few keystrokes for the WPM)
+  // 7. Check for suspicious patterns (e.g., too few keystrokes for the WPM)
     const minExpectedKeystrokes = Math.floor(correctChars * 0.5); // At least 50% of correct chars
     if (keystrokes.length < minExpectedKeystrokes) {
       return NextResponse.json(
@@ -138,7 +146,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 9. Insert validated result into database
+  // 8. Insert validated result into database
     const { data, error } = await supabase
       .from('typing_results')
       .insert([{
@@ -161,7 +169,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 10. Return success with calculated stats
+  // 9. Return success with calculated stats
     return NextResponse.json({ 
       success: true, 
       data: {
