@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getWordPool } from '@/lib/wordPool';
+import StatsChart from './StatsChart';
 import { 
   RotateCcw, 
   Settings, 
@@ -560,47 +561,22 @@ const TypingTest: React.FC = () => {
       ) : (
         /* Results Screen */
         <div className="animate-scaleIn">
-          <div className="bg-zinc-800/30 rounded-2xl p-12 space-y-8">
-            {/* Main Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* WPM */}
-              <div className="text-center p-6 bg-zinc-800/50 rounded-xl transform transition-smooth hover:scale-[1.02] hover:bg-zinc-800/70 animate-slideInUp">
-                <div className="flex items-center justify-center gap-2 text-zinc-500 mb-2">
-                  <Zap className="w-4 h-4" />
-                  <div className="text-sm font-medium">WPM</div>
-                </div>
-                <div className="text-5xl font-bold text-yellow-500">{wpm}</div>
-              </div>
-
-              {/* Accuracy */}
-              <div className="text-center p-6 bg-zinc-800/50 rounded-xl transform transition-smooth hover:scale-[1.02] hover:bg-zinc-800/70 animate-slideInUp animation-delay-100">
-                <div className="flex items-center justify-center gap-2 text-zinc-500 mb-2">
-                  <Target className="w-4 h-4" />
-                  <div className="text-sm font-medium">Accuracy</div>
-                </div>
-                <div className="text-5xl font-bold text-yellow-500">{accuracy}%</div>
-              </div>
-
-              {/* Duration */}
-              <div className="text-center p-6 bg-zinc-800/50 rounded-xl transform transition-smooth hover:scale-[1.02] hover:bg-zinc-800/70 animate-slideInUp animation-delay-200">
-                <div className="flex items-center justify-center gap-2 text-zinc-500 mb-2">
-                  <Timer className="w-4 h-4" />
-                  <div className="text-sm font-medium">Time</div>
-                </div>
-                <div className="text-5xl font-bold text-yellow-500">{selectedDuration}s</div>
-              </div>
+          <div className="bg-zinc-800/30 rounded-2xl p-8 lg:p-12 space-y-8">
+            {/* Header */}
+            <div className="text-center space-y-2 animate-fadeIn">
+              <h2 className="text-3xl font-bold text-zinc-50">Test Complete!</h2>
+              <p className="text-zinc-400">Here's how you performed</p>
             </div>
 
-            {/* Character Stats */}
-            <div className="flex items-center justify-center gap-8 text-sm animate-fadeIn animation-delay-300">
-              <div>
-                <span className="text-zinc-500">Correct: </span>
-                <span className="text-green-500 font-medium">{correctChars}</span>
-              </div>
-              <div>
-                <span className="text-zinc-500">Incorrect: </span>
-                <span className="text-red-500 font-medium">{incorrectChars}</span>
-              </div>
+            {/* Stats Chart Component */}
+            <div className="animate-fadeIn animation-delay-100">
+              <StatsChart
+                wpm={wpm}
+                accuracy={accuracy}
+                correctChars={correctChars}
+                incorrectChars={incorrectChars}
+                duration={selectedDuration}
+              />
             </div>
 
             {/* Action Buttons */}

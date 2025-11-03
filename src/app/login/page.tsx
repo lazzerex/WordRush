@@ -42,8 +42,8 @@ export default function LoginPage() {
       <Navigation />
       <div className="pt-24 pb-16 px-4 flex items-center justify-center">
         <div className="w-full max-w-lg">
-          <div className="rounded-3xl border border-zinc-700/60 bg-zinc-800/60 p-10 backdrop-blur-md shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]">
-            <div className="text-center mb-10">
+          <div className="rounded-3xl border border-zinc-700/60 bg-zinc-800/60 p-10 backdrop-blur-md shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)] animate-scaleIn">
+            <div className="text-center mb-10 animate-fadeIn">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/90 text-zinc-900">
                 <LogIn className="w-5 h-5" />
               </div>
@@ -51,7 +51,7 @@ export default function LoginPage() {
               <p className="mt-2 text-sm text-zinc-400">Sign in to continue your typing journey</p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6 animate-slideInUp animation-delay-100">
               {error && (
                 <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                   {error}
@@ -68,7 +68,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition"
+                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth"
                   placeholder="you@example.com"
                 />
               </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition"
+                  className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth"
                   placeholder="••••••••"
                 />
               </div>
@@ -91,23 +91,23 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-2xl bg-yellow-500/90 px-4 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-2xl bg-yellow-500/90 px-4 py-3 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? 'Signing in…' : 'Sign in'}
               </button>
             </form>
 
-            <div className="mt-8 text-center text-sm text-zinc-400">
+            <div className="mt-8 text-center text-sm text-zinc-400 animate-fadeIn animation-delay-200">
               <p>
                 Don't have an account?{' '}
-                <Link href="/register" className="font-semibold text-zinc-100 hover:text-yellow-400">
+                <Link href="/register" className="font-semibold text-zinc-100 hover:text-yellow-400 transition-smooth">
                   Create one
                 </Link>
               </p>
             </div>
 
-            <div className="mt-6 text-center">
-              <Link href="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300">
+            <div className="mt-6 text-center animate-fadeIn animation-delay-300">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-smooth">
                 <ArrowLeft className="w-4 h-4" />
                 Back to typing test
               </Link>

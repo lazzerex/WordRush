@@ -89,8 +89,8 @@ export default function ResultsClient({ user }: ResultsClientProps) {
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <Navigation />
       <main className="max-w-6xl mx-auto px-4 pt-24 pb-12">
-        <div className="rounded-3xl border border-zinc-700/50 bg-zinc-800/60 p-6 md:p-10 backdrop-blur-sm shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between mb-8">
+        <div className="rounded-3xl border border-zinc-700/50 bg-zinc-800/60 p-6 md:p-10 backdrop-blur-sm shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)] animate-slideInUp">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between mb-8 animate-fadeIn">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">History</p>
               <h1 className="mt-2 text-3xl font-bold text-zinc-50">Test results</h1>
@@ -98,7 +98,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
             </div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400"
+              className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
             >
               Start new test
               <ArrowRight className="w-4 h-4" />
@@ -106,24 +106,24 @@ export default function ResultsClient({ user }: ResultsClientProps) {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500 animate-fadeIn">
               <div className="h-12 w-12 rounded-full border-2 border-zinc-700 border-t-yellow-500 animate-spin" />
               <p className="mt-4 text-sm">Loading results…</p>
             </div>
           ) : results.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400">
+            <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
               <p className="text-sm">No results yet.</p>
               <p className="mt-1 text-xs text-zinc-500">Run a test to populate your history.</p>
               <Link
                 href="/"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
                 Take your first test
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto animate-fadeIn">
               <table className="w-full">
                 <thead className="border-b border-zinc-700/60 bg-zinc-900/40 text-xs uppercase tracking-[0.3em] text-zinc-500">
                   <tr>
@@ -138,7 +138,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
                 </thead>
                 <tbody className="divide-y divide-zinc-800/80">
                   {results.map((result) => (
-                    <tr key={result.id} className="transition-colors hover:bg-zinc-900/40">
+                    <tr key={result.id} className="transition-smooth hover:bg-zinc-900/40">
                       <td className="px-6 py-5 text-sm text-zinc-400">
                         {formatDate(result.created_at)}
                       </td>
@@ -178,7 +178,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
                         <button
                           onClick={() => handleDelete(result.id)}
                           disabled={deleting === result.id}
-                          className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 px-3 py-1.5 text-sm font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-40"
+                          className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 px-3 py-1.5 text-sm font-medium text-red-300 transition-smooth hover:bg-red-500/10 hover:scale-105 disabled:opacity-40"
                         >
                           <Trash2 className="w-4 h-4" />
                           {deleting === result.id ? 'Deleting…' : 'Delete'}
@@ -193,10 +193,10 @@ export default function ResultsClient({ user }: ResultsClientProps) {
 
           {/* Summary Stats */}
           {results.length > 0 && (
-            <div className="mt-10 border-t border-zinc-700/60 pt-8">
+            <div className="mt-10 border-t border-zinc-700/60 pt-8 animate-fadeIn animation-delay-100">
               <h3 className="text-lg font-semibold text-zinc-200 mb-5">Summary</h3>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
+                <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5 transition-smooth hover:scale-105">
                   <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total tests</p>
                   <p className="mt-3 text-2xl font-semibold text-zinc-100">{results.length}</p>
                 </div>

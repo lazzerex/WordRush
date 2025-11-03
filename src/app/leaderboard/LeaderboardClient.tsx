@@ -122,7 +122,7 @@ export default function LeaderboardClient() {
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <Navigation />
       <main className="max-w-6xl mx-auto px-4 pt-24 pb-12 space-y-10">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-3 animate-fadeIn">
           <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-yellow-400">
             Global Leaderboard
           </div>
@@ -132,7 +132,7 @@ export default function LeaderboardClient() {
 
         {/* User Rank Card (if logged in) */}
         {user && userRank && (
-          <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-sm shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)]">
+          <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-sm shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)] animate-slideInUp animation-delay-100">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Your standing</p>
@@ -144,7 +144,7 @@ export default function LeaderboardClient() {
               </div>
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400"
+                className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
                 Improve rank
                 <ArrowRight className="w-4 h-4" />
@@ -154,17 +154,17 @@ export default function LeaderboardClient() {
         )}
 
         {/* Duration Selector */}
-        <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-sm">
+        <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-sm animate-slideInUp animation-delay-200">
           <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-[0.3em] mb-6">Select duration</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[15, 30, 60, 120].map((duration) => (
               <button
                 key={duration}
                 onClick={() => setSelectedDuration(duration as DurationOption)}
-                className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-smooth ${
                   selectedDuration === duration
-                    ? 'border-yellow-500/70 bg-yellow-500/10 text-yellow-400 shadow-[0_15px_40px_-30px_rgba(234,179,8,0.8)]'
-                    : 'border-zinc-700 bg-zinc-900/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
+                    ? 'border-yellow-500/70 bg-yellow-500/10 text-yellow-400 shadow-[0_15px_40px_-30px_rgba(234,179,8,0.8)] scale-105'
+                    : 'border-zinc-700 bg-zinc-900/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 hover:scale-105'
                 }`}
               >
                 {duration}s
@@ -174,7 +174,7 @@ export default function LeaderboardClient() {
         </div>
 
         {/* Leaderboard Table */}
-        <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl overflow-hidden backdrop-blur-sm">
+        <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl overflow-hidden backdrop-blur-sm animate-slideInUp animation-delay-300">
           <div className="flex flex-col gap-4 border-b border-zinc-700/60 bg-zinc-900/40 p-6 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Top 100</p>
@@ -184,7 +184,7 @@ export default function LeaderboardClient() {
             <button
               onClick={loadLeaderboard}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Refreshing' : 'Refresh'}
@@ -192,24 +192,24 @@ export default function LeaderboardClient() {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-500 animate-fadeIn">
               <div className="h-12 w-12 rounded-full border-2 border-zinc-700 border-t-yellow-500 animate-spin" />
               <p className="mt-4 text-sm">Loading leaderboard…</p>
             </div>
           ) : leaderboard.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400">
+            <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
               <p className="text-sm">No scores yet for this duration.</p>
               <p className="mt-1 text-xs text-zinc-500">Be the first to set the pace.</p>
               <Link
                 href="/"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
                 Set a record
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto animate-fadeIn">
               <table className="w-full">
                 <thead className="bg-zinc-900/40 text-left text-xs uppercase tracking-[0.3em] text-zinc-500">
                   <tr>
@@ -224,7 +224,7 @@ export default function LeaderboardClient() {
                   {leaderboard.map((entry) => (
                     <tr
                       key={entry.id}
-                      className={`transition-colors ${
+                      className={`transition-smooth ${
                         newEntryAnimation === entry.id
                           ? 'bg-green-500/10'
                           : isCurrentUser(entry.user_id)
@@ -279,10 +279,10 @@ export default function LeaderboardClient() {
         </div>
 
         {/* Call to Action */}
-        <div className="pt-4 text-center">
+        <div className="pt-4 text-center animate-fadeIn animation-delay-400">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-6 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-yellow-400"
+            className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-6 py-3 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
           >
             Join the leaderboard
             <ArrowRight className="w-4 h-4" />

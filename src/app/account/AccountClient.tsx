@@ -80,7 +80,7 @@ export default function AccountClient({ user }: AccountClientProps) {
       <Navigation />
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto space-y-10">
-          <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)]">
+          <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] animate-slideInUp">
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
               <div className="flex items-center gap-6">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-3xl font-semibold text-zinc-900 shadow-lg">
@@ -96,14 +96,14 @@ export default function AccountClient({ user }: AccountClientProps) {
               <div className="flex flex-wrap gap-3 lg:ml-auto">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-5 py-2.5 font-semibold hover:bg-yellow-400 transition shadow-lg shadow-yellow-500/20"
+                  className="inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-5 py-2.5 font-semibold hover:bg-yellow-400 transition-smooth shadow-lg shadow-yellow-500/20 hover:scale-105"
                 >
                   <Zap className="w-4 h-4" />
                   Take Test
                 </Link>
                 <Link
                   href="/results"
-                  className="inline-flex items-center gap-2 rounded-xl bg-zinc-900/80 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-100 hover:bg-zinc-900 transition"
+                  className="inline-flex items-center gap-2 rounded-xl bg-zinc-900/80 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-100 hover:bg-zinc-900 transition-smooth hover:scale-105"
                 >
                   <History className="w-4 h-4" />
                   View Results
@@ -111,7 +111,7 @@ export default function AccountClient({ user }: AccountClientProps) {
                 <button
                   onClick={() => setShowConfirm(true)}
                   disabled={loading}
-                  className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-300 hover:bg-zinc-700 transition disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-zinc-800 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-300 hover:bg-zinc-700 transition-smooth disabled:opacity-50 hover:scale-105"
                 >
                   <LogOut className="w-4 h-4" />
                   {loading ? 'Signing out...' : 'Sign Out'}
@@ -120,28 +120,28 @@ export default function AccountClient({ user }: AccountClientProps) {
             </div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition-smooth hover:border-yellow-500/60 hover:bg-zinc-900/70 hover:scale-105">
                 <div className="flex items-center gap-3 text-zinc-400 text-sm">
                   <UserIcon className="w-4 h-4 text-zinc-500" />
                   Username
                 </div>
                 <p className="mt-2 text-lg font-semibold text-zinc-100">{username}</p>
               </div>
-              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition-smooth hover:border-yellow-500/60 hover:bg-zinc-900/70 hover:scale-105">
                 <div className="flex items-center gap-3 text-zinc-400 text-sm">
                   <Mail className="w-4 h-4 text-zinc-500" />
                   Email
                 </div>
                 <p className="mt-2 text-lg font-mono text-zinc-200 break-all">{email}</p>
               </div>
-              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition-smooth hover:border-yellow-500/60 hover:bg-zinc-900/70 hover:scale-105">
                 <div className="flex items-center gap-3 text-zinc-400 text-sm">
                   <CalendarDays className="w-4 h-4 text-zinc-500" />
                   Account ID
                 </div>
                 <p className="mt-2 text-xs font-mono text-zinc-400 break-all">{user.id}</p>
               </div>
-              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition hover:border-yellow-500/60 hover:bg-zinc-900/70">
+              <div className="group rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5 transition-smooth hover:border-yellow-500/60 hover:bg-zinc-900/70 hover:scale-105">
                 <div className="flex items-center gap-3 text-zinc-400 text-sm">
                   {user.email_confirmed_at ? (
                     <ShieldCheck className="w-4 h-4 text-green-400" />
@@ -159,7 +159,7 @@ export default function AccountClient({ user }: AccountClientProps) {
 
           {/* Confirmation toast (simple) */}
           {showConfirm && (
-            <div className="fixed right-6 bottom-6 z-50 w-[320px] rounded-xl bg-zinc-900/95 border border-zinc-700/60 p-4 shadow-lg">
+            <div className="fixed right-6 bottom-6 z-50 w-[320px] rounded-xl bg-zinc-900/95 border border-zinc-700/60 p-4 shadow-lg animate-scaleIn">
               <div className="flex items-start gap-3">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-zinc-100">Confirm sign out</p>
@@ -168,14 +168,14 @@ export default function AccountClient({ user }: AccountClientProps) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowConfirm(false)}
-                    className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition"
+                    className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition-smooth"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSignOut}
                     disabled={loading}
-                    className="px-3 py-1 rounded-md bg-yellow-500 text-zinc-900 text-sm font-semibold hover:bg-yellow-400 transition disabled:opacity-60"
+                    className="px-3 py-1 rounded-md bg-yellow-500 text-zinc-900 text-sm font-semibold hover:bg-yellow-400 transition-smooth disabled:opacity-60"
                   >
                     {loading ? 'Signing out...' : 'Sign out'}
                   </button>
@@ -186,13 +186,13 @@ export default function AccountClient({ user }: AccountClientProps) {
 
           {/* Small ephemeral toast */}
           {showToast && (
-            <div className="fixed right-6 bottom-6 z-50 w-[220px] rounded-lg p-3 shadow-lg "
+            <div className="fixed right-6 bottom-6 z-50 w-[220px] rounded-lg p-3 shadow-lg animate-scaleIn"
                  style={{ background: showToast.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid rgba(255,255,255,0.04)' }}>
               <div className="text-sm font-medium text-zinc-100">{showToast.message}</div>
             </div>
           )}
 
-          <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)]">
+          <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] animate-slideInUp animation-delay-100">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
               <div>
                 <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Performance</p>
@@ -201,7 +201,7 @@ export default function AccountClient({ user }: AccountClientProps) {
               </div>
               <button
                 onClick={loadStats}
-                className="self-start inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition"
+                className="self-start inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition-smooth"
               >
                 Refresh stats
                 <ArrowRight className="w-4 h-4" />
@@ -209,14 +209,14 @@ export default function AccountClient({ user }: AccountClientProps) {
             </div>
 
             {loadingStats ? (
-              <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
+              <div className="flex flex-col items-center justify-center py-16 text-zinc-400 animate-fadeIn">
                 <div className="h-12 w-12 border-2 border-zinc-700 border-t-yellow-500 rounded-full animate-spin" />
                 <p className="mt-4 text-sm">Crunching numbers...</p>
               </div>
             ) : stats && stats.totalTests > 0 ? (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp">
                     <div className="flex items-center justify-between text-sm text-zinc-500">
                       Total Tests
                       <Activity className="w-4 h-4 text-zinc-600" />
@@ -224,7 +224,7 @@ export default function AccountClient({ user }: AccountClientProps) {
                     <p className="mt-3 text-3xl font-bold text-zinc-50">{stats.totalTests}</p>
                     <p className="text-xs text-zinc-500 mt-1">Sessions recorded</p>
                   </div>
-                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp animation-delay-100">
                     <div className="flex items-center justify-between text-sm text-zinc-500">
                       Average WPM
                       <Zap className="w-4 h-4 text-yellow-400" />
@@ -232,7 +232,7 @@ export default function AccountClient({ user }: AccountClientProps) {
                     <p className="mt-3 text-3xl font-bold text-yellow-400">{stats.averageWpm}</p>
                     <p className="text-xs text-zinc-500 mt-1">Across all durations</p>
                   </div>
-                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp animation-delay-200">
                     <div className="flex items-center justify-between text-sm text-zinc-500">
                       Average Accuracy
                       <Target className="w-4 h-4 text-green-400" />
@@ -240,7 +240,7 @@ export default function AccountClient({ user }: AccountClientProps) {
                     <p className="mt-3 text-3xl font-bold text-green-400">{stats.averageAccuracy}%</p>
                     <p className="text-xs text-zinc-500 mt-1">Precision matters</p>
                   </div>
-                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp animation-delay-300">
                     <div className="flex items-center justify-between text-sm text-zinc-500">
                       Personal Best
                       <History className="w-4 h-4 text-purple-400" />
@@ -251,13 +251,13 @@ export default function AccountClient({ user }: AccountClientProps) {
                 </div>
 
                 {stats.recentTests.length > 0 && (
-                  <div className="mt-10">
+                  <div className="mt-10 animate-fadeIn animation-delay-400">
                     <h3 className="text-lg font-semibold text-zinc-200 mb-4">Recent Sessions</h3>
                     <div className="space-y-3">
                       {stats.recentTests.slice(0, 4).map((result) => (
                         <div
                           key={result.id}
-                          className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4 rounded-2xl border border-zinc-700/50 bg-zinc-900/50 px-5 py-4"
+                          className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4 rounded-2xl border border-zinc-700/50 bg-zinc-900/50 px-5 py-4 transition-smooth hover:scale-[1.02]"
                         >
                           <div>
                             <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">WPM</p>
@@ -279,7 +279,7 @@ export default function AccountClient({ user }: AccountClientProps) {
                     </div>
                     <Link
                       href="/results"
-                      className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition"
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition-smooth"
                     >
                       View full history
                       <ArrowRight className="w-4 h-4" />
@@ -288,12 +288,12 @@ export default function AccountClient({ user }: AccountClientProps) {
                 )}
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400">
+              <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
                 <Activity className="w-12 h-12 text-zinc-600" />
                 <p className="mt-4 text-sm">Start taking tests to unlock your statistics.</p>
                 <Link
                   href="/"
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-6 py-2.5 font-semibold hover:bg-yellow-400 transition"
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-6 py-2.5 font-semibold hover:bg-yellow-400 transition-smooth hover:scale-105"
                 >
                   <Zap className="w-4 h-4" />
                   Take your first test
