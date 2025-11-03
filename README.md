@@ -3,21 +3,13 @@
 Try it here: https://word-rush-six.vercel.app/
 
 
-Words are randomized for each test that you take. Login and start typing now to save your progress and see your statistics overtime!
-
-<img width="1781" height="891" alt="image" src="https://github.com/user-attachments/assets/fb321d77-d589-4204-9da1-c48569212f92" />
-
 <img width="1682" height="830" alt="image" src="https://github.com/user-attachments/assets/3310fa52-f359-43f2-b470-f2641b5e93b6" />
 
 
 
 ## Features
 
-- 🎯 **Interactive Typing Test** - Test your typing speed with customizable duration (15s, 30s, 60s, 120s)
-- 🎨 **Multiple Themes** - Light, Dark, Sepia, Neon, and Ocean themes
-- 📊 **Real-time Stats** - Track WPM, accuracy, and errors as you type
-- 🔐 **User Authentication** - Register and login with Supabase
-- 👤 **User Accounts** - View your profile and account information
+-  **User Accounts** - View your profile and account information
 - 🏆 **Global Leaderboard** - Compete with other users and see top scores
 - 🔒 **Secure Score Validation** - Server-side validation prevents score manipulation
 - 📈 **Statistics Dashboard** - (Coming soon) Track your progress over time
@@ -31,27 +23,13 @@ Words are randomized for each test that you take. Login and start typing now to 
 - **Database**: Supabase (PostgreSQL)
 - **Deployment**: Vercel
 
-## Getting Started
-
-### Prerequisites
 
 - Node.js 18+ installed
 - A Supabase account (free tier is fine)
-- (Optional) DataGrip or any PostgreSQL client for database management
-
-### Installation
-
-1. Clone the repository:
 ```bash
 git clone https://github.com/lazzerex/WordRush.git
-cd WordRush
-```
 
 2. Install dependencies:
-```bash
-npm install
-```
-
 3. Set up Supabase:
    - Follow the detailed guide in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
    - Create a new Supabase project
