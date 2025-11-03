@@ -1,9 +1,9 @@
 /**
  * WordsDisplay Component
- * Container for displaying words and handling word pool states
+ * Shows a three-line viewport that advances line-by-line without scrollbars.
  */
 
-import React from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Keyboard } from 'lucide-react';
 import { Word } from './Word';
 import type { WordStatus } from './types';
@@ -33,6 +33,84 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
   wordPoolError,
   onContainerClick,
 }) => {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const wordsContainerRef = useRef<HTMLDivElement>(null);
+  const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [lineHeightPx, setLineHeightPx] = useState<number>(56);
+  const [wordLineMap, setWordLineMap] = useState<number[]>([]);
+
+  const measureLines = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      setWordLineMap([]);
+      return;
+    }
+
+    let resolvedLineHeight = lineHeightPx;
+
+    if (typeof window !== 'undefined') {
+      const computed = parseFloat(window.getComputedStyle(viewport).lineHeight);
+      if (Number.isFinite(computed) && computed > 0) {
+        resolvedLineHeight = computed;
+        if (computed !== lineHeightPx) {
+          setLineHeightPx(computed);
+        }
+      }
+    }
+
+    const firstWord = wordRefs.current.find((word) => word !== null);
+    if (!firstWord) {
+      setWordLineMap([]);
+      return;
+    }
+
+    const baseTop = firstWord.offsetTop;
+    const nextMap = wordRefs.current
+      .slice(0, wordsToType.length)
+      .map((word) => {
+        if (!word) {
+          return 0;
+        }
+        const relativeTop = word.offsetTop - baseTop;
+        return Math.round(relativeTop / resolvedLineHeight);
+      });
+
+    setWordLineMap((prev) => {
+      if (
+        prev.length === nextMap.length &&
+        prev.every((value, idx) => value === nextMap[idx])
+      ) {
+        return prev;
+      }
+      return nextMap;
+    });
+  }, [lineHeightPx, wordsToType.length]);
+
+  useLayoutEffect(() => {
+    measureLines();
+  }, [measureLines, wordsToType, currentInput, currentWordIndex, wordStatus]);
+
+  useEffect(() => {
+    if (!viewportRef.current || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      measureLines();
+    });
+
+    observer.observe(viewportRef.current);
+
+    return () => observer.disconnect();
+  }, [measureLines]);
+
+  const fallbackLineIndex = wordLineMap.length > 0
+    ? wordLineMap[Math.min(currentWordIndex, wordLineMap.length - 1)]
+    : 0;
+  const currentLineIndex = wordLineMap[currentWordIndex] ?? fallbackLineIndex;
+  const hiddenLineCount = Math.max(0, currentLineIndex - 1);
+  const translateY = hiddenLineCount * lineHeightPx;
+
   return (
     <div className="relative">
       <div
@@ -45,7 +123,14 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
         onClick={onContainerClick}
         tabIndex={0}
       >
-        <div className="text-2xl leading-loose font-mono h-[220px] overflow-y-auto overflow-x-hidden pr-2 scrollbar-thin">
+        <div
+          ref={viewportRef}
+          className="text-2xl leading-loose font-mono overflow-hidden relative"
+          style={{
+            height: `${lineHeightPx * 3}px`,
+            lineHeight: `${lineHeightPx}px`,
+          }}
+        >
           {isLoadingWords ? (
             <div className="h-full flex items-center justify-center text-zinc-600 animate-pulse">
               Loading word pool...
@@ -55,16 +140,28 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
               {wordPoolError}
             </div>
           ) : (
-            wordsToType.slice(0, 150).map((word, index) => (
-              <Word
-                key={index}
-                word={word}
-                index={index}
-                currentWordIndex={currentWordIndex}
-                currentInput={currentInput}
-                wordStatus={wordStatus[index]}
-              />
-            ))
+            <div
+              ref={wordsContainerRef}
+              className="relative transition-transform duration-150 ease-out"
+              style={{ transform: `translateY(-${translateY}px)` }}
+            >
+              {wordsToType.map((word, index) => (
+                <span
+                  key={index}
+                  ref={(el) => {
+                    wordRefs.current[index] = el;
+                  }}
+                >
+                  <Word
+                    word={word}
+                    index={index}
+                    currentWordIndex={currentWordIndex}
+                    currentInput={currentInput}
+                    wordStatus={wordStatus[index] ?? 'pending'}
+                  />
+                </span>
+              ))}
+            </div>
           )}
         </div>
         
@@ -83,3 +180,4 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
     </div>
   );
 };
+

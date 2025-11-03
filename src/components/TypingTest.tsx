@@ -17,6 +17,9 @@ import { TestResults } from './TypingTest/TestResults';
 import { generateRandomWords, calculateStats } from './TypingTest/helpers';
 import type { DurationOption, WordStatus, KeystrokeData } from './TypingTest/types';
 
+const WORDS_BUFFER_THRESHOLD = 50;
+const WORDS_BATCH_SIZE = 120;
+
 const TypingTest: React.FC = () => {
   // State management
   const [wordPool, setWordPool] = useState<string[]>([]);
@@ -120,6 +123,42 @@ const TypingTest: React.FC = () => {
     testStartTimeRef.current = 0;
   };
 
+  // Dynamically top up the word queue so long tests never run dry
+  const extendWordQueueIfNeeded = (nextIndex: number) => {
+    if (wordPool.length === 0) {
+      return;
+    }
+
+    setWordsToType((prevWords) => {
+      if (nextIndex + WORDS_BUFFER_THRESHOLD < prevWords.length) {
+        return prevWords;
+      }
+
+      const queuedWords: string[] = [];
+      let projectedLength = prevWords.length;
+
+      while (nextIndex + WORDS_BUFFER_THRESHOLD >= projectedLength) {
+        const batch = generateRandomWords(wordPool, selectedDuration, WORDS_BATCH_SIZE);
+        if (batch.length === 0) {
+          break;
+        }
+        queuedWords.push(...batch);
+        projectedLength += batch.length;
+      }
+
+      if (queuedWords.length === 0) {
+        return prevWords;
+      }
+
+      setWordStatus((prevStatus) => ([
+        ...prevStatus,
+        ...new Array<WordStatus>(queuedWords.length).fill('pending'),
+      ]));
+
+      return [...prevWords, ...queuedWords];
+    });
+  };
+
   // Reset all state
   const resetAllState = (duration: DurationOption) => {
     setCurrentWordIndex(0);
@@ -168,21 +207,30 @@ const TypingTest: React.FC = () => {
       });
 
       const result = await response.json();
-
       if (!response.ok) {
-        console.error('Failed to save result:', result.error);
+        // Handle unauthorized (not logged in) silently - this is expected behavior
+        if (response.status === 401) {
+          // User is not logged in - don't log error, just skip saving
+          // Stats are already calculated and displayed
+          return;
+        }
+        
+        // For other errors, log but don't break the UX
+        console.warn('Could not save result:', result.error);
         if (result.data) {
           setWpm(result.data.wpm);
           setAccuracy(result.data.accuracy);
         }
       } else {
+        // Successfully saved - update with server-validated stats if available
         if (result.data) {
           setWpm(result.data.wpm);
           setAccuracy(result.data.accuracy);
         }
       }
     } catch (error) {
-      console.error('Error saving result:', error);
+      // Network or other errors - log but don't break UX
+      console.warn('Error saving result:', error);
     }
   };
 
@@ -241,7 +289,11 @@ const TypingTest: React.FC = () => {
         setCorrectChars((prev) => prev + Math.min(typedWord.length, currentWord.length));
       }
 
-      setCurrentWordIndex((prev) => prev + 1);
+      setCurrentWordIndex((prev) => {
+        const nextIndex = prev + 1;
+        extendWordQueueIfNeeded(nextIndex);
+        return nextIndex;
+      });
       setCurrentInput('');
     } else {
       setCurrentInput(value);

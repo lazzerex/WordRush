@@ -3,34 +3,25 @@
  */
 
 /**
- * Generate random words from a word pool
+ * Generate random words from a word pool.
+ * Defaults to Monkeytype-style batches of 200 words but allows
+ * custom sizes so the queue can be topped up mid-test.
  */
 export const generateRandomWords = (
   wordPool: string[],
-  duration: number
+  duration: number,
+  count = 200
 ): string[] => {
   if (!wordPool || wordPool.length === 0) {
     console.warn('Word pool is empty. Please ensure the database is seeded.');
     return [];
   }
 
-  const estimatedWordsNeeded = Math.ceil((duration / 60) * 40 * 1.5);
-  const minWords = Math.max(estimatedWordsNeeded, 50);
-
   const randomWords: string[] = [];
-  const usedIndices = new Set<number>();
-
-  while (randomWords.length < minWords) {
+  
+  for (let i = 0; i < count; i++) {
     const randomIndex = Math.floor(Math.random() * wordPool.length);
-
-    if (!usedIndices.has(randomIndex) || usedIndices.size >= wordPool.length * 0.8) {
-      randomWords.push(wordPool[randomIndex]);
-      usedIndices.add(randomIndex);
-
-      if (usedIndices.size >= wordPool.length * 0.8) {
-        usedIndices.clear();
-      }
-    }
+    randomWords.push(wordPool[randomIndex]);
   }
 
   return randomWords;
