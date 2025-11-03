@@ -18,6 +18,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
   const [results, setResults] = useState<TypingResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -33,10 +34,6 @@ export default function ResultsClient({ user }: ResultsClientProps) {
   };
 
   const handleDelete = async (resultId: string) => {
-    if (!confirm('Are you sure you want to delete this result?')) {
-      return;
-    }
-
     setDeleting(resultId);
     const success = await deleteResult(resultId);
     
@@ -47,6 +44,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
     }
     
     setDeleting(null);
+    setConfirmDelete(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -176,7 +174,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
                       </td>
                       <td className="px-6 py-5 text-sm">
                         <button
-                          onClick={() => handleDelete(result.id)}
+                          onClick={() => setConfirmDelete(result.id)}
                           disabled={deleting === result.id}
                           className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 px-3 py-1.5 text-sm font-medium text-red-300 transition-smooth hover:bg-red-500/10 hover:scale-105 disabled:opacity-40"
                         >
@@ -223,6 +221,51 @@ export default function ResultsClient({ user }: ResultsClientProps) {
           )}
         </div>
       </main>
+
+      {/* Confirmation Dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md mx-4 rounded-2xl bg-zinc-900 border border-zinc-700/60 p-6 shadow-2xl animate-scaleIn">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 rounded-full bg-red-500/10 p-3">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-zinc-100">Delete Result</h3>
+                <p className="mt-2 text-sm text-zinc-400">
+                  Are you sure you want to delete this test result? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting !== null}
+                className="px-4 py-2 rounded-xl bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-medium hover:bg-zinc-700 transition-smooth disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(confirmDelete)}
+                disabled={deleting !== null}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 transition-smooth disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting === confirmDelete ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
