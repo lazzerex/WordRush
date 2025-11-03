@@ -561,11 +561,11 @@ const TypingTest: React.FC = () => {
       ) : (
         /* Results Screen */
         <div className="animate-scaleIn">
-          <div className="bg-zinc-800/30 rounded-2xl p-8 lg:p-12 space-y-8">
+          <div className="bg-zinc-800/30 rounded-2xl p-6 space-y-6">
             {/* Header */}
-            <div className="text-center space-y-2 animate-fadeIn">
-              <h2 className="text-3xl font-bold text-zinc-50">Test Complete!</h2>
-              <p className="text-zinc-400">Here's how you performed</p>
+            <div className="text-center space-y-1 animate-fadeIn">
+              <h2 className="text-2xl font-bold text-zinc-50">Test Complete!</h2>
+              <p className="text-sm text-zinc-400">Here's how you performed</p>
             </div>
 
             {/* Stats Chart Component */}
@@ -580,12 +580,12 @@ const TypingTest: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-center gap-4 pt-4 animate-fadeIn animation-delay-400">
+            <div className="flex items-center justify-center gap-4 pt-2 animate-fadeIn animation-delay-400">
               <button
                 onClick={resetTest}
-                className="px-8 py-3 bg-yellow-600 text-zinc-900 rounded-xl hover:bg-yellow-500 transition-smooth font-medium flex items-center gap-2 hover:scale-105 hover:shadow-lg hover:shadow-yellow-500/30"
+                className="px-6 py-2.5 bg-yellow-600 text-zinc-900 rounded-xl hover:bg-yellow-500 transition-smooth font-medium flex items-center gap-2 hover:scale-105 hover:shadow-lg hover:shadow-yellow-500/30"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-4 h-4" />
                 Try Again
               </button>
             </div>
