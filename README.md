@@ -12,7 +12,7 @@ Try it here: https://word-rush-six.vercel.app/
 -  **User Accounts** - View your profile and account information
 - 🏆 **Global Leaderboard** - Compete with other users and see top scores
 - 🔒 **Secure Score Validation** - Server-side validation prevents score manipulation
-- 📈 **Statistics Dashboard** - (Coming soon) Track your progress over time
+- 📈 **Statistics Dashboard** - Track your progress over time
 
 ## Tech Stack
 
