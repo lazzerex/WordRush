@@ -49,6 +49,16 @@ const TypingTest: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultSavedRef = useRef<boolean>(false);
+  
+  // Security: Track keystrokes and test session for server-side validation
+  const keystrokesRef = useRef<Array<{
+    timestamp: number;
+    key: string;
+    wordIndex: number;
+    isCorrect: boolean;
+  }>>([]);
+  const wordsTypedRef = useRef<string[]>([]);
+  const testStartTimeRef = useRef<number>(0);
 
   // Generate random words
   const generateRandomWords = (duration: number): string[] => {
@@ -128,17 +138,42 @@ const TypingTest: React.FC = () => {
     
     const stats = calculateStats();
     
-    // Save to database
+    // Save to database via secure API endpoint
     try {
       resultSavedRef.current = true;
-      await saveTypingResult({
-        wpm: stats.wpm,
-        accuracy: stats.accuracy,
-        correctChars,
-        incorrectChars,
-        duration: selectedDuration,
-        theme: 'monkeytype-inspired',
+      
+      // Submit to secure API route with keystroke validation
+      const response = await fetch('/api/submit-result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          keystrokes: keystrokesRef.current,
+          wordsTyped: wordsTypedRef.current,
+          expectedWords: wordsToType,
+          duration: selectedDuration,
+          startTime: testStartTimeRef.current,
+          theme: 'monkeytype-inspired',
+        }),
       });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('Failed to save result:', result.error);
+        // Update UI with server-calculated stats if available
+        if (result.data) {
+          setWpm(result.data.wpm);
+          setAccuracy(result.data.accuracy);
+        }
+      } else {
+        // Update with server-validated stats
+        if (result.data) {
+          setWpm(result.data.wpm);
+          setAccuracy(result.data.accuracy);
+        }
+      }
     } catch (error) {
       console.error('Error saving result:', error);
     }
@@ -151,12 +186,32 @@ const TypingTest: React.FC = () => {
     // Start test on first keystroke
     if (!testActive && !testComplete) {
       setTestActive(true);
+      testStartTimeRef.current = Date.now(); // Record test start time
+      keystrokesRef.current = []; // Reset keystrokes
+      wordsTypedRef.current = []; // Reset words typed
+    }
+    
+    // Track keystroke for server validation
+    if (testActive && value.length > currentInput.length) {
+      const newChar = value[value.length - 1];
+      const currentWord = wordsToType[currentWordIndex];
+      const expectedChar = currentWord[value.length - 1];
+      
+      keystrokesRef.current.push({
+        timestamp: Date.now(),
+        key: newChar,
+        wordIndex: currentWordIndex,
+        isCorrect: newChar === expectedChar,
+      });
     }
     
     // Check if user pressed space (word complete)
     if (value.endsWith(' ')) {
       const typedWord = value.trim();
       const currentWord = wordsToType[currentWordIndex];
+      
+      // Store the typed word for validation
+      wordsTypedRef.current.push(typedWord);
       
       // Check if word is correct
       if (typedWord === currentWord) {
@@ -201,6 +256,11 @@ const TypingTest: React.FC = () => {
     resultSavedRef.current = false;
     setOverlayVisible(true);
     
+    // Reset tracking data
+    keystrokesRef.current = [];
+    wordsTypedRef.current = [];
+    testStartTimeRef.current = 0;
+    
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -223,6 +283,11 @@ const TypingTest: React.FC = () => {
     setWordStatus(new Array(randomWords.length).fill('pending'));
     resultSavedRef.current = false;
     setOverlayVisible(true);
+    
+    // Reset tracking data
+    keystrokesRef.current = [];
+    wordsTypedRef.current = [];
+    testStartTimeRef.current = 0;
   };
 
   // Render word with character-by-character coloring
