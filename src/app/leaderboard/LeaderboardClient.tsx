@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { getLeaderboard, subscribeToLeaderboard, getUserRank } from '@/lib/leaderboard';
+import { getLeaderboardPaginated, subscribeToLeaderboard, getUserRank } from '@/lib/leaderboard';
 import type { LeaderboardEntry } from '@/types/leaderboard';
 import type { User } from '@supabase/supabase-js';
 import Navigation from '@/components/Navigation';
@@ -12,30 +12,72 @@ import { Medal, Award, RefreshCcw, ArrowRight, Crown } from 'lucide-react';
 type DurationOption = 15 | 30 | 60 | 120;
 
 export default function LeaderboardClient() {
+  const PAGE_SIZE = 10;
   const [selectedDuration, setSelectedDuration] = useState<DurationOption>(30);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [userRank, setUserRank] = useState<{ rank: number; total: number } | null>(null);
   const [newEntryAnimation, setNewEntryAnimation] = useState<string | null>(null);
-  const supabase = createClient();
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageRef = useRef(page);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     // Get current user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
-  }, []);
+  }, [supabase]);
+
+  const loadLeaderboard = useCallback(
+    async (requestedPage: number = 1) => {
+      setLoading(true);
+      const safePage = Math.max(1, requestedPage);
+      const offset = (safePage - 1) * PAGE_SIZE;
+
+      const { entries, total } = await getLeaderboardPaginated(selectedDuration, PAGE_SIZE, offset);
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      const normalizedPage = Math.min(safePage, totalPages);
+
+      if (normalizedPage !== safePage) {
+        setPage(normalizedPage);
+        return;
+      }
+
+      setLeaderboard(entries);
+      setTotalCount(total);
+      setLoading(false);
+    },
+    [selectedDuration]
+  );
 
   useEffect(() => {
-    loadLeaderboard();
-    
+    loadLeaderboard(page);
+  }, [loadLeaderboard, page]);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
+  const loadUserRank = useCallback(async () => {
+    if (!user) {
+      setUserRank(null);
+      return;
+    }
+
+    const rank = await getUserRank(user.id, selectedDuration);
+    setUserRank(rank);
+  }, [user, selectedDuration]);
+
+  useEffect(() => {
     // Try to subscribe to real-time updates (works only if Realtime is enabled)
     try {
       const unsubscribe = subscribeToLeaderboard(selectedDuration, (newEntry) => {
         setNewEntryAnimation(newEntry.id);
-        loadLeaderboard(); // Refresh the leaderboard
-        
+        loadLeaderboard(pageRef.current); // Refresh the leaderboard without losing pagination
+
         // Remove animation after 3 seconds
         setTimeout(() => {
           setNewEntryAnimation(null);
@@ -49,27 +91,11 @@ export default function LeaderboardClient() {
       // Realtime not enabled - that's okay, leaderboard will work without it
       console.log('Realtime not enabled. Leaderboard will require manual refresh.');
     }
-  }, [selectedDuration]);
+  }, [selectedDuration, loadLeaderboard]);
 
   useEffect(() => {
-    // Load user rank if logged in
-    if (user) {
-      loadUserRank();
-    }
-  }, [user, selectedDuration, leaderboard]);
-
-  const loadLeaderboard = async () => {
-    setLoading(true);
-    const data = await getLeaderboard(selectedDuration, 100);
-    setLeaderboard(data);
-    setLoading(false);
-  };
-
-  const loadUserRank = async () => {
-    if (!user) return;
-    const rank = await getUserRank(user.id, selectedDuration);
-    setUserRank(rank);
-  };
+    loadUserRank();
+  }, [loadUserRank]);
 
   const getMedalIcon = (rank: number) => {
     if (rank === 1) {
@@ -118,6 +144,10 @@ export default function LeaderboardClient() {
     return date.toLocaleDateString();
   };
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const showingFrom = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const showingTo = totalCount === 0 ? 0 : Math.min(page * PAGE_SIZE, totalCount);
+
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <Navigation />
@@ -160,7 +190,10 @@ export default function LeaderboardClient() {
             {[15, 30, 60, 120].map((duration) => (
               <button
                 key={duration}
-                onClick={() => setSelectedDuration(duration as DurationOption)}
+                onClick={() => {
+                  setPage(1);
+                  setSelectedDuration(duration as DurationOption);
+                }}
                 className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-smooth ${
                   selectedDuration === duration
                     ? 'border-yellow-500/70 bg-yellow-500/10 text-yellow-400 shadow-[0_15px_40px_-30px_rgba(234,179,8,0.8)] scale-105'
@@ -177,12 +210,14 @@ export default function LeaderboardClient() {
         <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl overflow-hidden backdrop-blur-sm animate-slideInUp animation-delay-300">
           <div className="flex flex-col gap-4 border-b border-zinc-700/60 bg-zinc-900/40 p-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Top 100</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+                Top scores • Showing {showingFrom}-{showingTo} of {totalCount || 0}
+              </p>
               <h2 className="mt-2 text-2xl font-semibold text-zinc-50">{selectedDuration} second test</h2>
               <p className="text-sm text-zinc-500">Best verified runs from the community</p>
             </div>
             <button
-              onClick={loadLeaderboard}
+              onClick={() => loadLeaderboard(page)}
               disabled={loading}
               className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -276,6 +311,32 @@ export default function LeaderboardClient() {
               </table>
             </div>
           )}
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-zinc-800/60 border border-zinc-700/50 rounded-3xl px-6 py-4 backdrop-blur-sm animate-fadeIn animation-delay-350">
+          <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+            Page {page} of {totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={page === 1 || loading}
+              className="rounded-2xl border border-zinc-700/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-semibold text-zinc-200">
+              {page}
+            </div>
+            <button
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={page >= totalPages || loading}
+              className="rounded-2xl border border-zinc-700/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
         </div>
 
         {/* Call to Action */}

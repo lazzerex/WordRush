@@ -1,62 +1,113 @@
 import { createClient } from '@/lib/supabase/client';
 import type { LeaderboardEntry } from '@/types/leaderboard';
 
-export async function getLeaderboard(
-  duration: number,
-  limit: number = 100
-): Promise<LeaderboardEntry[]> {
-  const supabase = createClient();
+interface RawLeaderboardResult {
+  entries: any[];
+  total: number;
+}
 
-  // First, try to fetch with profiles join
-  let { data, error } = await supabase
+async function fetchLeaderboardBatch(
+  duration: number,
+  limit: number,
+  offset: number
+): Promise<RawLeaderboardResult> {
+  const supabase = createClient();
+  const rangeStart = offset;
+  const rangeEnd = Math.max(offset + limit - 1, offset);
+
+  // Attempt with joined profiles for richer data
+  const joinedQuery = supabase
     .from('typing_results')
-    .select(`
-      id,
-      user_id,
-      wpm,
-      accuracy,
-      created_at,
-      profiles:user_id (
-        username,
-        email
-      )
-    `)
+    .select(
+      `
+        id,
+        user_id,
+        wpm,
+        accuracy,
+        created_at,
+        profiles:user_id (
+          username,
+          email
+        )
+      `,
+      { count: 'exact' }
+    )
     .eq('duration', duration)
     .order('wpm', { ascending: false })
     .order('accuracy', { ascending: false })
     .order('created_at', { ascending: true })
-    .limit(limit);
+    .range(rangeStart, rangeEnd);
 
-  // If profiles join fails, try without it (fallback)
-  if (error) {
-    console.warn('Error fetching with profiles, trying without:', error);
-    
-    const fallbackQuery = await supabase
-      .from('typing_results')
-      .select('id, user_id, wpm, accuracy, created_at')
-      .eq('duration', duration)
-      .order('wpm', { ascending: false })
-      .order('accuracy', { ascending: false })
-      .order('created_at', { ascending: true })
-      .limit(limit);
-    
-    if (fallbackQuery.error) {
-      console.error('Error fetching leaderboard (fallback also failed):', fallbackQuery.error);
-      console.error('Error details:', JSON.stringify(fallbackQuery.error, null, 2));
-      return [];
-    }
-    
-    data = fallbackQuery.data as any;
-    error = null;
+  const { data, error, count } = await joinedQuery;
+
+  if (!error && data) {
+    return {
+      entries: data,
+      total: count ?? data.length,
+    };
   }
 
-  // Transform the data to match our interface
-  // If profiles join worked, we'll already have username/email in entry.profiles
-  // But sometimes the join can fail or not return profiles — fetch profiles for all user_ids as a reliable fallback
-  const entries = (data || []) as any[];
+  console.warn('Error fetching leaderboard with profile join, falling back without join:', error);
 
-  // Collect unique user IDs
-  const userIds = Array.from(new Set(entries.map((e) => e.user_id).filter(Boolean)));
+  const fallbackQuery = await supabase
+    .from('typing_results')
+    .select('id, user_id, wpm, accuracy, created_at', { count: 'exact' })
+    .eq('duration', duration)
+    .order('wpm', { ascending: false })
+    .order('accuracy', { ascending: false })
+    .order('created_at', { ascending: true })
+    .range(rangeStart, rangeEnd);
+
+  if (fallbackQuery.error || !fallbackQuery.data) {
+    console.error('Fallback leaderboard query failed:', fallbackQuery.error);
+    return { entries: [], total: 0 };
+  }
+
+  return {
+    entries: fallbackQuery.data,
+    total: fallbackQuery.count ?? fallbackQuery.data.length,
+  };
+}
+
+function mapLeaderboardEntries(
+  rawEntries: any[],
+  offset: number,
+  profileMap: Record<string, { username?: string; email?: string }>
+): LeaderboardEntry[] {
+  return rawEntries.map((entry: any, index: number) => {
+    const usernameFromJoin = entry.profiles?.username;
+    const emailFromJoin = entry.profiles?.email;
+    const profile = profileMap[entry.user_id] || {};
+
+    const username = usernameFromJoin || profile.username || `User ${entry.user_id?.slice(0, 8)}`;
+    const email = emailFromJoin || profile.email || '';
+
+    return {
+      id: entry.id,
+      user_id: entry.user_id,
+      username,
+      email,
+      wpm: entry.wpm,
+      accuracy: entry.accuracy,
+      created_at: entry.created_at,
+      rank: offset + index + 1,
+    };
+  });
+}
+
+export async function getLeaderboardPaginated(
+  duration: number,
+  limit: number = 100,
+  offset: number = 0
+): Promise<{ entries: LeaderboardEntry[]; total: number }> {
+  const supabase = createClient();
+  const { entries: rawEntries, total } = await fetchLeaderboardBatch(duration, limit, offset);
+
+  if (rawEntries.length === 0) {
+    return { entries: [], total: 0 };
+  }
+
+  const userIds = Array.from(new Set(rawEntries.map((entry) => entry.user_id).filter(Boolean)));
 
   let profileMap: Record<string, { username?: string; email?: string }> = {};
 
@@ -67,35 +118,29 @@ export async function getLeaderboard(
       .in('id', userIds);
 
     if (!profilesError && profilesData) {
-      profileMap = (profilesData as any[]).reduce((acc, p) => {
-        acc[p.id] = { username: p.username, email: p.email };
+      profileMap = (profilesData as any[]).reduce((acc, profile) => {
+        acc[profile.id] = {
+          username: profile.username,
+          email: profile.email,
+        };
         return acc;
       }, {} as Record<string, { username?: string; email?: string }>);
     }
   }
 
-  const leaderboard: LeaderboardEntry[] = entries.map((entry: any, index: number) => {
-    const usernameFromJoin = entry.profiles?.username;
-    const emailFromJoin = entry.profiles?.email;
+  return {
+    entries: mapLeaderboardEntries(rawEntries, offset, profileMap),
+    total,
+  };
+}
 
-    const profile = profileMap[entry.user_id] || {};
-
-    const username = usernameFromJoin || profile.username || `User ${entry.user_id?.slice(0, 8)}`;
-    const email = emailFromJoin || profile.email || '';
-
-    return {
-      id: entry.id,
-      user_id: entry.user_id,
-      username: username,
-      email: email,
-      wpm: entry.wpm,
-      accuracy: entry.accuracy,
-      created_at: entry.created_at,
-      rank: index + 1,
-    };
-  });
-
-  return leaderboard;
+export async function getLeaderboard(
+  duration: number,
+  limit: number = 100,
+  offset: number = 0
+): Promise<LeaderboardEntry[]> {
+  const { entries } = await getLeaderboardPaginated(duration, limit, offset);
+  return entries;
 }
 
 export async function getTopScoresByDuration(): Promise<{
@@ -107,7 +152,8 @@ export async function getTopScoresByDuration(): Promise<{
   // Fetch top 10 for each duration
   await Promise.all(
     durations.map(async (duration) => {
-      results[duration] = await getLeaderboard(duration, 10);
+      const { entries } = await getLeaderboardPaginated(duration, 10, 0);
+      results[duration] = entries;
     })
   );
 

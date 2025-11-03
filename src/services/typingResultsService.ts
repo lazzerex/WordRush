@@ -16,7 +16,8 @@ export interface SaveResultParams {
 
 export interface ITypingResultsService {
   saveResult(params: SaveResultParams): Promise<TypingResult | null>;
-  getUserResults(limit?: number): Promise<TypingResult[]>;
+  getUserResults(limit?: number, offset?: number): Promise<TypingResult[]>;
+  getUserResultsPaginated(limit?: number, offset?: number): Promise<{ results: TypingResult[]; total: number }>;
   getUserStats(): Promise<UserStats | null>;
   deleteResult(resultId: string): Promise<boolean>;
 }
@@ -61,26 +62,40 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
     return data;
   }
 
-  async getUserResults(limit: number = 10): Promise<TypingResult[]> {
+  async getUserResults(limit: number = 10, offset: number = 0): Promise<TypingResult[]> {
+    const { results } = await this.getUserResultsPaginated(limit, offset);
+    return results;
+  }
+
+  async getUserResultsPaginated(
+    limit: number = 10,
+    offset: number = 0
+  ): Promise<{ results: TypingResult[]; total: number }> {
     const { data: { user } } = await this.supabase.auth.getUser();
 
     if (!user) {
-      return [];
+      return { results: [], total: 0 };
     }
 
-    const { data, error } = await this.supabase
+    const rangeStart = offset;
+    const rangeEnd = Math.max(offset + limit - 1, offset);
+
+    const { data, error, count } = await this.supabase
       .from('typing_results')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .range(rangeStart, rangeEnd);
 
     if (error) {
       console.error('Error fetching user results:', error);
-      return [];
+      return { results: [], total: 0 };
     }
 
-    return data || [];
+    return {
+      results: data || [],
+      total: count ?? (data ? data.length : 0),
+    };
   }
 
   async getUserStats(): Promise<UserStats | null> {

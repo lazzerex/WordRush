@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
-import { getUserResults, deleteResult } from '@/lib/typingResults';
+import { getUserResultsPaginated, deleteResult } from '@/lib/typingResults';
 import type { TypingResult } from '@/types/database';
 import Navigation from '@/components/Navigation';
 import { ArrowRight, Trash2 } from 'lucide-react';
@@ -15,21 +15,36 @@ interface ResultsClientProps {
 }
 
 export default function ResultsClient({ user }: ResultsClientProps) {
+  const PAGE_SIZE = 10;
   const [results, setResults] = useState<TypingResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    loadResults();
-  }, []);
+    loadResults(page);
+  }, [page]);
 
-  const loadResults = async () => {
+  const loadResults = async (requestedPage: number = 1) => {
     setLoading(true);
-    const userResults = await getUserResults(100); // Get last 100 results
-    setResults(userResults);
+    const safePage = Math.max(1, requestedPage);
+    const offset = (safePage - 1) * PAGE_SIZE;
+
+    const { results: pageResults, total } = await getUserResultsPaginated(PAGE_SIZE, offset);
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const normalizedPage = Math.min(safePage, totalPages);
+
+    if (normalizedPage !== safePage) {
+      setPage(normalizedPage);
+      return;
+    }
+
+    setResults(pageResults);
+    setTotalCount(total);
     setLoading(false);
   };
 
@@ -38,7 +53,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
     const success = await deleteResult(resultId);
     
     if (success) {
-      setResults(results.filter((r) => r.id !== resultId));
+      await loadResults(page);
     } else {
       alert('Failed to delete result');
     }
@@ -82,6 +97,10 @@ export default function ResultsClient({ user }: ResultsClientProps) {
     if (accuracy >= 75) return 'text-orange-400';
     return 'text-red-400';
   };
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const showingFrom = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const showingTo = totalCount === 0 ? 0 : Math.min(page * PAGE_SIZE, totalCount);
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
@@ -189,13 +208,41 @@ export default function ResultsClient({ user }: ResultsClientProps) {
             </div>
           )}
 
+          {/* Pagination Controls */}
+          {totalCount > 0 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-zinc-900/40 border border-zinc-700/60 rounded-2xl px-5 py-3 animate-fadeIn">
+              <div className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+                Showing {showingFrom}-{showingTo} of {totalCount}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={page === 1 || loading}
+                  className="rounded-xl border border-zinc-700/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-semibold text-zinc-200">
+                  Page {page} of {totalPages}
+                </div>
+                <button
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={page >= totalPages || loading}
+                  className="rounded-xl border border-zinc-700/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Summary Stats */}
           {results.length > 0 && (
             <div className="mt-10 border-t border-zinc-700/60 pt-8 animate-fadeIn animation-delay-100">
-              <h3 className="text-lg font-semibold text-zinc-200 mb-5">Summary</h3>
+              <h3 className="text-lg font-semibold text-zinc-200 mb-5">Page Summary</h3>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5 transition-smooth hover:scale-105">
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total tests</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total on page</p>
                   <p className="mt-3 text-2xl font-semibold text-zinc-100">{results.length}</p>
                 </div>
                 <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
