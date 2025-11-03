@@ -78,7 +78,7 @@ export async function getUserStats() {
     return null;
   }
 
-  // Get all results for the user
+  // Get all results for the user (for the activity heatmap)
   const { data, error } = await supabase
     .from('typing_results')
     .select('*')
@@ -97,6 +97,7 @@ export async function getUserStats() {
       averageAccuracy: 0,
       highestWpm: 0,
       recentTests: [],
+      allResults: [],
     };
   }
 
@@ -117,6 +118,7 @@ export async function getUserStats() {
     averageAccuracy,
     highestWpm,
     recentTests,
+    allResults: data, // Include all results for the activity heatmap
   };
 }
 

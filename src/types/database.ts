@@ -16,4 +16,5 @@ export interface UserStats {
   averageAccuracy: number;
   highestWpm: number;
   recentTests: TypingResult[];
+  allResults: TypingResult[];
 }

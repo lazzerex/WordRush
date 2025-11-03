@@ -8,6 +8,7 @@ import type { User } from '@supabase/supabase-js';
 import { getUserStats } from '@/lib/typingResults';
 import type { UserStats } from '@/types/database';
 import Navigation from '@/components/Navigation';
+import ActivityHeatmap from '@/components/ActivityHeatmap';
 import {
   User as UserIcon,
   Mail,
@@ -250,8 +251,54 @@ export default function AccountClient({ user }: AccountClientProps) {
                   </div>
                 </div>
 
+                {/* Activity Heatmap */}
+                <div className="mt-10 animate-fadeIn animation-delay-400">
+                  <h3 className="text-lg font-semibold text-zinc-200 mb-6">Activity Overview</h3>
+                  <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6">
+                    <ActivityHeatmap results={stats.allResults} />
+                  </div>
+                </div>
+
+                {/* Performance Breakdown by Duration */}
+                <div className="mt-10 animate-fadeIn animation-delay-500">
+                  <h3 className="text-lg font-semibold text-zinc-200 mb-4">Performance by Duration</h3>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {[15, 30, 60, 120].map((duration) => {
+                      const testsForDuration = stats.allResults.filter((r) => r.duration === duration);
+                      const avgWpm = testsForDuration.length > 0
+                        ? Math.round(testsForDuration.reduce((sum, r) => sum + r.wpm, 0) / testsForDuration.length)
+                        : 0;
+                      const avgAccuracy = testsForDuration.length > 0
+                        ? Math.round(testsForDuration.reduce((sum, r) => sum + r.accuracy, 0) / testsForDuration.length)
+                        : 0;
+                      
+                      return (
+                        <div key={duration} className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
+                          <div className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">
+                            {duration} seconds
+                          </div>
+                          <div className="space-y-3">
+                            <div>
+                              <div className="text-xs text-zinc-500">Tests</div>
+                              <div className="text-2xl font-semibold text-zinc-100">{testsForDuration.length}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">Avg WPM</div>
+                              <div className="text-xl font-semibold text-yellow-400">{avgWpm}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">Avg Accuracy</div>
+                              <div className="text-lg font-semibold text-green-400">{avgAccuracy}%</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {stats.recentTests.length > 0 && (
-                  <div className="mt-10 animate-fadeIn animation-delay-400">
+                  <div className="mt-10 animate-fadeIn animation-delay-600">
                     <h3 className="text-lg font-semibold text-zinc-200 mb-4">Recent Sessions</h3>
                     <div className="space-y-3">
                       {stats.recentTests.slice(0, 4).map((result) => (
