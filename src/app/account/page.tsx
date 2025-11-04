@@ -13,5 +13,9 @@ export default async function AccountPage() {
     redirect('/login');
   }
 
-  return <AccountClient user={user} />;
+  return (
+    <div className="min-h-screen bg-zinc-900 text-zinc-100 wr-bg-primary wr-text-primary">
+      <AccountClient user={user} />
+    </div>
+  );
 }
