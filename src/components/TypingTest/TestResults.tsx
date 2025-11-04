@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Coins } from 'lucide-react';
 import StatsChart from '../StatsChart';
 
 interface TestResultsProps {
@@ -13,6 +13,7 @@ interface TestResultsProps {
   correctChars: number;
   incorrectChars: number;
   duration: number;
+  coinsEarned?: number | null;
   onReset: () => void;
 }
 
@@ -22,6 +23,7 @@ export const TestResults: React.FC<TestResultsProps> = ({
   correctChars,
   incorrectChars,
   duration,
+  coinsEarned,
   onReset,
 }) => {
   return (
@@ -33,8 +35,21 @@ export const TestResults: React.FC<TestResultsProps> = ({
           <p className="text-sm text-zinc-400">Here's how you performed</p>
         </div>
 
+        {/* Coins Earned Banner */}
+  {typeof coinsEarned === 'number' && coinsEarned > 0 && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 animate-fadeIn animation-delay-100">
+            <div className="flex items-center justify-center gap-3">
+              <Coins className="w-6 h-6 text-yellow-500" />
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-500">+{coinsEarned} WRCoins</div>
+                <div className="text-xs text-zinc-400">Great job! Keep it up!</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Chart Component */}
-        <div className="animate-fadeIn animation-delay-100">
+        <div className="animate-fadeIn animation-delay-200">
           <StatsChart
             wpm={wpm}
             accuracy={accuracy}

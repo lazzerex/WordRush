@@ -38,7 +38,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-100">
+    <div className="min-h-screen bg-zinc-900 text-zinc-100 wr-bg-primary wr-text-primary">
       <Navigation />
       <div className="pt-24 pb-16 px-4 flex items-center justify-center">
         <div className="w-full max-w-lg">

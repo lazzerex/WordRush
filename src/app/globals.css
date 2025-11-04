@@ -22,13 +22,17 @@
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+:root {
+  color-scheme: dark;
+}
+
 * {
-  border-color: #27272a;
+  border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
 }
 
 body {
-  background: #18181b;
-  color: #d4d4d8;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
   font-family: var(--font-sans);
 }
 
@@ -44,28 +48,28 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #18181b;
+  background: var(--color-bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: color-mix(in srgb, var(--color-text-tertiary) 50%, transparent);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: color-mix(in srgb, var(--color-text-tertiary) 70%, transparent);
 }
 
 /* Selection */
 ::selection {
-  background: rgba(202, 138, 4, 0.3);
-  color: #facc15;
+  background: color-mix(in srgb, var(--color-accent-primary) 35%, transparent);
+  color: var(--color-accent-primary);
 }
 
 /* Focus styles */
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #18181b, 0 0 0 4px rgba(202, 138, 4, 0.5);
+  box-shadow: 0 0 0 2px var(--color-bg-primary), 0 0 0 4px color-mix(in srgb, var(--color-accent-primary) 50%, transparent);
 }
 
 /* Custom animations */
@@ -264,4 +268,125 @@ html {
 
 .glow-yellow-sm {
   box-shadow: 0 0 10px rgba(229, 163, 69, 0.2);
+}
+
+/* Theme helper utilities */
+.wr-bg-primary {
+  background-color: var(--color-bg-primary) !important;
+}
+
+.wr-bg-secondary {
+  background-color: var(--color-bg-secondary) !important;
+}
+
+.wr-bg-tertiary {
+  background-color: var(--color-bg-tertiary) !important;
+}
+
+.wr-text-primary {
+  color: var(--color-text-primary) !important;
+}
+
+.wr-text-secondary {
+  color: var(--color-text-secondary) !important;
+}
+
+.wr-text-tertiary {
+  color: var(--color-text-tertiary) !important;
+}
+
+.wr-border {
+  border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent) !important;
+}
+
+.wr-border-strong {
+  border-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent) !important;
+}
+
+.wr-surface {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 92%, transparent) !important;
+  border-color: color-mix(in srgb, var(--color-text-primary) 14%, transparent) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.wr-surface-muted {
+  background-color: color-mix(in srgb, var(--color-bg-tertiary) 80%, transparent) !important;
+  border-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.wr-accent {
+  color: var(--color-accent-primary) !important;
+}
+
+.wr-accent-bg {
+  background-color: var(--color-accent-primary) !important;
+  color: var(--color-bg-primary) !important;
+}
+
+.wr-elevated {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 88%, transparent) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* Override common zinc utility classes with theme tokens */
+.bg-zinc-900 {
+  background-color: var(--color-bg-primary) !important;
+}
+
+.bg-zinc-800 {
+  background-color: var(--color-bg-secondary) !important;
+}
+
+.bg-zinc-800\/90 {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 96%, transparent) !important;
+}
+
+.bg-zinc-800\/70 {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 92%, transparent) !important;
+}
+
+.bg-zinc-800\/60 {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 86%, transparent) !important;
+}
+
+.bg-zinc-800\/50 {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 80%, transparent) !important;
+}
+
+.bg-zinc-800\/30 {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 60%, transparent) !important;
+}
+
+.bg-zinc-800\/20 {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 48%, transparent) !important;
+}
+
+.bg-zinc-800\/10 {
+  background-color: color-mix(in srgb, var(--color-bg-secondary) 32%, transparent) !important;
+}
+
+.border-zinc-800,
+.border-zinc-700,
+.border-zinc-700\/60,
+.border-zinc-700\/50,
+.border-zinc-700\/40,
+.border-zinc-700\/30,
+.border-zinc-600 {
+  border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent) !important;
+}
+
+.text-zinc-100,
+.text-zinc-200 {
+  color: var(--color-text-primary) !important;
+}
+
+.text-zinc-400,
+.text-zinc-500 {
+  color: var(--color-text-secondary) !important;
+}
+
+.text-zinc-600,
+.text-zinc-700 {
+  color: var(--color-text-tertiary) !important;
 }

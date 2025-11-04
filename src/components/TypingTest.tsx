@@ -16,6 +16,7 @@ import { HiddenInput } from './TypingTest/HiddenInput';
 import { TestResults } from './TypingTest/TestResults';
 import { generateRandomWords, calculateStats } from './TypingTest/helpers';
 import type { DurationOption, WordStatus, KeystrokeData } from './TypingTest/types';
+import { broadcastCoinsEvent } from '@/lib/ui-events';
 
 const WORDS_BUFFER_THRESHOLD = 50;
 const WORDS_BATCH_SIZE = 120;
@@ -38,6 +39,7 @@ const TypingTest: React.FC = () => {
   const [overlayVisible, setOverlayVisible] = useState<boolean>(true);
   const [isLoadingWords, setIsLoadingWords] = useState<boolean>(true);
   const [wordPoolError, setWordPoolError] = useState<string | null>(null);
+  const [coinsEarned, setCoinsEarned] = useState<number | null>(null);
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -117,6 +119,7 @@ const TypingTest: React.FC = () => {
     setWpm(0);
     setAccuracy(100);
     setOverlayVisible(true);
+  setCoinsEarned(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
     wordsTypedRef.current = [];
@@ -171,6 +174,7 @@ const TypingTest: React.FC = () => {
     setWpm(0);
     setAccuracy(100);
     setOverlayVisible(true);
+  setCoinsEarned(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
     wordsTypedRef.current = [];
@@ -207,6 +211,28 @@ const TypingTest: React.FC = () => {
       });
 
       const result = await response.json();
+
+      const applyServerData = (data: any) => {
+        if (!data) {
+          return;
+        }
+
+        if (typeof data.wpm === 'number') {
+          setWpm(data.wpm);
+        }
+
+        if (typeof data.accuracy === 'number') {
+          setAccuracy(data.accuracy);
+        }
+
+        if (typeof data.coinsEarned === 'number') {
+          setCoinsEarned(data.coinsEarned);
+        }
+
+        if (typeof data.totalCoins === 'number') {
+          broadcastCoinsEvent(data.totalCoins);
+        }
+      };
       if (!response.ok) {
         // Handle unauthorized (not logged in) silently - this is expected behavior
         if (response.status === 401) {
@@ -217,16 +243,10 @@ const TypingTest: React.FC = () => {
         
         // For other errors, log but don't break the UX
         console.warn('Could not save result:', result.error);
-        if (result.data) {
-          setWpm(result.data.wpm);
-          setAccuracy(result.data.accuracy);
-        }
+        applyServerData(result.data);
       } else {
         // Successfully saved - update with server-validated stats if available
-        if (result.data) {
-          setWpm(result.data.wpm);
-          setAccuracy(result.data.accuracy);
-        }
+        applyServerData(result.data);
       }
     } catch (error) {
       // Network or other errors - log but don't break UX
@@ -386,6 +406,7 @@ const TypingTest: React.FC = () => {
           correctChars={correctChars}
           incorrectChars={incorrectChars}
           duration={selectedDuration}
+          coinsEarned={coinsEarned}
           onReset={handleReset}
         />
       )}

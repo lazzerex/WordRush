@@ -9,10 +9,39 @@ Try it here: https://word-rush-six.vercel.app/
 
 ## Features
 
--  **User Accounts** - View your profile and account information
+- ⌨️ **Typing Test** - Multiple duration options (15s, 30s, 60s, 120s)
+- 👤 **User Accounts** - View your profile and account information
 - 🏆 **Global Leaderboard** - Compete with other users and see top scores
 - 🔒 **Secure Score Validation** - Server-side validation prevents score manipulation
 - 📈 **Statistics Dashboard** - Track your progress over time
+- 💰 **WRCoins System** - Earn coins by completing typing tests
+- 🛍️ **Theme Shop** - Purchase themes with your earned coins
+- 🎨 **Customization** - Apply purchased themes across the entire UI with persistent palettes
+- ⚡ **Live Sync** - Navigation coin balance updates instantly after tests and purchases
+
+## 🎮 Gamification Features (NEW!)
+
+### WRCoins System
+Earn virtual currency by completing typing tests:
+- **15 seconds** → 150 WRCoins
+- **30 seconds** → 300 WRCoins
+- **60 seconds** → 600 WRCoins
+- **120 seconds** → 1200 WRCoins
+
+### Theme Shop
+Purchase beautiful themes using your earned coins:
+- **Default Dark** (FREE) - Classic dark theme
+- **Midnight Blue** (500) - Cool blue theme
+- **Forest Green** (500) - Nature-inspired
+- **Sunset Orange** (750) - Warm energetic
+- **Rose Pink** (750) - Elegant modern
+- **Cyberpunk** (1000) - High-contrast neon
+- **Light Mode** (1000) - Clean bright theme
+
+### Customization
+- Apply purchased themes instantly
+- Themes persist across sessions
+- Visual theme previews before purchase
 
 ## Tech Stack
 
@@ -23,17 +52,29 @@ Try it here: https://word-rush-six.vercel.app/
 - **Database**: Supabase (PostgreSQL)
 - **Deployment**: Vercel
 
+## 🚀 Quick Start
 
+### Prerequisites
 - Node.js 18+ installed
 - A Supabase account (free tier is fine)
+
+### Installation
+
+1. Clone the repository:
 ```bash
 git clone https://github.com/lazzerex/WordRush.git
+cd WordRush
+```
 
 2. Install dependencies:
+```bash
+npm install
+```
+
 3. Set up Supabase:
-   - Follow the detailed guide in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
-   - Create a new Supabase project
-   - Get your project URL and anon key
+   - Create a new project in the Supabase dashboard (free tier is fine)
+   - Enable email/password authentication
+   - From **Project Settings → API**, copy your project URL, anon key, and service role key
 
 4. Configure environment variables:
 ```bash
@@ -43,14 +84,21 @@ cp .env.example .env.local
 # Edit .env.local and add your Supabase credentials
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# Required on the server for secure RPC calls (never expose this to the browser)
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-5. Run the development server:
+5. **Apply the database migrations** (IMPORTANT):
+   - In the Supabase SQL Editor, run `database/migrations/gamification-system.sql`
+   - Then run `database/migrations/20241104_fix-gamification-rls.sql`
+   - These scripts create the WRCoins tables, policies, and secure RPC helpers
+
+6. Run the development server:
 ```bash
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
+7. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Project Structure
 
@@ -58,34 +106,41 @@ npm run dev
 typing-test/
 ├── src/
 │   ├── app/
-│   │   ├── account/          # User account page
-│   │   ├── api/
-│   │   │   └── submit-result/ # Secure score submission API
-│   │   ├── leaderboard/      # Global leaderboard
-│   │   ├── login/            # Login page
-│   │   ├── register/         # Registration page
-│   │   ├── results/          # Test results page
-│   │   ├── layout.tsx        # Root layout
-│   │   └── page.tsx          # Home page
+│   │   ├── account/          # Account dashboard (auth required)
+│   │   ├── api/submit-result/ # Secure score submission API route
+│   │   ├── customize/        # Theme management UI
+│   │   ├── leaderboard/      # Global leaderboard page
+│   │   ├── login/            # Login form
+│   │   ├── register/         # Registration form
+│   │   ├── results/          # Historical results view
+│   │   ├── shop/             # Theme shop
+│   │   ├── layout.tsx        # Root layout with theme initializer
+│   │   └── page.tsx          # Home page (typing test)
 │   ├── components/
-│   │   ├── Navigation.tsx    # Navigation bar
-│   │   └── TypingTest.tsx    # Main typing test component
+│   │   ├── Navigation.tsx    # Top navigation + live coin badge
+│   │   ├── ThemeInitializer.tsx # Applies active theme on load
+│   │   └── TypingTest/       # Typing test UI, timer, results, etc.
 │   ├── lib/
-│   │   ├── leaderboard.ts    # Leaderboard functions
-│   │   ├── typingResults.ts  # Results management
+│   │   ├── leaderboard.ts    # Leaderboard helpers
+│   │   ├── theme.ts          # CSS variable helpers + persistence
+│   │   ├── typingResults.ts  # User stats utilities
+│   │   ├── ui-events.ts      # Cross-component event bus (coins/themes)
 │   │   └── supabase/
-│   │       ├── client.ts     # Supabase client (browser)
-│   │       └── server.ts     # Supabase client (server)
+│   │       ├── client.ts     # Supabase browser client
+│   │       ├── server.ts     # Supabase server client
+│   │       └── admin.ts      # Supabase service-role client
 │   └── types/
-│       ├── database.ts       # Database types
-│       └── leaderboard.ts    # Leaderboard types
+│       ├── database.ts       # Typed Supabase responses
+│       └── leaderboard.ts    # Leaderboard DTOs
 ├── database/
-│   └── secure-typing-results.sql  # Security migration
+│   └── migrations/           # SQL migrations for security + gamification
+│       ├── gamification-system.sql
+│       └── 20241104_fix-gamification-rls.sql
+├── public/                   # Static assets
 ├── scripts/
-│   └── test-security.js      # Security test suite
-├── middleware.ts             # Auth middleware
-├── .env.local               # Environment variables (not in git)
-└── SUPABASE_SETUP.md        # Supabase setup guide
+│   └── test-security.js      # Score-validation regression script
+├── middleware.ts             # Auth/session middleware
+└── README.md
 ```
 
 ## Authentication Flow
@@ -97,11 +152,10 @@ typing-test/
 
 ## Database Management with DataGrip
 
-See the [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) file for detailed instructions on:
-- Connecting DataGrip to your Supabase database
-- Running SQL queries
-- Viewing user data
-- Managing authentication tables
+Recommended reading before tinkering with the database:
+- [Supabase: Connect with external clients](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- [Managing users via the admin API](https://supabase.com/docs/guides/auth/admin/manage-users)
+- [SQL Editor essentials](https://supabase.com/docs/guides/database/sql-editor)
 
 ## Security Implementation
 
@@ -122,17 +176,18 @@ User Types → Track Keystrokes → API Validates → Server Recalculates → Da
 
 1. **Authentication** - Users must be logged in via Supabase Auth
 2. **Keystroke Tracking** - Every keystroke recorded with timestamp
-3. **Timing Validation** - Test duration verified (±2 second tolerance)
+3. **Timing Validation** - Test duration verified (5s minimum tolerance, scales with duration)
 4. **Server-Side Recalculation** - WPM/accuracy recalculated from raw data (client values ignored)
 5. **Sanity Checks** - WPM ≤ 300, accuracy 0-100%, valid durations only
 6. **Row Level Security** - Database blocks direct client inserts
 
 #### Setup Security (Required for Production)
 
-1. **Apply Database Migration**:
+1. **Apply Database Migrations**:
    ```sql
-   -- In Supabase SQL Editor, run:
-   -- database/secure-typing-results.sql
+   -- In the Supabase SQL Editor, run the contents of:
+   -- database/migrations/gamification-system.sql
+   -- database/migrations/20241104_fix-gamification-rls.sql
    ```
 
 2. **Verify Security**:
@@ -168,7 +223,8 @@ User Types → Track Keystrokes → API Validates → Server Recalculates → Da
 
 - `src/app/api/submit-result/route.ts` - Secure API endpoint
 - `src/components/TypingTest.tsx` - Keystroke tracking
-- `database/secure-typing-results.sql` - RLS policies
+- `database/migrations/gamification-system.sql` - Core tables, functions, policies
+- `database/migrations/20241104_fix-gamification-rls.sql` - Trigger + policy fixes for RLS
 - `scripts/test-security.js` - Security test suite
 
 ## Available Scripts
@@ -191,18 +247,19 @@ User Types → Track Keystrokes → API Validates → Server Recalculates → Da
 4. Update Supabase Authentication settings:
    - Add your Vercel URL to Site URL
    - Add redirect URLs for production
-5. **Apply database security migration**:
+5. **Apply database security & gamification migrations**:
    - Go to Supabase SQL Editor
-   - Run the `database/secure-typing-results.sql` migration
-   - This enables Row Level Security and prevents score manipulation
+   - Run `database/migrations/gamification-system.sql`
+   - Run `database/migrations/20241104_fix-gamification-rls.sql`
+   - These enable Row Level Security, coins, and theming triggers
 
 ### Security Note
 
-⚠️ **Important**: Before deploying to production, run the database migration from `database/secure-typing-results.sql` in your Supabase project to enable Row Level Security and prevent score manipulation.
+⚠️ **Important**: Before deploying to production, run the migrations from `database/migrations/gamification-system.sql` and `database/migrations/20241104_fix-gamification-rls.sql` in your Supabase project to enable Row Level Security and the gamification system.
 
 **Quick Setup**:
 1. Go to Supabase SQL Editor
-2. Run `database/secure-typing-results.sql`
+2. Run both SQL files from `database/migrations/`
 3. Verify RLS is enabled: `SELECT tablename, rowsecurity FROM pg_tables WHERE tablename = 'typing_results';`
 4. Test that direct inserts fail (expected behavior)
 
@@ -234,16 +291,45 @@ For other issues, check:
 3. User is logged in for protected features
 4. Database tables exist and have correct structure
 
+### Gamification Issues
+
+**Coins not showing after test**
+- Ensure you're logged in
+- Confirm both migration SQL files have been executed
+- Verify the `add_coins` function exists in Supabase (`SELECT routine_name FROM information_schema.routines WHERE routine_name = 'add_coins';`)
+- Check server logs for RPC errors when `/api/submit-result` runs
+
+**Can't purchase themes**
+- Check you have sufficient coins
+- Verify `user_themes` table exists
+- Ensure RLS policies are set correctly
+
+**Theme not applying**
+- Clear browser cache and refresh
+- Verify CSS variables are loading
+- Check `user_settings` table exists
+
+## 📚 Documentation & Resources
+
+- `database/migrations/gamification-system.sql` – creates the WRCoins tables, functions, and default themes
+- `database/migrations/20241104_fix-gamification-rls.sql` – updates triggers, RLS policies, and secure RPC helpers
+- `scripts/test-security.js` – quick regression script that exercises the secure result submission flow
+- [Supabase Docs – Auth Helpers](https://supabase.com/docs/guides/auth) – reference for managing users with the admin API
+- [Supabase Docs – Row Level Security](https://supabase.com/docs/guides/auth/row-level-security) – background on the policies used here
+
 ## Future Features
 
 - [x] Save typing test results to database
 - [x] User statistics and progress tracking
 - [x] Global leaderboard
 - [x] Server-side score validation
+- [x] WRCoins reward system
+- [x] Theme shop and customization
+- [ ] Daily login rewards
+- [ ] Achievement system
 - [ ] Custom word lists
 - [ ] Practice mode with specific word categories
 - [ ] Social features (friends, challenges)
-- [ ] Dark mode preference persistence
 - [ ] Mobile app version
 - [ ] Rate limiting and anti-spam measures
 
@@ -258,15 +344,17 @@ This project is open source and available under the [MIT License](LICENSE).
 ## Support
 
 If you encounter any issues or have questions, please:
-1. Check the [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) guide
-2. Open an issue on GitHub
-3. Contact the maintainers
+1. Review the setup steps in this README (environment variables + migrations)
+2. Inspect Supabase logs for API/migration errors
+3. Open an issue on GitHub
+4. Contact the maintainers
 
 ## Acknowledgments
 
 - Built with [Next.js](https://nextjs.org)
 - Authentication powered by [Supabase](https://supabase.com)
 - Styled with [Tailwind CSS](https://tailwindcss.com)
+- Icons by [Lucide](https://lucide.dev)
 
 ---
 

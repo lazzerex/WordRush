@@ -10,7 +10,7 @@ const TypingTest = dynamic(() => import('../components/TypingTest'), {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-zinc-900 wr-bg-primary wr-text-primary">
       <Navigation />
       <main className="pt-20 pb-12 px-4">
         <TypingTest />
