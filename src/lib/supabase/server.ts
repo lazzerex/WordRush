@@ -24,6 +24,12 @@ export async function createClient() {
           }
         },
       },
+      auth: {
+        // Disable automatic token refresh errors in console
+        persistSession: true,
+        detectSessionInUrl: false,
+        flowType: 'pkce',
+      },
     }
   );
 }

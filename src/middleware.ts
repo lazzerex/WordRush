@@ -30,9 +30,38 @@ export async function middleware(request: NextRequest) {
   );
 
   // Refreshing the auth token
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    
+    // If there's a refresh token error, clear the auth cookies
+    if (error && error.message.includes('refresh_token_not_found')) {
+      const response = NextResponse.next({
+        request,
+      });
+      
+      // Clear all Supabase auth cookies
+      const cookiesToClear = request.cookies.getAll().filter(cookie => 
+        cookie.name.startsWith('sb-') || cookie.name.includes('auth-token')
+      );
+      
+      cookiesToClear.forEach(({ name }) => {
+        response.cookies.delete(name);
+      });
+      
+      // Redirect to login if trying to access protected routes
+      if (request.nextUrl.pathname.startsWith('/account')) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      
+      return response;
+    }
+    
+    user = data.user;
+  } catch (error) {
+    // Handle any other auth errors gracefully
+    console.error('Auth error in middleware:', error);
+  }
 
   // Protect account page - redirect to login if not authenticated
   if (request.nextUrl.pathname.startsWith('/account') && !user) {
