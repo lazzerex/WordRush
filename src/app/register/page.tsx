@@ -23,6 +23,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    let registrationSucceeded = false;
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -49,18 +50,16 @@ export default function RegisterPage() {
 
       if (signUpError) throw signUpError;
 
+      registrationSucceeded = true;
       setSuccess(true);
-
-      setTimeout(() => {
-        broadcastLoadingEvent({ active: true, message: 'Redirecting to login…' });
-        router.push('/login');
-      }, 2000);
+      broadcastLoadingEvent({ active: true, message: 'Preparing your profile…' });
+      router.push('/account');
     } catch (error: any) {
       setError(error.message || 'An error occurred during registration');
       broadcastLoadingEvent({ active: false });
     } finally {
       setLoading(false);
-      if (!success) {
+      if (!registrationSucceeded) {
         broadcastLoadingEvent({ active: false });
       }
     }
@@ -77,7 +76,7 @@ export default function RegisterPage() {
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <h2 className="mt-6 text-2xl font-bold text-zinc-50">Registration successful!</h2>
-              <p className="mt-2 text-sm text-zinc-400">Redirecting you to the login screen…</p>
+              <p className="mt-2 text-sm text-zinc-400">Redirecting you to your profile…</p>
             </div>
           </div>
         </div>
