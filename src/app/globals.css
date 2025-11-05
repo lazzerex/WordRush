@@ -135,6 +135,26 @@ html {
   }
 }
 
+@keyframes wrSpinFade {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wrPulseScale {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
 @keyframes caret-blink {
   0%, 100% {
     opacity: 1;
@@ -244,7 +264,8 @@ html {
   .animate-pulse-soft,
   .animate-pulse-smooth,
   .animate-caret,
-  .animate-shake {
+  .animate-shake,
+  .wr-loading-spinner::after {
     animation: none !important;
   }
 
@@ -268,6 +289,31 @@ html {
 
 .glow-yellow-sm {
   box-shadow: 0 0 10px rgba(229, 163, 69, 0.2);
+}
+
+.wr-loading-spinner {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.wr-loading-spinner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(161, 161, 170, 0.2);
+}
+
+.wr-loading-spinner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #eab308;
+  border-right-color: #eab308;
+  animation: wrSpinFade 0.8s linear infinite;
 }
 
 /* Theme helper utilities */

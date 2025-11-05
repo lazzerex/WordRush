@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import AppLink from '@/components/AppLink';
 import type { User } from '@supabase/supabase-js';
 import { getUserStats } from '@/lib/typingResults';
 import type { UserStats } from '@/types/database';
@@ -95,20 +95,22 @@ export default function AccountClient({ user }: AccountClientProps) {
               </div>
 
               <div className="flex flex-wrap gap-3 lg:ml-auto">
-                <Link
+                <AppLink
                   href="/"
+                  loadingMessage="Loading typing test…"
                   className="inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-5 py-2.5 font-semibold hover:bg-yellow-400 transition-smooth shadow-lg shadow-yellow-500/20 hover:scale-105"
                 >
                   <Zap className="w-4 h-4" />
                   Take Test
-                </Link>
-                <Link
+                </AppLink>
+                <AppLink
                   href="/results"
+                  loadingMessage="Fetching your results…"
                   className="inline-flex items-center gap-2 rounded-xl bg-zinc-900/80 border border-zinc-700 px-5 py-2.5 font-semibold text-zinc-100 hover:bg-zinc-900 transition-smooth hover:scale-105"
                 >
                   <History className="w-4 h-4" />
                   View Results
-                </Link>
+                </AppLink>
                 <button
                   onClick={() => setShowConfirm(true)}
                   disabled={loading}
@@ -324,13 +326,14 @@ export default function AccountClient({ user }: AccountClientProps) {
                         </div>
                       ))}
                     </div>
-                    <Link
+                    <AppLink
                       href="/results"
+                      loadingMessage="Opening full history…"
                       className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 transition-smooth"
                     >
                       View full history
                       <ArrowRight className="w-4 h-4" />
-                    </Link>
+                    </AppLink>
                   </div>
                 )}
               </>
@@ -338,13 +341,14 @@ export default function AccountClient({ user }: AccountClientProps) {
               <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
                 <Activity className="w-12 h-12 text-zinc-600" />
                 <p className="mt-4 text-sm">Start taking tests to unlock your statistics.</p>
-                <Link
+                <AppLink
                   href="/"
+                  loadingMessage="Loading typing test…"
                   className="mt-6 inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-6 py-2.5 font-semibold hover:bg-yellow-400 transition-smooth hover:scale-105"
                 >
                   <Zap className="w-4 h-4" />
                   Take your first test
-                </Link>
+                </AppLink>
               </div>
             )}
           </section>

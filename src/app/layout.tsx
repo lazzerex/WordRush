@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import ThemeInitializer from '@/components/ThemeInitializer';
+import GlobalLoadingOverlay from '@/components/GlobalLoadingOverlay';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeInitializer />
+        <GlobalLoadingOverlay />
         {children}
       </body>
     </html>

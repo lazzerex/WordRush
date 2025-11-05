@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { Trophy, User as UserIcon, LogIn, UserPlus, LogOut, Keyboard, Coins } from 'lucide-react';
 import { COINS_EVENT, CoinsEventDetail } from '@/lib/ui-events';
+import AppLink from '@/components/AppLink';
 
 export default function Navigation() {
   const [user, setUser] = useState<User | null>(null);
@@ -88,12 +88,16 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <AppLink
+            href="/"
+            loadingMessage="Loading typing test…"
+            className="flex items-center gap-2 group"
+          >
             <Keyboard className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
             <h1 className="text-xl font-bold text-zinc-100 group-hover:text-yellow-500 transition-colors wr-text-primary">
               WordRush
             </h1>
-          </Link>
+          </AppLink>
           
           {/* Navigation Links */}
           <div className="flex items-center gap-2">
@@ -104,13 +108,14 @@ export default function Navigation() {
               </div>
             )}
             
-            <Link
+            <AppLink
               href="/leaderboard"
+              loadingMessage="Fetching leaderboard…"
               className="px-4 py-2 text-zinc-400 hover:text-yellow-500 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-zinc-800/50 wr-text-secondary"
             >
               <Trophy className="w-4 h-4" />
               <span className="hidden sm:inline">Leaderboard</span>
-            </Link>
+            </AppLink>
             
             {user ? (
               <>
@@ -120,13 +125,14 @@ export default function Navigation() {
                     {user.user_metadata?.username || user.email?.split('@')[0]}
                   </span>
                 </div>
-                <Link
+                <AppLink
                   href="/account"
+                  loadingMessage="Opening account…"
                   className="px-4 py-2 bg-zinc-800 text-zinc-200 rounded-lg hover:bg-zinc-700 transition-all font-medium flex items-center gap-2 wr-surface"
                 >
                   <UserIcon className="w-4 h-4" />
                   <span className="hidden sm:inline">Account</span>
-                </Link>
+                </AppLink>
                 <button
                   onClick={handleSignOut}
                   className="p-2 text-zinc-400 hover:text-red-400 transition-colors rounded-lg hover:bg-zinc-800/50 wr-text-secondary"
@@ -137,20 +143,22 @@ export default function Navigation() {
               </>
             ) : (
               <>
-                <Link
+                <AppLink
                   href="/login"
+                  loadingMessage="Loading login…"
                   className="px-4 py-2 text-zinc-400 hover:text-zinc-200 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-zinc-800/50 wr-text-secondary"
                 >
                   <LogIn className="w-4 h-4" />
                   <span className="hidden sm:inline">Login</span>
-                </Link>
-                <Link
+                </AppLink>
+                <AppLink
                   href="/register"
+                  loadingMessage="Preparing signup…"
                   className="px-4 py-2 bg-yellow-600 text-zinc-900 rounded-lg hover:bg-yellow-500 transition-all font-medium flex items-center gap-2 glow-yellow-sm wr-accent-bg"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span className="hidden sm:inline">Sign Up</span>
-                </Link>
+                </AppLink>
               </>
             )}
           </div>

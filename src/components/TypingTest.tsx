@@ -16,7 +16,7 @@ import { HiddenInput } from './TypingTest/HiddenInput';
 import { TestResults } from './TypingTest/TestResults';
 import { generateRandomWords, calculateStats } from './TypingTest/helpers';
 import type { DurationOption, WordStatus, KeystrokeData } from './TypingTest/types';
-import { broadcastCoinsEvent } from '@/lib/ui-events';
+import { broadcastCoinsEvent, broadcastLoadingEvent } from '@/lib/ui-events';
 
 const WORDS_BUFFER_THRESHOLD = 50;
 const WORDS_BATCH_SIZE = 120;
@@ -194,7 +194,7 @@ const TypingTest: React.FC = () => {
 
     try {
       resultSavedRef.current = true;
-
+      broadcastLoadingEvent({ active: true, message: 'Syncing your rewards…' });
       const response = await fetch('/api/submit-result', {
         method: 'POST',
         headers: {
@@ -251,6 +251,8 @@ const TypingTest: React.FC = () => {
     } catch (error) {
       // Network or other errors - log but don't break UX
       console.warn('Error saving result:', error);
+    } finally {
+      broadcastLoadingEvent({ active: false });
     }
   };
 

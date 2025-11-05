@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+import AppLink from '@/components/AppLink';
 import { LogIn, ArrowLeft } from 'lucide-react';
+import { broadcastLoadingEvent } from '@/lib/ui-events';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    let triggeredGlobalLoading = false;
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -28,12 +30,20 @@ export default function LoginPage() {
 
       if (error) throw error;
 
+      broadcastLoadingEvent({ active: true, message: 'Loading your account…' });
+      triggeredGlobalLoading = true;
       router.push('/account');
       router.refresh();
     } catch (error: any) {
+      if (triggeredGlobalLoading) {
+        broadcastLoadingEvent({ active: false });
+      }
       setError(error.message || 'An error occurred during login');
     } finally {
       setLoading(false);
+      if (!triggeredGlobalLoading) {
+        broadcastLoadingEvent({ active: false });
+      }
     }
   };
 
@@ -100,17 +110,25 @@ export default function LoginPage() {
             <div className="mt-8 text-center text-sm text-zinc-400 animate-fadeIn animation-delay-200">
               <p>
                 Don't have an account?{' '}
-                <Link href="/register" className="font-semibold text-zinc-100 hover:text-yellow-400 transition-smooth">
+                <AppLink
+                  href="/register"
+                  loadingMessage="Preparing signup…"
+                  className="font-semibold text-zinc-100 hover:text-yellow-400 transition-smooth"
+                >
                   Create one
-                </Link>
+                </AppLink>
               </p>
             </div>
 
             <div className="mt-6 text-center animate-fadeIn animation-delay-300">
-              <Link href="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-smooth">
+              <AppLink
+                href="/"
+                loadingMessage="Loading typing test…"
+                className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-smooth"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Back to typing test
-              </Link>
+              </AppLink>
             </div>
           </div>
         </div>
