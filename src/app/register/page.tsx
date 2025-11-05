@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+import AppLink from '@/components/AppLink';
 import { UserPlus, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { broadcastLoadingEvent } from '@/lib/ui-events';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -51,12 +52,17 @@ export default function RegisterPage() {
       setSuccess(true);
 
       setTimeout(() => {
+        broadcastLoadingEvent({ active: true, message: 'Redirecting to login…' });
         router.push('/login');
       }, 2000);
     } catch (error: any) {
       setError(error.message || 'An error occurred during registration');
+      broadcastLoadingEvent({ active: false });
     } finally {
       setLoading(false);
+      if (!success) {
+        broadcastLoadingEvent({ active: false });
+      }
     }
   };
 
@@ -173,17 +179,25 @@ export default function RegisterPage() {
             <div className="mt-8 text-center text-sm text-zinc-400 animate-fadeIn animation-delay-200">
               <p>
                 Already have an account?{' '}
-                <Link href="/login" className="font-semibold text-zinc-100 hover:text-yellow-400 transition-smooth">
+                <AppLink
+                  href="/login"
+                  loadingMessage="Loading login…"
+                  className="font-semibold text-zinc-100 hover:text-yellow-400 transition-smooth"
+                >
                   Sign in
-                </Link>
+                </AppLink>
               </p>
             </div>
 
             <div className="mt-6 text-center animate-fadeIn animation-delay-300">
-              <Link href="/" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-smooth">
+              <AppLink
+                href="/"
+                loadingMessage="Loading typing test…"
+                className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-smooth"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Back to typing test
-              </Link>
+              </AppLink>
             </div>
           </div>
         </div>

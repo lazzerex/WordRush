@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { getUserResultsPaginated, deleteResult } from '@/lib/typingResults';
 import type { TypingResult } from '@/types/database';
 import Navigation from '@/components/Navigation';
-import { ArrowRight, Trash2 } from 'lucide-react';
+import AppLink from '@/components/AppLink';
+import { ArrowRight, Trash2, Check, X } from 'lucide-react';
 
 interface ResultsClientProps {
   user: User;
@@ -113,13 +113,14 @@ export default function ResultsClient({ user }: ResultsClientProps) {
               <h1 className="mt-2 text-3xl font-bold text-zinc-50">Test results</h1>
               <p className="mt-2 text-sm text-zinc-400">Review your recent sessions and track progress.</p>
             </div>
-            <Link
+            <AppLink
               href="/"
+              loadingMessage="Preparing a fresh test…"
               className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
             >
               Start new test
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </AppLink>
           </div>
 
           {loading ? (
@@ -131,13 +132,14 @@ export default function ResultsClient({ user }: ResultsClientProps) {
             <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
               <p className="text-sm">No results yet.</p>
               <p className="mt-1 text-xs text-zinc-500">Run a test to populate your history.</p>
-              <Link
+              <AppLink
                 href="/"
+                loadingMessage="Setting up your first run…"
                 className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
                 Take your first test
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </AppLink>
             </div>
           ) : (
             <div className="overflow-x-auto animate-fadeIn">
@@ -181,14 +183,16 @@ export default function ResultsClient({ user }: ResultsClientProps) {
                           {result.theme}
                         </span>
                       </td>
-                      <td className="px-6 py-5 text-sm text-zinc-400">
-                        <div className="flex items-center gap-4">
-                          <div className="text-green-400 text-xs uppercase tracking-[0.2em]">
-                            ✓ {result.correct_chars}
-                          </div>
-                          <div className="text-red-400 text-xs uppercase tracking-[0.2em]">
-                            ✗ {result.incorrect_chars}
-                          </div>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex items-center gap-2 rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-green-300">
+                            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                            {result.correct_chars}
+                          </span>
+                          <span className="inline-flex items-center gap-2 rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-red-300">
+                            <X className="h-3.5 w-3.5" aria-hidden="true" />
+                            {result.incorrect_chars}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-5 text-sm">

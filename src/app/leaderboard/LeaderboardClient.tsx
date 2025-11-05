@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { getLeaderboardPaginated, subscribeToLeaderboard, getUserRank } from '@/lib/leaderboard';
 import type { LeaderboardEntry } from '@/types/leaderboard';
 import type { User } from '@supabase/supabase-js';
 import Navigation from '@/components/Navigation';
 import { Medal, Award, RefreshCcw, ArrowRight, Crown } from 'lucide-react';
+import AppLink from '@/components/AppLink';
 
 type DurationOption = 15 | 30 | 60 | 120;
 
@@ -172,13 +172,14 @@ export default function LeaderboardClient() {
                 </div>
                 <p className="mt-2 text-sm text-zinc-500">{selectedDuration}s test</p>
               </div>
-              <Link
+              <AppLink
                 href="/"
+                loadingMessage="Loading typing test…"
                 className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
                 Improve rank
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </AppLink>
             </div>
           </div>
         )}
@@ -235,13 +236,14 @@ export default function LeaderboardClient() {
             <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
               <p className="text-sm">No scores yet for this duration.</p>
               <p className="mt-1 text-xs text-zinc-500">Be the first to set the pace.</p>
-              <Link
+              <AppLink
                 href="/"
+                loadingMessage="Loading typing test…"
                 className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
                 Set a record
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </AppLink>
             </div>
           ) : (
             <div className="overflow-x-auto animate-fadeIn">
@@ -341,13 +343,14 @@ export default function LeaderboardClient() {
 
         {/* Call to Action */}
         <div className="pt-4 text-center animate-fadeIn animation-delay-400">
-          <Link
+          <AppLink
             href="/"
+            loadingMessage="Loading typing test…"
             className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-6 py-3 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
           >
             Join the leaderboard
             <ArrowRight className="w-4 h-4" />
-          </Link>
+          </AppLink>
         </div>
       </main>
     </div>
