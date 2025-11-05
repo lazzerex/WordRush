@@ -175,12 +175,9 @@ export async function POST(request: NextRequest) {
       duration
     });
 
-  // 9. Award WRCoins based on test duration
-    const coinsEarned = duration === 15 ? 150 
-                      : duration === 30 ? 300 
-                      : duration === 60 ? 600 
-                      : duration === 120 ? 1200 
-                      : 0;
+    // 9. Award WRCoins proportionally to performance and duration
+    const baseMultiplier = duration > 0 ? duration / 7 : 0; // Scale roughly with legacy rewards
+    const coinsEarned = baseMultiplier > 0 ? Math.max(0, Math.round(wpm * baseMultiplier)) : 0;
 
     let totalCoins: number | null = null;
 
