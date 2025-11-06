@@ -155,6 +155,15 @@ html {
   }
 }
 
+@keyframes wrFadeMinimal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes caret-blink {
   0%, 100% {
     opacity: 1;
@@ -261,16 +270,30 @@ html {
   .animate-slideIn,
   .animate-slideInUp,
   .animate-scaleIn,
-  .animate-pulse-soft,
-  .animate-pulse-smooth,
   .animate-caret,
-  .animate-shake,
-  .wr-loading-spinner::after {
+  .animate-shake {
     animation: none !important;
   }
 
+  .animate-fadeIn,
+  .animate-slideIn,
+  .animate-slideInUp,
+  .animate-scaleIn {
+    animation: wrFadeMinimal 0.25s ease-out !important;
+  }
+
+  .animate-pulse-soft,
+  .animate-pulse-smooth {
+    animation-duration: 3.2s !important;
+    animation-timing-function: ease-in-out !important;
+  }
+
   .transition-smooth {
-    transition: none !important;
+    transition-duration: 120ms !important;
+  }
+
+  .wr-loading-spinner::after {
+    animation-duration: 1.6s !important;
   }
 }
 
