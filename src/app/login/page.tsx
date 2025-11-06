@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
@@ -19,7 +20,8 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+  setError(null);
+  setOauthLoading(false);
     let triggeredGlobalLoading = false;
 
     try {
@@ -47,6 +49,35 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      setError(null);
+      setOauthLoading(true);
+      broadcastLoadingEvent({ active: true, message: 'Signing in with Google…' });
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: typeof window !== 'undefined'
+            ? `${window.location.origin}/auth/callback?next=/account`
+            : undefined,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (oauthError) {
+        throw oauthError;
+      }
+    } catch (error: any) {
+      console.error('Google sign-in failed:', error);
+      setError(error?.message || 'Unable to continue with Google');
+      setOauthLoading(false);
+      broadcastLoadingEvent({ active: false });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100 wr-bg-primary wr-text-primary">
       <Navigation />
@@ -59,6 +90,23 @@ export default function LoginPage() {
               </div>
               <h1 className="mt-6 text-3xl font-bold text-zinc-50">Welcome back</h1>
               <p className="mt-2 text-sm text-zinc-400">Sign in to continue your typing journey</p>
+            </div>
+
+            <div className="space-y-4 animate-fadeIn">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={loading || oauthLoading}
+                className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-zinc-100 transition-smooth hover:bg-zinc-800/60 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-zinc-900">G</span>
+                {oauthLoading ? 'Connecting…' : 'Continue with Google'}
+              </button>
+              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-zinc-600">
+                <span className="h-px w-full bg-zinc-700/60" />
+                <span>or</span>
+                <span className="h-px w-full bg-zinc-700/60" />
+              </div>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6 animate-slideInUp animation-delay-100">
@@ -100,7 +148,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || oauthLoading}
                 className="w-full rounded-2xl bg-yellow-500/90 px-4 py-3 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? 'Signing in…' : 'Sign in'}

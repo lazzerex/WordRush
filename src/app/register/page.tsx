@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setOauthLoading(false);
     setError(null);
     let registrationSucceeded = false;
 
@@ -65,6 +67,35 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGoogleSignUp = async () => {
+    try {
+      setError(null);
+      setOauthLoading(true);
+      broadcastLoadingEvent({ active: true, message: 'Connecting to Google…' });
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: typeof window !== 'undefined'
+            ? `${window.location.origin}/auth/callback?next=/account`
+            : undefined,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (oauthError) {
+        throw oauthError;
+      }
+    } catch (error: any) {
+      console.error('Google sign-in failed:', error);
+      setError(error?.message || 'Unable to continue with Google');
+      setOauthLoading(false);
+      broadcastLoadingEvent({ active: false });
+    }
+  };
+
   if (success) {
     return (
       <div className="min-h-screen bg-zinc-900 text-zinc-100 wr-bg-primary wr-text-primary">
@@ -96,6 +127,23 @@ export default function RegisterPage() {
               </div>
               <h1 className="mt-6 text-3xl font-bold text-zinc-50">Create your account</h1>
               <p className="mt-2 text-sm text-zinc-400">Save your progress and compete with the leaderboard.</p>
+            </div>
+
+            <div className="space-y-4 animate-fadeIn">
+              <button
+                type="button"
+                onClick={handleGoogleSignUp}
+                disabled={loading || oauthLoading}
+                className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-zinc-100 transition-smooth hover:bg-zinc-800/60 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-zinc-900">G</span>
+                {oauthLoading ? 'Connecting…' : 'Continue with Google'}
+              </button>
+              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-zinc-600">
+                <span className="h-px w-full bg-zinc-700/60" />
+                <span>or</span>
+                <span className="h-px w-full bg-zinc-700/60" />
+              </div>
             </div>
 
             <form onSubmit={handleRegister} className="space-y-5 animate-slideInUp animation-delay-100">
@@ -168,7 +216,7 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || oauthLoading}
                 className="w-full rounded-2xl bg-yellow-500/90 px-4 py-3 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? 'Creating account…' : 'Sign up'}
