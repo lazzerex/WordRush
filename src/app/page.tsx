@@ -53,7 +53,14 @@ export default function Home() {
   };
 
   const handleMultiplayer = () => {
-    window.location.href = '/multiplayer';
+    if (menuState !== 'open') {
+      return;
+    }
+
+    setMenuState('closing');
+    window.setTimeout(() => {
+      window.location.href = '/multiplayer';
+    }, 480);
   };
 
   const handleOpenMenu = () => {
