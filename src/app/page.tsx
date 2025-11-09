@@ -15,18 +15,8 @@ type MenuState = 'open' | 'opening' | 'closing' | 'closed';
 
 export default function Home() {
   const [menuState, setMenuState] = useState<MenuState>('open');
-  const [multiplayerNoticeVisible, setMultiplayerNoticeVisible] = useState(false);
-  const multiplayerNoticeTimeout = useRef<number | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const supabase = useMemo(() => createClient(), []);
-
-  useEffect(() => {
-    return () => {
-      if (multiplayerNoticeTimeout.current !== null) {
-        window.clearTimeout(multiplayerNoticeTimeout.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -63,15 +53,7 @@ export default function Home() {
   };
 
   const handleMultiplayer = () => {
-    if (multiplayerNoticeTimeout.current !== null) {
-      window.clearTimeout(multiplayerNoticeTimeout.current);
-    }
-
-    setMultiplayerNoticeVisible(true);
-    multiplayerNoticeTimeout.current = window.setTimeout(() => {
-      setMultiplayerNoticeVisible(false);
-      multiplayerNoticeTimeout.current = null;
-    }, 2100);
+    window.location.href = '/multiplayer';
   };
 
   const handleOpenMenu = () => {
@@ -139,20 +121,13 @@ export default function Home() {
               >
                 Singleplayer
               </button>
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleMultiplayer}
-                  className="text-4xl font-semibold tracking-wide text-white/70 transition-all duration-200 hover:text-white hover:scale-105"
-                >
-                  Multiplayer
-                </button>
-                {multiplayerNoticeVisible && (
-                  <p className="text-sm text-yellow-400/90 animate-fade-in">
-                    Multiplayer mode is coming soon.
-                  </p>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={handleMultiplayer}
+                className="text-4xl font-semibold tracking-wide text-white/70 transition-all duration-200 hover:text-white hover:scale-105"
+              >
+                Multiplayer
+              </button>
               {!isAuthenticated && (
                 <div className="mt-6 text-base text-white/70">
                   New here?{' '}
