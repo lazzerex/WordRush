@@ -21,7 +21,11 @@ import { broadcastCoinsEvent, broadcastLoadingEvent } from '@/lib/ui-events';
 const WORDS_BUFFER_THRESHOLD = 50;
 const WORDS_BATCH_SIZE = 120;
 
-const TypingTest: React.FC = () => {
+export interface TypingTestProps {
+  onOpenMenu?: () => void;
+}
+
+const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   // State management
   const [wordPool, setWordPool] = useState<string[]>([]);
   const [wordsToType, setWordsToType] = useState<string[]>([]);
@@ -363,7 +367,7 @@ const TypingTest: React.FC = () => {
     <div className="max-w-6xl mx-auto">
       {/* Settings Bar */}
       <div className="mb-8 flex items-center justify-between animate-fadeIn">
-        <SettingsBar />
+    <SettingsBar onOpenMenu={onOpenMenu} />
         <DurationSelector
           selectedDuration={selectedDuration}
           isLoadingWords={isLoadingWords}

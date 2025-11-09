@@ -1,20 +1,173 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Navigation from '@/components/Navigation';
+import { createClient } from '@/lib/supabase/client';
 
 // Use dynamic import to avoid hydration issues
 const TypingTest = dynamic(() => import('../components/TypingTest'), {
   ssr: false,
 });
 
+type MenuState = 'open' | 'opening' | 'closing' | 'closed';
+
 export default function Home() {
+  const [menuState, setMenuState] = useState<MenuState>('open');
+  const [multiplayerNoticeVisible, setMultiplayerNoticeVisible] = useState(false);
+  const multiplayerNoticeTimeout = useRef<number | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    return () => {
+      if (multiplayerNoticeTimeout.current !== null) {
+        window.clearTimeout(multiplayerNoticeTimeout.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (isMounted) {
+        setIsAuthenticated(!!user);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        setIsAuthenticated(!!session?.user);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  const handleSingleplayer = () => {
+    if (menuState !== 'open') {
+      return;
+    }
+
+    setMenuState('closing');
+    window.setTimeout(() => {
+      setMenuState('closed');
+    }, 480);
+  };
+
+  const handleMultiplayer = () => {
+    if (multiplayerNoticeTimeout.current !== null) {
+      window.clearTimeout(multiplayerNoticeTimeout.current);
+    }
+
+    setMultiplayerNoticeVisible(true);
+    multiplayerNoticeTimeout.current = window.setTimeout(() => {
+      setMultiplayerNoticeVisible(false);
+      multiplayerNoticeTimeout.current = null;
+    }, 2100);
+  };
+
+  const handleOpenMenu = () => {
+    if (menuState === 'closed') {
+      setMenuState('opening');
+      window.setTimeout(() => {
+        setMenuState('open');
+      }, 50); // Small delay to trigger animation
+    }
+  };
+
+  const overlayVisible = menuState !== 'closed';
+
   return (
-    <div className="min-h-screen bg-zinc-900 wr-bg-primary wr-text-primary">
-      <Navigation />
-      <main className="pt-20 pb-12 px-4">
-        <TypingTest />
-      </main>
+    <div className="relative min-h-screen bg-zinc-900 wr-bg-primary wr-text-primary">
+      <div
+        className={`relative z-10 min-h-screen transition-all duration-500 ease-out ${overlayVisible ? 'pointer-events-none select-none opacity-90 blur-[6px]' : 'opacity-100 blur-0'}`}
+      >
+        <Navigation />
+        <main className="pt-20 pb-12 px-4">
+          <TypingTest onOpenMenu={handleOpenMenu} />
+        </main>
+      </div>
+
+      {overlayVisible && (
+        <div className={`absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/80 backdrop-blur-3xl px-6 transition-opacity duration-500 ${menuState === 'opening' ? 'opacity-0' : 'opacity-100'}`}>
+          {/* Animated background elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div
+              className={`absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl transition-all duration-1000 ${menuState === 'closing' || menuState === 'opening' ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`}
+            />
+            <div
+              className={`absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl transition-all duration-1000 delay-100 ${menuState === 'closing' || menuState === 'opening' ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`}
+            />
+            <div
+              className={`absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl transition-all duration-1000 delay-200 ${menuState === 'closing' || menuState === 'opening' ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`}
+            />
+          </div>
+
+          {/* Title section */}
+          <div
+            className={`relative flex flex-col items-center gap-8 text-center text-white transition-all duration-500 ease-out ${
+              menuState === 'closing' 
+                ? '-translate-y-20 opacity-0' 
+                : menuState === 'opening'
+                ? 'translate-y-12 opacity-0'
+                : 'translate-y-0 opacity-100'
+            }`}
+          >
+            <div className="mb-4">
+              <p className="text-xs uppercase tracking-[0.4em] text-zinc-400 mb-2 animate-fade-in">
+                Welcome to
+              </p>
+              <h1 className="text-6xl font-bold text-white mb-3 tracking-tight">
+                WordRush
+              </h1>
+              <div className="h-1 w-20 bg-gradient-to-r from-yellow-500 to-blue-500 rounded-full mx-auto" />
+            </div>
+
+            <div className="flex flex-col items-center gap-4">
+              <button
+                type="button"
+                onClick={handleSingleplayer}
+                className="text-4xl font-semibold tracking-wide text-white transition-all duration-200 hover:text-yellow-400 hover:scale-105"
+              >
+                Singleplayer
+              </button>
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleMultiplayer}
+                  className="text-4xl font-semibold tracking-wide text-white/70 transition-all duration-200 hover:text-white hover:scale-105"
+                >
+                  Multiplayer
+                </button>
+                {multiplayerNoticeVisible && (
+                  <p className="text-sm text-yellow-400/90 animate-fade-in">
+                    Multiplayer mode is coming soon.
+                  </p>
+                )}
+              </div>
+              {!isAuthenticated && (
+                <div className="mt-6 text-base text-white/70">
+                  New here?{' '}
+                  <Link
+                    href="/register"
+                    className="underline decoration-yellow-500/40 underline-offset-4 transition-all hover:decoration-yellow-500 hover:text-yellow-400"
+                  >
+                    Sign up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
