@@ -4,3 +4,4 @@
 
 export * from './wordPoolService';
 export * from './typingResultsService';
+export * from './multiplayerService';
