@@ -123,13 +123,13 @@ export default function MultiplayerPage() {
                       </div>
                       <div className="flex-1 space-y-2">
                         <h3 className="text-3xl font-bold text-white">Ranked Match</h3>
-                        <p className="text-zinc-400">30 seconds • ELO-based matchmaking</p>
+                        <p className="text-zinc-400">Two 30s runs • ELO-based matchmaking</p>
                         <div className="flex flex-wrap gap-2 text-xs">
                           <span className="px-3 py-1 bg-yellow-500/10 rounded-full text-yellow-500 font-medium">
                             Competitive
                           </span>
                           <span className="px-3 py-1 bg-zinc-700/50 rounded-full text-zinc-400">
-                            Real-time duel
+                            Turn-based duel
                           </span>
                         </div>
                       </div>

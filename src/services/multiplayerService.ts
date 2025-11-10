@@ -82,6 +82,8 @@ export class SupabaseMultiplayerService {
         .order('created_at', { ascending: true }),
     ]);
 
+    console.log('fetchMatch debug:', { matchId, match, matchError, players, playerError });
+
     if (matchError) {
       console.error('Failed to load match', matchError);
       return null;
@@ -89,6 +91,11 @@ export class SupabaseMultiplayerService {
 
     if (playerError) {
       console.error('Failed to load match roster', playerError);
+      return null;
+    }
+
+    if (!players || players.length === 0) {
+      console.error('No players found for match', matchId);
       return null;
     }
 

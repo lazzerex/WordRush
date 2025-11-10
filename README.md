@@ -18,6 +18,7 @@ Try it here: https://word-rush-six.vercel.app/
 - 🛍️ **Theme Shop** - Purchase themes with your earned coins
 - 🎨 **Customization** - Apply purchased themes across the entire UI with persistent palettes
 - ⚡ **Live Sync** - Navigation coin balance updates instantly after tests and purchases
+- ⚔️ **Multiplayer Ranked Duels** - Turn-based 1v1 runs with shared word lists and ELO rating
 
 ## 🎮 Gamification Features (NEW!)
 
@@ -51,6 +52,20 @@ Purchase beautiful themes using your earned coins:
 - **Authentication**: Supabase Auth
 - **Database**: Supabase (PostgreSQL)
 - **Deployment**: Vercel
+
+## ⚔️ Multiplayer Ranked Duels (Beta)
+
+- Alternate 30s runs on the same word list and compare final stats
+- ELO updates automatically when both players finish
+- Queuing is powered by a Supabase RPC (`enqueue_ranked_match`) with row-level security
+- Real-time sync uses Supabase Realtime subscriptions on `multiplayer_match_players`
+
+### Multiplayer Setup
+
+1. Run the migrations listed in [Quick Start](#-quick-start) (adds queue + match tables)
+2. Ensure the Supabase Realtime replication is enabled for the new tables (Database → Replication → Publication → add the `multiplayer_%` tables if needed)
+3. Sign in with two browser sessions to test matchmaking
+4. Open `/multiplayer` and click **Find Match** on both clients – the duel view appears once paired
 
 ## 🚀 Quick Start
 
@@ -91,6 +106,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 5. **Apply the database migrations** (IMPORTANT):
    - In the Supabase SQL Editor, run `database/migrations/gamification-system.sql`
    - Then run `database/migrations/20241104_fix-gamification-rls.sql`
+   - Run `database/migrations/20241110_add_multiplayer.sql`
    - These scripts create the WRCoins tables, policies, and secure RPC helpers
 
 6. Run the development server:
@@ -251,6 +267,7 @@ User Types → Track Keystrokes → API Validates → Server Recalculates → Da
    - Go to Supabase SQL Editor
    - Run `database/migrations/gamification-system.sql`
    - Run `database/migrations/20241104_fix-gamification-rls.sql`
+   - Run `database/migrations/20241110_add_multiplayer.sql`
    - These enable Row Level Security, coins, and theming triggers
 
 ### Security Note

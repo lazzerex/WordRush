@@ -7,7 +7,7 @@ interface FinalizeParams {
 
 export async function POST(
   _request: Request,
-  { params }: { params: FinalizeParams }
+  { params }: { params: Promise<FinalizeParams> }
 ) {
   const supabase = await createClient();
   const {
@@ -18,7 +18,7 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const matchId = params.matchId;
+  const { matchId } = await params;
 
   if (!matchId) {
     return NextResponse.json({ error: 'Missing match id' }, { status: 400 });
