@@ -137,6 +137,7 @@ export function MatchArena({
     }
     return words.slice(0, 120);
   }, [words, totalWords]);
+  const previewWords = useMemo(() => wordsForDisplay.slice(0, 40), [wordsForDisplay]);
 
   const progress = totalWords > 0 ? Math.min(currentWordIndex / totalWords, 1) : 0;
   const stats = calculateStats(correctChars, incorrectChars, duration, timeLeft);
@@ -283,6 +284,13 @@ export function MatchArena({
     result: opponent?.result,
   };
 
+  const myPreviewCurrentIndex = currentWordIndex < previewWords.length ? currentWordIndex : undefined;
+  const myCompletedWords = Math.min(currentWordIndex, previewWords.length);
+  const opponentCompletedWords = Math.min(
+    Math.floor(((opponentStats.progress ?? 0) * totalWords) + 1e-6),
+    previewWords.length
+  );
+
   let myStatus: { label: string; variant: keyof typeof BADGE_STYLES };
   if (phase === 'completed' || hasFinished) {
     myStatus = { label: 'Completed', variant: 'positive' };
@@ -407,7 +415,10 @@ export function MatchArena({
 
             <div className="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-4 h-64 overflow-auto">
               <h3 className="text-xs uppercase tracking-wide text-zinc-500 mb-3">Opponent Progress</h3>
-              <WordPreview words={wordsForDisplay.slice(0, 40)} progress={opponentStats.progress} />
+              <WordPreview
+                words={previewWords}
+                completedWordCount={opponentCompletedWords}
+              />
             </div>
           </div>
 
@@ -455,7 +466,12 @@ export function MatchArena({
                 className="h-40 overflow-y-auto border border-zinc-700/40 rounded-lg p-3 bg-zinc-900 mb-3"
                 onClick={() => inputRef.current?.focus()}
               >
-                <WordPreview words={wordsForDisplay.slice(0, 40)} progress={progress} currentIndex={currentWordIndex} currentInput={currentInput} />
+                <WordPreview
+                  words={previewWords}
+                  completedWordCount={myCompletedWords}
+                  currentIndex={myPreviewCurrentIndex}
+                  currentInput={myPreviewCurrentIndex !== undefined ? currentInput : undefined}
+                />
               </div>
               <input
                 ref={inputRef}
@@ -587,20 +603,22 @@ function StatGrid({ wpm, accuracy, progress, result }: StatGridProps) {
 
 interface WordPreviewProps {
   words: string[];
-  progress: number;
+  completedWordCount: number;
   currentIndex?: number;
   currentInput?: string;
 }
 
-function WordPreview({ words, progress, currentIndex, currentInput }: WordPreviewProps) {
+function WordPreview({ words, completedWordCount, currentIndex, currentInput }: WordPreviewProps) {
   if (!words.length) {
     return <div className="text-sm text-zinc-500">Waiting for word sequence…</div>;
   }
 
+  const clampedCompleted = Math.max(0, Math.min(words.length, Math.floor(completedWordCount)));
+
   return (
     <div className="flex flex-wrap gap-2 text-base leading-relaxed">
       {words.map((word, index) => {
-        const completed = progress >= (index + 1) / words.length;
+        const completed = index < clampedCompleted;
         const isCurrent = currentIndex === index;
         return (
           <span
