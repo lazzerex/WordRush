@@ -28,6 +28,13 @@ const BADGE_STYLES = {
   idle: `${BADGE_BASE} bg-zinc-700/50 text-zinc-400`,
 } as const;
 
+const TWEMOJI_BASE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg';
+const TWEMOJI_CODES = {
+  win: '1f389.svg',
+  loss: '1f4aa.svg',
+  draw: '1f91d.svg',
+} as const;
+
 export function MatchArena({
   match,
   me,
@@ -290,6 +297,9 @@ export function MatchArena({
     Math.floor(((opponentStats.progress ?? 0) * totalWords) + 1e-6),
     previewWords.length
   );
+  const myDisplayName = me.display_name ?? 'You';
+  const opponentDisplayName = opponent?.display_name ?? (opponent ? `Player ${opponent.user_id.slice(0, 8)}` : 'Waiting for opponent');
+  const opponentCopyName = opponent?.display_name ?? 'your opponent';
 
   let myStatus: { label: string; variant: keyof typeof BADGE_STYLES };
   if (phase === 'completed' || hasFinished) {
@@ -337,12 +347,12 @@ export function MatchArena({
       return null;
     }
     if (hasFinished) {
-      return opponentHasFinished ? 'Run complete. Awaiting results.' : "Run complete. Waiting for your opponent's run.";
+      return opponentHasFinished ? 'Run complete. Awaiting results.' : `Run complete. Waiting for ${opponentCopyName}'s run.`;
     }
     if (!myTurn) {
       return isHost
-        ? 'Waiting for your opponent to play their run.'
-        : 'Your opponent is setting the pace. You will go next.';
+        ? `Waiting for ${opponentCopyName} to play their run.`
+        : `${opponentCopyName.charAt(0).toUpperCase()}${opponentCopyName.slice(1)} is setting the pace. You will go next.`;
     }
     if (!isReady) {
       return 'Click Ready Up when you are prepared to start your run.';
@@ -357,11 +367,11 @@ export function MatchArena({
     ? 'Match complete. Review the results below.'
     : isHost
       ? hasFinished
-        ? 'Your run is logged. Waiting for your opponent to respond.'
+        ? `Your run is logged. Waiting for ${opponentCopyName} to respond.`
         : 'You set the pace first. Finish your run to set the benchmark.'
       : opponentHasFinished
         ? 'Your run now determines the outcome.'
-        : 'Opponent plays first. Stay ready to begin after they finish.';
+        : `${opponentCopyName.charAt(0).toUpperCase()}${opponentCopyName.slice(1)} plays first. Stay ready to begin after they finish.`;
 
   return (
     <div className="pt-24 pb-12 px-4">
@@ -371,6 +381,7 @@ export function MatchArena({
           <div>
             <h1 className="text-2xl font-bold text-white">Ranked Match</h1>
             <p className="text-sm text-zinc-400">Duration: {duration}s • Match ID: {match.id.slice(0, 8)}</p>
+            <p className="text-sm text-zinc-300 mt-1">You vs. {opponentDisplayName}</p>
             <p className="text-xs text-zinc-500 mt-1">{headerHint}</p>
           </div>
           <button
@@ -405,7 +416,12 @@ export function MatchArena({
           <div className="space-y-4">
             <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">Opponent</h2>
+                <div>
+                  <h2 className="text-lg font-bold text-white">{opponentDisplayName}</h2>
+                  {opponent && (
+                    <p className="text-xs text-zinc-500">Opponent</p>
+                  )}
+                </div>
                 <span className={BADGE_STYLES[opponentStatus.variant]}>
                   {opponentStatus.label}
                 </span>
@@ -426,7 +442,10 @@ export function MatchArena({
           <div className="space-y-4">
             <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-white">You</h2>
+                <div>
+                  <h2 className="text-lg font-bold text-white">You</h2>
+                  <p className="text-xs text-zinc-500">{myDisplayName}</p>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className={BADGE_STYLES[myStatus.variant]}>{myStatus.label}</span>
                   {myTurn && !hasFinished && !isReady && (
@@ -494,13 +513,28 @@ export function MatchArena({
               <div className="text-center mb-8">
                 <h3 className="text-4xl font-bold text-white mb-2">Match Complete!</h3>
                 {me.result === 'win' && (
-                  <p className="text-2xl text-green-400 font-semibold animate-pulse">🎉 Victory!</p>
+                  <ResultBanner
+                    tone="positive"
+                    title="Victory!"
+                    iconCode={TWEMOJI_CODES.win}
+                    iconAlt="Celebration icon"
+                  />
                 )}
                 {me.result === 'loss' && (
-                  <p className="text-2xl text-red-400 font-semibold">💪 Better luck next time!</p>
+                  <ResultBanner
+                    tone="negative"
+                    title="Better luck next time!"
+                    iconCode={TWEMOJI_CODES.loss}
+                    iconAlt="Flexed biceps icon"
+                  />
                 )}
                 {me.result === 'draw' && (
-                  <p className="text-2xl text-yellow-400 font-semibold">🤝 It's a Draw!</p>
+                  <ResultBanner
+                    tone="warning"
+                    title="It's a draw!"
+                    iconCode={TWEMOJI_CODES.draw}
+                    iconAlt="Handshake icon"
+                  />
                 )}
               </div>
               
@@ -513,7 +547,7 @@ export function MatchArena({
                     ? 'bg-red-500/10 border border-red-500/40' 
                     : 'bg-yellow-500/10 border border-yellow-500/40'
                 }`}>
-                  <p className="text-sm text-zinc-400 mb-2 uppercase tracking-wide">You</p>
+                  <p className="text-sm text-zinc-400 mb-2 uppercase tracking-wide">You ({myDisplayName})</p>
                   <p className="text-5xl font-bold text-white mb-3">{Math.round(meStats.wpm)}</p>
                   <p className="text-sm text-zinc-400 mb-4">WPM</p>
                   <div className="flex justify-between text-sm border-t border-zinc-700/50 pt-3">
@@ -539,7 +573,7 @@ export function MatchArena({
                     ? 'bg-red-500/10 border border-red-500/40' 
                     : 'bg-yellow-500/10 border border-yellow-500/40'
                 }`}>
-                  <p className="text-sm text-zinc-400 mb-2 uppercase tracking-wide">Opponent</p>
+                  <p className="text-sm text-zinc-400 mb-2 uppercase tracking-wide">{opponentDisplayName}</p>
                   <p className="text-5xl font-bold text-white mb-3">{Math.round(opponentStats.wpm)}</p>
                   <p className="text-sm text-zinc-400 mb-4">WPM</p>
                   <div className="flex justify-between text-sm border-t border-zinc-700/50 pt-3">
@@ -577,6 +611,37 @@ interface StatGridProps {
   accuracy: number;
   progress: number;
   result?: string | null;
+}
+
+interface ResultBannerProps {
+  tone: 'positive' | 'negative' | 'warning';
+  title: string;
+  iconCode: string;
+  iconAlt: string;
+}
+
+function ResultBanner({ tone, title, iconCode, iconAlt }: ResultBannerProps) {
+  const toneColors: Record<ResultBannerProps['tone'], string> = {
+    positive: 'text-green-400',
+    negative: 'text-red-400',
+    warning: 'text-yellow-400',
+  };
+
+  return (
+    <div className={`flex flex-col items-center gap-3 ${toneColors[tone]}`}>
+      <img
+        src={`${TWEMOJI_BASE_URL}/${iconCode}`}
+        alt={iconAlt}
+        className="w-16 h-16 drop-shadow-md"
+        width={64}
+        height={64}
+        loading="lazy"
+      />
+      <p className="text-2xl font-semibold">
+        {title}
+      </p>
+    </div>
+  );
 }
 
 function StatGrid({ wpm, accuracy, progress, result }: StatGridProps) {

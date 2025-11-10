@@ -87,4 +87,5 @@ export interface MultiplayerMatchPlayer {
   result: 'win' | 'loss' | 'draw' | null;
   created_at: string;
   updated_at: string;
+  display_name?: string | null;
 }

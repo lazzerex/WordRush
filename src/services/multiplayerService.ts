@@ -77,7 +77,7 @@ export class SupabaseMultiplayerService {
         .single(),
       this.supabase
         .from('multiplayer_match_players')
-        .select('*')
+        .select('*, profiles:profiles(username)')
         .eq('match_id', matchId)
         .order('created_at', { ascending: true }),
     ]);
@@ -99,16 +99,30 @@ export class SupabaseMultiplayerService {
       return null;
     }
 
+    type PlayerRow = MultiplayerMatchPlayer & {
+      profiles?: { username?: string | null } | null;
+    };
+
+    const normalizedPlayers: MultiplayerMatchPlayer[] = (players as PlayerRow[]).map((player) => {
+      const fallback = `Player ${player.user_id.slice(0, 8)}`;
+      const displayName = player.display_name ?? player.profiles?.username ?? fallback;
+      const { profiles, ...rest } = player;
+      return {
+        ...rest,
+        display_name: displayName,
+      };
+    });
+
     const {
       data: { user },
     } = await this.supabase.auth.getUser();
 
-    const me = players?.find((p) => p.user_id === user?.id);
-    const opponent = players?.find((p) => p.user_id !== user?.id);
+    const me = normalizedPlayers.find((p) => p.user_id === user?.id);
+    const opponent = normalizedPlayers.find((p) => p.user_id !== user?.id);
 
     return {
       match: match!,
-      players: players ?? [],
+      players: normalizedPlayers,
       me: me ?? undefined,
       opponent: opponent ?? undefined,
     };
@@ -169,6 +183,47 @@ export class SupabaseMultiplayerService {
     return () => {
       this.supabase.removeChannel(channel);
     };
+  }
+
+  async findActiveAssignment(): Promise<string | null> {
+    const {
+      data: { user },
+    } = await this.supabase.auth.getUser();
+
+    if (!user) {
+      return null;
+    }
+
+    const freshnessCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    const { data, error } = await this.supabase
+      .from('multiplayer_match_players')
+      .select('match_id, match:multiplayer_matches!inner(id, state, created_at)')
+      .eq('user_id', user.id)
+      .is('result', null)
+      .in('match.state', ['pending', 'countdown', 'in-progress'])
+      .gt('match.created_at', freshnessCutoff)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Failed to check existing assignment', error);
+      return null;
+    }
+
+    if (!data?.match_id) {
+      return null;
+    }
+
+    const matchInfo = (data as any)?.match;
+    const matchRecord = Array.isArray(matchInfo) ? matchInfo[0] : matchInfo;
+
+    if (!matchRecord?.state) {
+      return null;
+    }
+
+    return data.match_id;
   }
 
   subscribeToMatch(

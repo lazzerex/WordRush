@@ -35,6 +35,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
   const assignmentCleanup = useRef<(() => void) | null>(null);
   const matchCleanup = useRef<(() => void) | null>(null);
   const finalizeRequested = useRef(false);
+  const playerNameMap = useRef<Map<string, string>>(new Map());
 
   const resetMatch = useCallback(() => {
     setMatch(null);
@@ -48,6 +49,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     assignmentCleanup.current = null;
     matchCleanup.current?.();
     matchCleanup.current = null;
+    playerNameMap.current.clear();
   }, []);
 
   const hydrateMatch = useCallback(
@@ -70,36 +72,95 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
 
   const applyBundle = useCallback((bundle: MatchBundle, fallbackWords?: string[]) => {
     const playerMap = new Map(bundle.players.map((player) => [player.user_id, player]));
+    const nextNameMap = new Map(playerNameMap.current);
+
+    bundle.players.forEach((player) => {
+      const fallback = `Player ${player.user_id.slice(0, 8)}`;
+      const existingName = player.display_name ?? nextNameMap.get(player.user_id) ?? fallback;
+      nextNameMap.set(player.user_id, existingName);
+    });
+
+    const ensureDisplayName = (player: MultiplayerMatchPlayer | null | undefined): MultiplayerMatchPlayer | null => {
+      if (!player) {
+        return null;
+      }
+      const fallback = `Player ${player.user_id.slice(0, 8)}`;
+      const existingName = nextNameMap.get(player.user_id) ?? fallback;
+      return {
+        ...player,
+        display_name: existingName,
+      };
+    };
+
     const inferredMe = bundle.me ?? null;
     const meId = inferredMe?.user_id ?? bundle.players[0]?.user_id;
     const inferredOpponent = bundle.opponent ?? (meId ? bundle.players.find((p) => p.user_id !== meId) ?? null : null);
     const opponentId = inferredOpponent?.user_id;
 
     setMatch(bundle.match);
-    setMe(inferredMe ?? (meId ? playerMap.get(meId) ?? null : null));
-    setOpponent(inferredOpponent ?? (opponentId ? playerMap.get(opponentId) ?? null : null));
+    setMe(ensureDisplayName(inferredMe ?? (meId ? playerMap.get(meId) ?? null : null)));
+    setOpponent(ensureDisplayName(inferredOpponent ?? (opponentId ? playerMap.get(opponentId) ?? null : null)));
     setWordSequence(bundle.match.word_sequence?.length ? bundle.match.word_sequence : fallbackWords ?? []);
     setPhase('playing');
+    playerNameMap.current = nextNameMap;
 
     matchCleanup.current?.();
     matchCleanup.current = null;
 
     matchCleanup.current = service.subscribeToMatch(bundle.match.id, (payload) => {
+      playerNameMap.current.set(
+        payload.user_id,
+        playerNameMap.current.get(payload.user_id) ?? `Player ${payload.user_id.slice(0, 8)}`
+      );
       if (payload.user_id === meId) {
-        setMe(payload);
+        setMe((prev) => {
+          const displayName = playerNameMap.current.get(payload.user_id) ?? prev?.display_name ?? `Player ${payload.user_id.slice(0, 8)}`;
+          playerNameMap.current.set(payload.user_id, displayName);
+          return {
+            ...(prev ?? payload),
+            ...payload,
+            display_name: displayName,
+          };
+        });
         return;
       }
       if (payload.user_id === opponentId || !opponentId) {
-        setOpponent(payload);
+        setOpponent((prev) => {
+          const displayName = playerNameMap.current.get(payload.user_id) ?? prev?.display_name ?? `Player ${payload.user_id.slice(0, 8)}`;
+          playerNameMap.current.set(payload.user_id, displayName);
+          return {
+            ...(prev ?? payload),
+            ...payload,
+            display_name: displayName,
+          };
+        });
       }
     });
   }, [service]);
 
   const startQueue = useCallback(async () => {
     setError(null);
+    try {
+      const existingMatchId = await service.findActiveAssignment();
+      if (existingMatchId) {
+        setPhase('matched');
+        await hydrateMatch(existingMatchId);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to inspect active assignments', err);
+    }
+
     setPhase('queueing');
 
     try {
+      if (!assignmentCleanup.current) {
+        assignmentCleanup.current = await service.subscribeToAssignments(async (payload) => {
+          setPhase('matched');
+          await hydrateMatch(payload.match_id);
+        });
+      }
+
       const response: QueueStatus = await service.queueForRankedMatch();
 
       if (response.status === 'matched') {
@@ -109,13 +170,6 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
       }
 
       setPhase('queued');
-
-      if (!assignmentCleanup.current) {
-        assignmentCleanup.current = await service.subscribeToAssignments(async (payload) => {
-          setPhase('matched');
-          await hydrateMatch(payload.match_id);
-        });
-      }
     } catch (err) {
       console.error('Matchmaking failed', err);
       setError((err as Error).message ?? 'Unable to queue');
