@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js';
 import { Trophy, User as UserIcon, LogIn, UserPlus, LogOut, Keyboard, Coins } from 'lucide-react';
 import { COINS_EVENT, CoinsEventDetail } from '@/lib/ui-events';
 import AppLink from '@/components/AppLink';
+import OnlinePlayersCounter from '@/components/OnlinePlayersCounter';
 
 export default function Navigation() {
   const [user, setUser] = useState<User | null>(null);
@@ -89,17 +90,20 @@ export default function Navigation() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-800 wr-elevated wr-border">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <AppLink
-            href="/"
-            loadingMessage="Loading typing test…"
-            className="flex items-center gap-2 group"
-          >
-            <Keyboard className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
-            <h1 className="text-xl font-bold text-zinc-100 group-hover:text-yellow-500 transition-colors wr-text-primary">
-              WordRush
-            </h1>
-          </AppLink>
+          {/* Logo & Online Counter */}
+          <div className="flex items-center gap-4">
+            <AppLink
+              href="/"
+              loadingMessage="Loading typing test…"
+              className="flex items-center gap-2 group"
+            >
+              <Keyboard className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
+              <h1 className="text-xl font-bold text-zinc-100 group-hover:text-yellow-500 transition-colors wr-text-primary">
+                WordRush
+              </h1>
+            </AppLink>
+            <OnlinePlayersCounter />
+          </div>
           
           {/* Navigation Links */}
           <div className="flex items-center gap-2">

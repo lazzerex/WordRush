@@ -6,3 +6,4 @@ export * from './useTestState';
 export * from './useWordPool';
 export * from './useTimer';
 export * from './useUserStats';
+export * from './useOnlineUsers';
