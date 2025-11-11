@@ -173,7 +173,7 @@ export default function LeaderboardClient() {
                 <p className="mt-2 text-sm text-zinc-500">{selectedDuration}s test</p>
               </div>
               <AppLink
-                href="/"
+                href="/?mode=singleplayer"
                 loadingMessage="Loading typing test…"
                 className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
@@ -238,6 +238,19 @@ export default function LeaderboardClient() {
               <p className="mt-1 text-xs text-zinc-500">Be the first to set the pace.</p>
               <AppLink
                 href="/"
+                loadingMessage="Loading typing test…"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
+              >
+                Set a record
+                <ArrowRight className="w-4 h-4" />
+              </AppLink>
+            </div>
+          ) : leaderboard.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
+              <p className="text-sm">No scores yet for this duration.</p>
+              <p className="mt-1 text-xs text-zinc-500">Be the first to set the pace.</p>
+              <AppLink
+                href="/?mode=singleplayer"
                 loadingMessage="Loading typing test…"
                 className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >
@@ -344,7 +357,7 @@ export default function LeaderboardClient() {
         {/* Call to Action */}
         <div className="pt-4 text-center animate-fadeIn animation-delay-400">
           <AppLink
-            href="/"
+            href="/?mode=singleplayer"
             loadingMessage="Loading typing test…"
             className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-6 py-3 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
           >

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import AppLink from '@/components/AppLink';
 import { UserPlus, CheckCircle2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -20,6 +20,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || '/account';
   const supabase = createClient();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -57,7 +59,7 @@ export default function RegisterPage() {
       registrationSucceeded = true;
       setSuccess(true);
       broadcastLoadingEvent({ active: true, message: 'Preparing your profile…' });
-      router.push('/account');
+      router.push(returnTo);
     } catch (error: any) {
       setError(error.message || 'An error occurred during registration');
       broadcastLoadingEvent({ active: false });
@@ -79,7 +81,7 @@ export default function RegisterPage() {
         provider: 'google',
         options: {
           redirectTo: typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback?next=/account`
+            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`
             : undefined,
           queryParams: {
             prompt: 'select_account',
@@ -196,15 +198,17 @@ export default function RegisterPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 pr-10 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth"
+                    autoComplete="new-password"
+                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                     placeholder="••••••••"
                     aria-describedby="register-password-toggle"
+                    style={{ backgroundImage: 'none' }}
                   />
                   <button
                     id="register-password-toggle"
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute inset-y-0 right-2 flex items-center p-1 text-zinc-400 hover:text-zinc-200"
+                    className="absolute inset-y-0 right-3 flex items-center justify-center p-1 text-zinc-400 hover:text-zinc-200 transition-colors"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     title={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -225,15 +229,17 @@ export default function RegisterPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 pr-10 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth"
+                    autoComplete="new-password"
+                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                     placeholder="••••••••"
                     aria-describedby="register-confirm-password-toggle"
+                    style={{ backgroundImage: 'none' }}
                   />
                   <button
                     id="register-confirm-password-toggle"
                     type="button"
                     onClick={() => setShowConfirmPassword((s) => !s)}
-                    className="absolute inset-y-0 right-2 flex items-center p-1 text-zinc-400 hover:text-zinc-200"
+                    className="absolute inset-y-0 right-3 flex items-center justify-center p-1 text-zinc-400 hover:text-zinc-200 transition-colors"
                     aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                     title={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                   >

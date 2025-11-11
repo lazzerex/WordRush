@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import { Trophy, User as UserIcon, LogIn, UserPlus, LogOut, Keyboard, Coins } from 'lucide-react';
@@ -11,6 +12,7 @@ export default function Navigation() {
   const [user, setUser] = useState<User | null>(null);
   const [coins, setCoins] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
   const supabase = createClient();
 
   useEffect(() => {
@@ -144,7 +146,7 @@ export default function Navigation() {
             ) : (
               <>
                 <AppLink
-                  href="/login"
+                  href={`/login${pathname && pathname !== '/login' && pathname !== '/register' ? `?returnTo=${encodeURIComponent(pathname)}` : ''}`}
                   loadingMessage="Loading login…"
                   className="px-4 py-2 text-zinc-400 hover:text-zinc-200 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-zinc-800/50 wr-text-secondary"
                 >
@@ -152,7 +154,7 @@ export default function Navigation() {
                   <span className="hidden sm:inline">Login</span>
                 </AppLink>
                 <AppLink
-                  href="/register"
+                  href={`/register${pathname && pathname !== '/login' && pathname !== '/register' ? `?returnTo=${encodeURIComponent(pathname)}` : ''}`}
                   loadingMessage="Preparing signup…"
                   className="px-4 py-2 bg-yellow-600 text-zinc-900 rounded-lg hover:bg-yellow-500 transition-all font-medium flex items-center gap-2 glow-yellow-sm wr-accent-bg"
                 >

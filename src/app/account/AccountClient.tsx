@@ -96,7 +96,7 @@ export default function AccountClient({ user }: AccountClientProps) {
 
               <div className="flex flex-wrap gap-3 lg:ml-auto">
                 <AppLink
-                  href="/"
+                  href="/?mode=singleplayer"
                   loadingMessage="Loading typing test…"
                   className="inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-5 py-2.5 font-semibold hover:bg-yellow-400 transition-smooth shadow-lg shadow-yellow-500/20 hover:scale-105"
                 >
@@ -342,7 +342,7 @@ export default function AccountClient({ user }: AccountClientProps) {
                 <Activity className="w-12 h-12 text-zinc-600" />
                 <p className="mt-4 text-sm">Start taking tests to unlock your statistics.</p>
                 <AppLink
-                  href="/"
+                  href="/?mode=singleplayer"
                   loadingMessage="Loading typing test…"
                   className="mt-6 inline-flex items-center gap-2 rounded-xl bg-yellow-500/90 text-zinc-900 px-6 py-2.5 font-semibold hover:bg-yellow-400 transition-smooth hover:scale-105"
                 >

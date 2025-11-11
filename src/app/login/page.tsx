@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import AppLink from '@/components/AppLink';
 import { LogIn, ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || '/account';
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,7 +37,7 @@ export default function LoginPage() {
 
       broadcastLoadingEvent({ active: true, message: 'Loading your account…' });
       triggeredGlobalLoading = true;
-      router.push('/account');
+      router.push(returnTo);
       router.refresh();
     } catch (error: any) {
       if (triggeredGlobalLoading) {
@@ -60,7 +62,7 @@ export default function LoginPage() {
         provider: 'google',
         options: {
           redirectTo: typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback?next=/account`
+            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`
             : undefined,
           queryParams: {
             prompt: 'select_account',
@@ -143,15 +145,17 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 pr-10 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth"
+                    autoComplete="current-password"
+                    className="w-full rounded-2xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 pr-12 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-yellow-500 focus:outline-none focus:ring-0 transition-smooth [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                     placeholder="••••••••"
                     aria-describedby="password-toggle"
+                    style={{ backgroundImage: 'none' }}
                   />
                   <button
                     id="password-toggle"
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute inset-y-0 right-2 flex items-center p-1 text-zinc-400 hover:text-zinc-200"
+                    className="absolute inset-y-0 right-3 flex items-center justify-center p-1 text-zinc-400 hover:text-zinc-200 transition-colors"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     title={showPassword ? 'Hide password' : 'Show password'}
                   >

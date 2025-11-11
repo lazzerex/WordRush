@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -14,7 +15,9 @@ const TypingTest = dynamic(() => import('../components/TypingTest'), {
 type MenuState = 'open' | 'opening' | 'closing' | 'closed';
 
 export default function Home() {
-  const [menuState, setMenuState] = useState<MenuState>('open');
+  const searchParams = useSearchParams();
+  const autoStart = searchParams.get('mode') === 'singleplayer';
+  const [menuState, setMenuState] = useState<MenuState>(autoStart ? 'closed' : 'open');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const supabase = useMemo(() => createClient(), []);
 
@@ -139,7 +142,7 @@ export default function Home() {
                 <div className="mt-6 text-base text-white/70">
                   New here?{' '}
                   <Link
-                    href="/register"
+                    href="/register?returnTo=/"
                     className="underline decoration-yellow-500/40 underline-offset-4 transition-all hover:decoration-yellow-500 hover:text-yellow-400"
                   >
                     Sign up
