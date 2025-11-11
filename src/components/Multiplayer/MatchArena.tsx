@@ -50,6 +50,7 @@ export function MatchArena({
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [hasFinished, setHasFinished] = useState(me.is_finished);
+  const [extendedWords, setExtendedWords] = useState<string[]>(words);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const latestStatsRef = useRef({ wpm: 0, accuracy: 100, progress: 0 });
@@ -74,8 +75,9 @@ export function MatchArena({
     setCountdown(null);
     setIsActive(false);
     setHasFinished(me.is_finished);
+    setExtendedWords(words);
     latestStatsRef.current = { wpm: me.wpm ?? 0, accuracy: me.accuracy ?? 100, progress: me.progress ?? 0 };
-  }, [match.id, duration]);
+  }, [match.id, duration, words]);
 
   useEffect(() => {
     setIsReady(me.is_ready);
@@ -132,13 +134,31 @@ export function MatchArena({
       }
     };
   }, [countdown]);
+
+  // Extend word pool dynamically to prevent running out
+  useEffect(() => {
+    if (currentWordIndex + 50 >= extendedWords.length && words.length > 0) {
+      setExtendedWords(prev => {
+        const newWords = [...prev];
+        // Add more words by cycling through the original word list
+        for (let i = 0; i < 100; i++) {
+          newWords.push(words[Math.floor(Math.random() * words.length)]);
+        }
+        return newWords;
+      });
+    }
+  }, [currentWordIndex, extendedWords.length, words]);
+
+  // Display a fixed window of upcoming words (no scrolling to prevent jumpiness)
   const wordsForDisplay = useMemo(() => {
-    if (totalWords === 0) {
+    if (extendedWords.length === 0) {
       return [];
     }
-    return words.slice(0, 120);
-  }, [words, totalWords]);
-  const previewWords = useMemo(() => wordsForDisplay.slice(0, 40), [wordsForDisplay]);
+    // Show current word + next 100 words for a stable display
+    return extendedWords.slice(currentWordIndex, currentWordIndex + 100);
+  }, [extendedWords, currentWordIndex]);
+  
+  const previewWords = wordsForDisplay;
 
   const progress = totalWords > 0 ? Math.min(currentWordIndex / totalWords, 1) : 0;
   const stats = calculateStats(correctChars, incorrectChars, duration, timeLeft);
@@ -285,12 +305,11 @@ export function MatchArena({
     result: opponent?.result,
   };
 
-  const myPreviewCurrentIndex = currentWordIndex < previewWords.length ? currentWordIndex : undefined;
-  const myCompletedWords = Math.min(currentWordIndex, previewWords.length);
-  const opponentCompletedWords = Math.min(
-    Math.floor(((opponentStats.progress ?? 0) * totalWords) + 1e-6),
-    previewWords.length
-  );
+  // Current word is always at index 0 since we're showing from currentWordIndex
+  const myPreviewCurrentIndex = 0;
+  const myCompletedWords = 0; // No completed words shown (they're already typed)
+  const opponentProgress = Math.floor(((opponentStats.progress ?? 0) * totalWords) + 1e-6);
+  const opponentCompletedWords = Math.max(0, opponentProgress - currentWordIndex);
   const myDisplayName = me.display_name ?? 'You';
   const opponentDisplayName = opponent?.display_name ?? (opponent ? `Player ${opponent.user_id.slice(0, 8)}` : 'Waiting for opponent');
   const opponentCopyName = opponent?.display_name ?? 'your opponent';
@@ -426,8 +445,9 @@ export function MatchArena({
             <div className="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-4 h-64 overflow-auto">
               <h3 className="text-xs uppercase tracking-wide text-zinc-500 mb-3">Opponent Progress</h3>
               <WordPreview
-                words={previewWords}
-                completedWordCount={opponentCompletedWords}
+                words={words.slice(0, 100)}
+                completedWordCount={opponentProgress}
+                showAllWords={true}
               />
             </div>
           </div>
@@ -484,6 +504,7 @@ export function MatchArena({
                   completedWordCount={myCompletedWords}
                   currentIndex={myPreviewCurrentIndex}
                   currentInput={myPreviewCurrentIndex !== undefined ? currentInput : undefined}
+                  showAllWords={false}
                 />
               </div>
               <input
@@ -668,9 +689,10 @@ interface WordPreviewProps {
   completedWordCount: number;
   currentIndex?: number;
   currentInput?: string;
+  showAllWords?: boolean;
 }
 
-function WordPreview({ words, completedWordCount, currentIndex, currentInput }: WordPreviewProps) {
+function WordPreview({ words, completedWordCount, currentIndex, currentInput, showAllWords = true }: WordPreviewProps) {
   if (!words.length) {
     return <div className="text-sm text-zinc-500">Waiting for word sequence…</div>;
   }
@@ -682,10 +704,17 @@ function WordPreview({ words, completedWordCount, currentIndex, currentInput }: 
       {words.map((word, index) => {
         const completed = index < clampedCompleted;
         const isCurrent = currentIndex === index;
+        
+        // If showAllWords is false (your board), hide completed words
+        // If showAllWords is true (opponent board), show all words
+        if (!showAllWords && completed && !isCurrent) {
+          return null;
+        }
+        
         return (
           <span
             key={`${word}-${index}`}
-            className={`px-1 rounded ${completed ? 'bg-green-500/20 text-green-400' : isCurrent ? 'bg-yellow-500/20 text-yellow-400' : 'text-zinc-300'}`}
+            className={`px-1 rounded transition-colors ${completed ? 'bg-green-500/20 text-green-400' : isCurrent ? 'bg-yellow-500/20 text-yellow-400' : 'text-zinc-300'}`}
           >
             {isCurrent && currentInput !== undefined ? (
               <>

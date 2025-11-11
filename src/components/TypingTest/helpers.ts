@@ -38,7 +38,13 @@ export const calculateStats = (
 ): { wpm: number; accuracy: number } => {
   const timeElapsed = selectedDuration - timeLeft;
   const minutes = timeElapsed / 60;
-  const calculatedWpm = minutes > 0 ? Math.round((correctChars / 5) / minutes) : 0;
+  
+  // Prevent unrealistic WPM spikes at the start by requiring minimum elapsed time
+  // This avoids showing 400+ WPM when only 1-2 seconds have passed
+  const calculatedWpm = timeElapsed >= 3 && minutes > 0 
+    ? Math.round((correctChars / 5) / minutes) 
+    : 0;
+    
   const totalChars = correctChars + incorrectChars;
   const calculatedAccuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
 
