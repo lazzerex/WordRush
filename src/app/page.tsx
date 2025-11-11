@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -14,7 +14,7 @@ const TypingTest = dynamic(() => import('../components/TypingTest'), {
 
 type MenuState = 'open' | 'opening' | 'closing' | 'closed';
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const autoStart = searchParams.get('mode') === 'singleplayer';
   const [menuState, setMenuState] = useState<MenuState>(autoStart ? 'closed' : 'open');
@@ -154,6 +154,23 @@ export default function Home() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="relative min-h-screen bg-zinc-900 wr-bg-primary wr-text-primary">
+        <Navigation />
+        <main className="pt-20 pb-12 px-4">
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="text-zinc-400">Loading...</div>
+          </div>
+        </main>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
 
