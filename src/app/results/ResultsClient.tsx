@@ -114,7 +114,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
               <p className="mt-2 text-sm text-zinc-400">Review your recent sessions and track progress.</p>
             </div>
             <AppLink
-              href="/"
+              href="/?mode=singleplayer"
               loadingMessage="Preparing a fresh test…"
               className="inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
             >
@@ -133,7 +133,7 @@ export default function ResultsClient({ user }: ResultsClientProps) {
               <p className="text-sm">No results yet.</p>
               <p className="mt-1 text-xs text-zinc-500">Run a test to populate your history.</p>
               <AppLink
-                href="/"
+                href="/?mode=singleplayer"
                 loadingMessage="Setting up your first run…"
                 className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
               >

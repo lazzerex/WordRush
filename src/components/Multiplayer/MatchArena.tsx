@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Trophy, TrendingDown, Handshake } from 'lucide-react';
 import type {
   MultiplayerMatch,
   MultiplayerMatchPlayer,
@@ -26,13 +27,6 @@ const BADGE_STYLES = {
   warning: `${BADGE_BASE} bg-yellow-500/20 text-yellow-400`,
   info: `${BADGE_BASE} bg-blue-500/20 text-blue-400`,
   idle: `${BADGE_BASE} bg-zinc-700/50 text-zinc-400`,
-} as const;
-
-const TWEMOJI_BASE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg';
-const TWEMOJI_CODES = {
-  win: '1f389.svg',
-  loss: '1f4aa.svg',
-  draw: '1f91d.svg',
 } as const;
 
 export function MatchArena({
@@ -508,84 +502,93 @@ export function MatchArena({
 
         {/* Match Result */}
         {phase === 'completed' && (me.result || opponent?.result) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/90 backdrop-blur-sm">
-            <div className="max-w-3xl w-full mx-4 p-8 bg-zinc-800 border border-zinc-700 rounded-2xl shadow-2xl">
-              <div className="text-center mb-8">
-                <h3 className="text-4xl font-bold text-white mb-2">Match Complete!</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/90 backdrop-blur-md animate-fadeIn">
+            <div className="max-w-4xl w-full mx-4 p-10 bg-zinc-800/60 border border-zinc-700/50 rounded-3xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)] backdrop-blur-md animate-scaleIn">
+              <div className="text-center mb-10">
+                <h3 className="text-4xl font-bold text-zinc-50 mb-6">Match Complete!</h3>
                 {me.result === 'win' && (
                   <ResultBanner
                     tone="positive"
                     title="Victory!"
-                    iconCode={TWEMOJI_CODES.win}
-                    iconAlt="Celebration icon"
+                    icon={<Trophy className="w-16 h-16" />}
                   />
                 )}
                 {me.result === 'loss' && (
                   <ResultBanner
                     tone="negative"
                     title="Better luck next time!"
-                    iconCode={TWEMOJI_CODES.loss}
-                    iconAlt="Flexed biceps icon"
+                    icon={<TrendingDown className="w-16 h-16" />}
                   />
                 )}
                 {me.result === 'draw' && (
                   <ResultBanner
                     tone="warning"
                     title="It's a draw!"
-                    iconCode={TWEMOJI_CODES.draw}
-                    iconAlt="Handshake icon"
+                    icon={<Handshake className="w-16 h-16" />}
                   />
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* You */}
-                <div className={`p-6 rounded-xl transition-all ${
+                <div className={`p-8 rounded-2xl transition-all backdrop-blur-sm ${
                   me.result === 'win' 
-                    ? 'bg-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20' 
+                    ? 'bg-green-500/10 border-2 border-green-500/40 shadow-[0_15px_40px_-20px_rgba(34,197,94,0.4)]' 
                     : me.result === 'loss' 
-                    ? 'bg-red-500/10 border border-red-500/40' 
-                    : 'bg-yellow-500/10 border border-yellow-500/40'
+                    ? 'bg-red-500/5 border border-red-500/30' 
+                    : 'bg-yellow-500/10 border border-yellow-500/30'
                 }`}>
-                  <p className="text-sm text-zinc-400 mb-2 uppercase tracking-wide">You ({myDisplayName})</p>
-                  <p className="text-5xl font-bold text-white mb-3">{Math.round(meStats.wpm)}</p>
-                  <p className="text-sm text-zinc-400 mb-4">WPM</p>
-                  <div className="flex justify-between text-sm border-t border-zinc-700/50 pt-3">
-                    <span className="text-zinc-400">Accuracy</span>
-                    <span className="text-white font-semibold">{Math.round(meStats.accuracy)}%</span>
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">You ({myDisplayName})</p>
+                  <p className="text-6xl font-bold text-zinc-50 mb-2">{Math.round(meStats.wpm)}</p>
+                  <p className="text-sm text-zinc-400 mb-6">WPM</p>
+                  <div className="space-y-3 border-t border-zinc-700/50 pt-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Accuracy</span>
+                      <span className="text-zinc-50 font-semibold">{Math.round(meStats.accuracy)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Progress</span>
+                      <span className="text-zinc-50 font-semibold">{Math.round(meStats.progress * 100)}%</span>
+                    </div>
                   </div>
-                  <div className={`mt-4 px-3 py-2 rounded-lg text-center text-sm font-bold uppercase tracking-wider ${
+                  <div className={`mt-6 px-4 py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-[0.3em] ${
                     me.result === 'win' 
-                      ? 'bg-green-500 text-white' 
+                      ? 'bg-green-500/90 text-white' 
                       : me.result === 'loss'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-yellow-500 text-zinc-900'
+                      ? 'bg-red-500/90 text-white'
+                      : 'bg-yellow-500/90 text-zinc-900'
                   }`}>
                     {me.result || 'pending'}
                   </div>
                 </div>
 
                 {/* Opponent */}
-                <div className={`p-6 rounded-xl transition-all ${
+                <div className={`p-8 rounded-2xl transition-all backdrop-blur-sm ${
                   opponent?.result === 'win' 
-                    ? 'bg-green-500/20 border-2 border-green-500/60 shadow-lg shadow-green-500/20' 
+                    ? 'bg-green-500/10 border-2 border-green-500/40 shadow-[0_15px_40px_-20px_rgba(34,197,94,0.4)]' 
                     : opponent?.result === 'loss' 
-                    ? 'bg-red-500/10 border border-red-500/40' 
-                    : 'bg-yellow-500/10 border border-yellow-500/40'
+                    ? 'bg-red-500/5 border border-red-500/30' 
+                    : 'bg-yellow-500/10 border border-yellow-500/30'
                 }`}>
-                  <p className="text-sm text-zinc-400 mb-2 uppercase tracking-wide">{opponentDisplayName}</p>
-                  <p className="text-5xl font-bold text-white mb-3">{Math.round(opponentStats.wpm)}</p>
-                  <p className="text-sm text-zinc-400 mb-4">WPM</p>
-                  <div className="flex justify-between text-sm border-t border-zinc-700/50 pt-3">
-                    <span className="text-zinc-400">Accuracy</span>
-                    <span className="text-white font-semibold">{Math.round(opponentStats.accuracy)}%</span>
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">{opponentDisplayName}</p>
+                  <p className="text-6xl font-bold text-zinc-50 mb-2">{Math.round(opponentStats.wpm)}</p>
+                  <p className="text-sm text-zinc-400 mb-6">WPM</p>
+                  <div className="space-y-3 border-t border-zinc-700/50 pt-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Accuracy</span>
+                      <span className="text-zinc-50 font-semibold">{Math.round(opponentStats.accuracy)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Progress</span>
+                      <span className="text-zinc-50 font-semibold">{Math.round(opponentStats.progress * 100)}%</span>
+                    </div>
                   </div>
-                  <div className={`mt-4 px-3 py-2 rounded-lg text-center text-sm font-bold uppercase tracking-wider ${
+                  <div className={`mt-6 px-4 py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-[0.3em] ${
                     opponent?.result === 'win' 
-                      ? 'bg-green-500 text-white' 
+                      ? 'bg-green-500/90 text-white' 
                       : opponent?.result === 'loss'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-yellow-500 text-zinc-900'
+                      ? 'bg-red-500/90 text-white'
+                      : 'bg-yellow-500/90 text-zinc-900'
                   }`}>
                     {opponent?.result || 'pending'}
                   </div>
@@ -594,7 +597,7 @@ export function MatchArena({
 
               <button
                 onClick={onBackToLobby}
-                className="w-full px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 rounded-xl font-bold text-lg transition-colors"
+                className="w-full px-6 py-3.5 bg-yellow-500/90 hover:bg-yellow-400 text-zinc-900 rounded-2xl font-bold text-base transition-smooth hover:scale-105"
               >
                 Return to Lobby
               </button>
@@ -616,11 +619,10 @@ interface StatGridProps {
 interface ResultBannerProps {
   tone: 'positive' | 'negative' | 'warning';
   title: string;
-  iconCode: string;
-  iconAlt: string;
+  icon: React.ReactNode;
 }
 
-function ResultBanner({ tone, title, iconCode, iconAlt }: ResultBannerProps) {
+function ResultBanner({ tone, title, icon }: ResultBannerProps) {
   const toneColors: Record<ResultBannerProps['tone'], string> = {
     positive: 'text-green-400',
     negative: 'text-red-400',
@@ -628,15 +630,10 @@ function ResultBanner({ tone, title, iconCode, iconAlt }: ResultBannerProps) {
   };
 
   return (
-    <div className={`flex flex-col items-center gap-3 ${toneColors[tone]}`}>
-      <img
-        src={`${TWEMOJI_BASE_URL}/${iconCode}`}
-        alt={iconAlt}
-        className="w-16 h-16 drop-shadow-md"
-        width={64}
-        height={64}
-        loading="lazy"
-      />
+    <div className={`flex flex-col items-center gap-4 ${toneColors[tone]}`}>
+      <div className="drop-shadow-lg">
+        {icon}
+      </div>
       <p className="text-2xl font-semibold">
         {title}
       </p>
