@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
@@ -8,7 +8,7 @@ import AppLink from '@/components/AppLink';
 import { UserPlus, CheckCircle2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { broadcastLoadingEvent } from '@/lib/ui-events';
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -284,5 +284,26 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-900 text-zinc-100 wr-bg-primary wr-text-primary">
+          <Navigation />
+          <div className="pt-24 pb-16 px-4 flex items-center justify-center">
+            <div className="w-full max-w-lg">
+              <div className="rounded-3xl border border-zinc-700/60 bg-zinc-800/60 p-10 text-center">
+                <p className="text-sm text-zinc-400">Loading sign up…</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <RegisterPageContent />
+    </Suspense>
   );
 }
