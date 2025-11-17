@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { getLeaderboardPaginated, subscribeToLeaderboard, getUserRank } from '@/lib/leaderboard';
+import { getUserRank } from '@/lib/leaderboard';
 import type { LeaderboardEntry } from '@/types/leaderboard';
 import type { User } from '@supabase/supabase-js';
 import Navigation from '@/components/Navigation';
@@ -21,8 +21,10 @@ export default function LeaderboardClient() {
   const [newEntryAnimation, setNewEntryAnimation] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
   const pageRef = useRef(page);
   const supabase = useMemo(() => createClient(), []);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     // Get current user
@@ -35,20 +37,40 @@ export default function LeaderboardClient() {
     async (requestedPage: number = 1) => {
       setLoading(true);
       const safePage = Math.max(1, requestedPage);
-      const offset = (safePage - 1) * PAGE_SIZE;
 
-      const { entries, total } = await getLeaderboardPaginated(selectedDuration, PAGE_SIZE, offset);
-      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-      const normalizedPage = Math.min(safePage, totalPages);
+      try {
+        const response = await fetch(
+          `/api/leaderboard?duration=${selectedDuration}&page=${safePage}&pageSize=${PAGE_SIZE}`
+        );
+        
+        if (!response.ok) {
+          console.error('Leaderboard API error:', response.status, response.statusText);
+          throw new Error('Failed to fetch leaderboard');
+        }
 
-      if (normalizedPage !== safePage) {
-        setPage(normalizedPage);
-        return;
+        const result = await response.json();
+        
+        if (result.success) {
+          const { entries, total, totalPages, source } = result.data;
+          console.log(`Loaded ${entries.length} entries from ${source}, total: ${total}`);
+          
+          const normalizedPage = Math.min(safePage, totalPages || 1);
+
+          if (normalizedPage !== safePage) {
+            setPage(normalizedPage);
+            return;
+          }
+
+          setLeaderboard(entries);
+          setTotalCount(total);
+        } else {
+          console.error('Leaderboard API returned error:', result.error);
+        }
+      } catch (error) {
+        console.error('Error loading leaderboard:', error);
+      } finally {
+        setLoading(false);
       }
-
-      setLeaderboard(entries);
-      setTotalCount(total);
-      setLoading(false);
     },
     [selectedDuration]
   );
@@ -71,25 +93,52 @@ export default function LeaderboardClient() {
     setUserRank(rank);
   }, [user, selectedDuration]);
 
+  // Connect to SSE for live updates
   useEffect(() => {
-    // Try to subscribe to real-time updates (works only if Realtime is enabled)
-    try {
-      const unsubscribe = subscribeToLeaderboard(selectedDuration, (newEntry) => {
-        setNewEntryAnimation(newEntry.id);
-        loadLeaderboard(pageRef.current); // Refresh the leaderboard without losing pagination
+    // Close existing connection if any
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
 
-        // Remove animation after 3 seconds
-        setTimeout(() => {
-          setNewEntryAnimation(null);
-        }, 3000);
-      });
+    try {
+      const eventSource = new EventSource(`/api/leaderboard/updates?duration=${selectedDuration}`);
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        console.log('Connected to live leaderboard updates');
+        setLiveUpdatesEnabled(true);
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'connected') {
+            console.log('✅ Live updates connected for duration:', data.duration);
+          } else if (data.type === 'new_entry') {
+            // Someone just finished a test! Refresh the leaderboard
+            console.log('🔥 New entry detected, refreshing leaderboard...');
+            loadLeaderboard(pageRef.current);
+          }
+        } catch (error) {
+          console.error('Error parsing SSE message:', error);
+        }
+      };
+
+      eventSource.onerror = () => {
+        console.log('Live updates disconnected');
+        setLiveUpdatesEnabled(false);
+        eventSource.close();
+      };
 
       return () => {
-        unsubscribe();
+        eventSource.close();
+        setLiveUpdatesEnabled(false);
       };
     } catch (error) {
-      // Realtime not enabled - that's okay, leaderboard will work without it
-      console.log('Realtime not enabled. Leaderboard will require manual refresh.');
+      console.log('Live updates not available:', error);
+      setLiveUpdatesEnabled(false);
     }
   }, [selectedDuration, loadLeaderboard]);
 
@@ -211,11 +260,21 @@ export default function LeaderboardClient() {
         <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl overflow-hidden backdrop-blur-sm animate-slideInUp animation-delay-300">
           <div className="flex flex-col gap-4 border-b border-zinc-700/60 bg-zinc-900/40 p-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-                Top scores • Showing {showingFrom}-{showingTo} of {totalCount || 0}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+                  Top scores • Showing {showingFrom}-{showingTo} of {totalCount || 0}
+                </p>
+                {liveUpdatesEnabled && (
+                  <div className="flex items-center gap-1.5 rounded-full bg-green-500/10 border border-green-500/30 px-2 py-0.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-[10px] uppercase tracking-wider text-green-400 font-semibold">Live</span>
+                  </div>
+                )}
+              </div>
               <h2 className="mt-2 text-2xl font-semibold text-zinc-50">{selectedDuration} second test</h2>
-              <p className="text-sm text-zinc-500">Best verified runs from the community</p>
+              <p className="text-sm text-zinc-500">
+                {liveUpdatesEnabled ? 'Auto-updating with new results' : 'Best verified runs from the community'}
+              </p>
             </div>
             <button
               onClick={() => loadLeaderboard(page)}
@@ -231,19 +290,6 @@ export default function LeaderboardClient() {
             <div className="flex flex-col items-center justify-center py-16 text-zinc-500 animate-fadeIn">
               <div className="h-12 w-12 rounded-full border-2 border-zinc-700 border-t-yellow-500 animate-spin" />
               <p className="mt-4 text-sm">Loading leaderboard…</p>
-            </div>
-          ) : leaderboard.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">
-              <p className="text-sm">No scores yet for this duration.</p>
-              <p className="mt-1 text-xs text-zinc-500">Be the first to set the pace.</p>
-              <AppLink
-                href="/"
-                loadingMessage="Loading typing test…"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-yellow-500/90 px-5 py-2.5 text-sm font-semibold text-zinc-900 transition-smooth hover:bg-yellow-400 hover:scale-105"
-              >
-                Set a record
-                <ArrowRight className="w-4 h-4" />
-              </AppLink>
             </div>
           ) : leaderboard.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 animate-fadeIn">

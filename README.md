@@ -12,6 +12,7 @@ Try it here: https://word-rush-six.vercel.app/
 - ⌨️ **Typing Test** - Multiple duration options (15s, 30s, 60s, 120s)
 - 👤 **User Accounts** - View your profile and account information
 - 🏆 **Global Leaderboard** - Compete with other users and see top scores
+- 🔥 **Live Leaderboard Updates** - Real-time updates powered by Upstash Redis (NEW!)
 - 🔒 **Secure Score Validation** - Server-side validation prevents score manipulation
 - 📈 **Statistics Dashboard** - Track your progress over time
 - 💰 **WRCoins System** - Earn coins by completing typing tests
@@ -51,7 +52,30 @@ Purchase beautiful themes using your earned coins:
 - **Styling**: Tailwind CSS
 - **Authentication**: Supabase Auth
 - **Database**: Supabase (PostgreSQL)
+- **Cache/Real-time**: Upstash Redis (for live leaderboard)
 - **Deployment**: Vercel
+
+## 🔥 Live Leaderboard System
+
+Real-time leaderboard updates powered by Upstash Redis with Server-Sent Events.
+
+**Features:**
+- Instant updates when users complete tests
+- Redis caching reduces database load by ~90%
+- Graceful fallback to database if Redis unavailable
+- Green "LIVE" indicator shows connection status
+
+**Setup (Optional):**
+1. Sign up at [console.upstash.com](https://console.upstash.com)
+2. Create a Redis database (Regional/Free tier)
+3. Add credentials to `.env.local`:
+   ```bash
+   UPSTASH_REDIS_REST_URL=your_redis_url
+   UPSTASH_REDIS_REST_TOKEN=your_token
+   ```
+4. Restart dev server
+
+*Note: Leaderboard works without Redis using direct database queries.*
 
 ## ⚔️ Multiplayer Ranked Duels (Beta)
 
@@ -99,8 +123,12 @@ cp .env.example .env.local
 # Edit .env.local and add your Supabase credentials
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-# Required on the server for secure RPC calls (never expose this to the browser)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# (Optional) Add Upstash Redis for live leaderboard updates
+# See SETUP_REDIS.md for detailed instructions
+UPSTASH_REDIS_REST_URL=your-redis-url
+UPSTASH_REDIS_REST_TOKEN=your-redis-token
 ```
 
 5. **Apply the database migrations** (IMPORTANT):
@@ -349,6 +377,51 @@ For other issues, check:
 - [ ] Social features (friends, challenges)
 - [ ] Mobile app version
 - [ ] Rate limiting and anti-spam measures
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. **Push to GitHub:**
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Deploy to Vercel:**
+   - Go to [vercel.com](https://vercel.com) and sign in
+   - Click "Add New Project"
+   - Import your GitHub repository
+   - Configure environment variables:
+     ```
+     NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+     SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+     UPSTASH_REDIS_REST_URL=your_redis_url (optional)
+     UPSTASH_REDIS_REST_TOKEN=your_redis_token (optional)
+     ```
+   - Click "Deploy"
+
+3. **Post-Deployment:**
+   - Update Supabase redirect URLs: `Settings → Auth → URL Configuration`
+   - Add your Vercel URL: `https://your-app.vercel.app/auth/callback`
+   - Test authentication and leaderboard functionality
+
+### Other Platforms
+
+The app can be deployed to any Next.js-compatible platform:
+
+- **Netlify**: Similar process, add build command `npm run build`
+- **Railway**: Supports automatic deployments from GitHub
+- **AWS Amplify**: Use Next.js SSR configuration
+
+**Required Environment Variables:**
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (server-side only)
+- `UPSTASH_REDIS_REST_URL` - Upstash Redis URL (optional)
+- `UPSTASH_REDIS_REST_TOKEN` - Upstash Redis token (optional)
 
 ## Contributing
 

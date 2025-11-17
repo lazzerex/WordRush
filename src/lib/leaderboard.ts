@@ -25,7 +25,7 @@ async function fetchLeaderboardBatch(
         wpm,
         accuracy,
         created_at,
-        profiles:user_id (
+        profiles!user_id (
           username,
           email
         )

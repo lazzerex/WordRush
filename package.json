@@ -11,6 +11,8 @@
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.78.0",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.35.6",
     "gsap": "^3.13.0",
     "lucide-react": "^0.552.0",
     "next": "15.3.1",

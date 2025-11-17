@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
+import { addToLeaderboardCache } from '@/services/leaderboardCacheService';
 
 interface KeystrokeEvent {
   timestamp: number;
@@ -243,7 +244,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-  // 10. Return success with calculated stats and coins earned
+  // 10. Update Redis leaderboard cache
+    try {
+      // Fetch username for cache
+      const { data: profileData } = await adminClient
+        .from('profiles')
+        .select('username, email')
+        .eq('id', user.id)
+        .single();
+
+      await addToLeaderboardCache({
+        id: data.id,
+        user_id: user.id,
+        username: profileData?.username || `User ${user.id.slice(0, 8)}`,
+        email: profileData?.email || '',
+        wpm,
+        accuracy,
+        created_at: data.created_at || new Date().toISOString(),
+        duration,
+      });
+    } catch (cacheError) {
+      console.error('Error updating leaderboard cache:', cacheError);
+      // Don't fail the request if cache update fails
+    }
+
+  // 11. Return success with calculated stats and coins earned
     return NextResponse.json({ 
       success: true, 
       data: {
