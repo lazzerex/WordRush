@@ -77,12 +77,11 @@ function RegisterPageContent() {
       setOauthLoading(true);
       broadcastLoadingEvent({ active: true, message: 'Connecting to Google…' });
 
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`
-            : undefined,
+          redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(returnTo)}`,
           queryParams: {
             prompt: 'select_account',
           },
