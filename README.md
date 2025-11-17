@@ -1,6 +1,6 @@
 # WordRush - Typing Test Application
 
-Try it here: https://word-rush-six.vercel.app/
+Try it here: https://wordrush-io.vercel.app/
 
 
 <img width="1682" height="830" alt="image" src="https://github.com/user-attachments/assets/3310fa52-f359-43f2-b470-f2641b5e93b6" />
@@ -60,10 +60,20 @@ Purchase beautiful themes using your earned coins:
 Real-time leaderboard updates powered by Upstash Redis with Server-Sent Events.
 
 **Features:**
-- Instant updates when users complete tests
+- Updates within 30 seconds when users complete tests
 - Redis caching reduces database load by ~90%
+- Smart polling: only checks Redis for 60s after new entries
+- 96% reduction in Redis usage vs constant polling (~2,880 reads/day per client)
+- Batch operations via pipeline for better performance
 - Graceful fallback to database if Redis unavailable
 - Green "LIVE" indicator shows connection status
+
+**Performance Tradeoffs:**
+- **30-second update delay** is intentional to minimize Redis usage
+- Upstash REST API doesn't support native pub/sub (HTTP vs TCP limitation)
+- Smart polling keeps free tier sustainable: ~500-1K reads/day vs 200K+ with aggressive polling
+- Update key expires after 60s, so most SSE connections use zero Redis reads
+- For instant updates (<1s), would need paid tier or alternative architecture
 
 **Setup (Optional):**
 1. Sign up at [console.upstash.com](https://console.upstash.com)
