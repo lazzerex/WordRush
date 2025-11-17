@@ -398,6 +398,7 @@ For other issues, check:
      NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
      NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
      SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+     NEXT_PUBLIC_SITE_URL=https://your-app.vercel.app
      UPSTASH_REDIS_REST_URL=your_redis_url (optional)
      UPSTASH_REDIS_REST_TOKEN=your_redis_token (optional)
      ```
