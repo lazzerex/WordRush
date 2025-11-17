@@ -56,13 +56,7 @@ export async function addToLeaderboardCache(entry: {
     // Execute all commands
     await pipeline.exec();
 
-    // Set timestamp to trigger SSE update notification
-    const lastUpdateKey = `last_update:${entry.duration}`;
-    const timestamp = Date.now();
-    await redis.set(lastUpdateKey, timestamp, { ex: 60 }); // Expire after 60 seconds
-
     console.log(`✅ Added entry ${entry.id} to leaderboard cache for duration ${entry.duration}`);
-    console.log(`🔔 Set update notification: ${lastUpdateKey} = ${timestamp}`);
   } catch (error) {
     console.error('Error adding to leaderboard cache:', error);
     // Don't throw - cache failures shouldn't break the app
@@ -105,30 +99,39 @@ export async function getLeaderboardFromCache(
       return { entries: [], total };
     }
 
-    // Parse members and fetch full entry details
+    // Parse members and batch fetch entry details using pipeline (more efficient)
     const entries: LeaderboardEntry[] = [];
+    const pipeline = redis.pipeline();
+    const entryIds: string[] = [];
     
+    // Build pipeline to fetch all entries at once
     for (let i = 0; i < membersWithScores.length; i += 2) {
       const member = membersWithScores[i] as string;
-      // const score = membersWithScores[i + 1] as number;
-      
       const { entryId } = parseLeaderboardMember(member);
-      const entryKey = LEADERBOARD_KEYS.entry(entryId);
-      
-      const entryData = await redis.hgetall(entryKey);
-      
-      if (entryData && typeof entryData === 'object') {
-        entries.push({
-          id: String(entryData.id || ''),
-          user_id: String(entryData.user_id || ''),
-          username: String(entryData.username || 'Unknown'),
-          email: String(entryData.email || ''),
-          wpm: Number(entryData.wpm || 0),
-          accuracy: Number(entryData.accuracy || 0),
-          created_at: String(entryData.created_at || new Date().toISOString()),
-          rank: offset + (i / 2) + 1,
-        });
-      }
+      entryIds.push(entryId);
+      pipeline.hgetall(LEADERBOARD_KEYS.entry(entryId));
+    }
+    
+    // Execute all fetches in one Redis call
+    const results = await pipeline.exec();
+    
+    // Process results
+    if (results && Array.isArray(results)) {
+      results.forEach((result: any, index: number) => {
+        const entryData = result;
+        if (entryData && typeof entryData === 'object') {
+          entries.push({
+            id: String(entryData.id || ''),
+            user_id: String(entryData.user_id || ''),
+            username: String(entryData.username || 'Unknown'),
+            email: String(entryData.email || ''),
+            wpm: Number(entryData.wpm || 0),
+            accuracy: Number(entryData.accuracy || 0),
+            created_at: String(entryData.created_at || new Date().toISOString()),
+            rank: offset + index + 1,
+          });
+        }
+      });
     }
 
     return { entries, total };

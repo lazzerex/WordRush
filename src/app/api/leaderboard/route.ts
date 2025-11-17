@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLeaderboardFromCache, refreshLeaderboardCache } from '@/services/leaderboardCacheService';
 import { getLeaderboardPaginated } from '@/lib/leaderboard';
+import { checkRateLimit, getRateLimitIdentifier, leaderboardLimiter } from '@/lib/ratelimit';
 
 export async function GET(request: NextRequest) {
   try {
+    // Check rate limit (30 requests per minute per IP)
+    const identifier = getRateLimitIdentifier(request);
+    const rateLimitResult = await checkRateLimit(leaderboardLimiter, identifier);
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': String(rateLimitResult.limit || 0),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining || 0),
+            'X-RateLimit-Reset': String(rateLimitResult.reset || 0),
+          }
+        }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const duration = parseInt(searchParams.get('duration') || '30');
     const page = parseInt(searchParams.get('page') || '1');

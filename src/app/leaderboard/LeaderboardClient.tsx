@@ -24,7 +24,6 @@ export default function LeaderboardClient() {
   const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
   const pageRef = useRef(page);
   const supabase = useMemo(() => createClient(), []);
-  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     // Get current user
@@ -93,54 +92,41 @@ export default function LeaderboardClient() {
     setUserRank(rank);
   }, [user, selectedDuration]);
 
-  // Connect to SSE for live updates
+  // Subscribe to Supabase Realtime for live leaderboard updates
   useEffect(() => {
-    // Close existing connection if any
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    try {
-      const eventSource = new EventSource(`/api/leaderboard/updates?duration=${selectedDuration}`);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log('Connected to live leaderboard updates');
-        setLiveUpdatesEnabled(true);
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === 'connected') {
-            console.log('✅ Live updates connected for duration:', data.duration);
-          } else if (data.type === 'new_entry') {
-            // Someone just finished a test! Refresh the leaderboard
-            console.log('🔥 New entry detected, refreshing leaderboard...');
-            loadLeaderboard(pageRef.current);
-          }
-        } catch (error) {
-          console.error('Error parsing SSE message:', error);
+    // Create a channel for leaderboard updates
+    const channel = supabase
+      .channel(`leaderboard:${selectedDuration}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'typing_results',
+          filter: `duration=eq.${selectedDuration}`,
+        },
+        (payload) => {
+          console.log('🔥 New typing result detected, refreshing leaderboard...', payload);
+          // Refresh leaderboard when someone completes a test
+          loadLeaderboard(pageRef.current);
         }
-      };
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Subscribed to live leaderboard updates for duration:', selectedDuration);
+          setLiveUpdatesEnabled(true);
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('❌ Live updates disconnected');
+          setLiveUpdatesEnabled(false);
+        }
+      });
 
-      eventSource.onerror = () => {
-        console.log('Live updates disconnected');
-        setLiveUpdatesEnabled(false);
-        eventSource.close();
-      };
-
-      return () => {
-        eventSource.close();
-        setLiveUpdatesEnabled(false);
-      };
-    } catch (error) {
-      console.log('Live updates not available:', error);
+    return () => {
+      console.log('🔌 Unsubscribing from leaderboard updates');
+      supabase.removeChannel(channel);
       setLiveUpdatesEnabled(false);
-    }
-  }, [selectedDuration, loadLeaderboard]);
+    };
+  }, [selectedDuration, loadLeaderboard, supabase]);
 
   useEffect(() => {
     loadUserRank();
