@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { addToLeaderboardCache } from '@/services/leaderboardCacheService';
+import { checkRateLimit, getRateLimitIdentifier, testSubmissionLimiter } from '@/lib/ratelimit';
+import { updateUserStreak } from '@/lib/session';
 
 interface KeystrokeEvent {
   timestamp: number;
@@ -30,6 +32,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized - Please log in' }, 
         { status: 401 }
+      );
+    }
+
+    // 2. Check rate limit (20 submissions per minute per user)
+    const identifier = getRateLimitIdentifier(request, user.id);
+    const rateLimitResult = await checkRateLimit(testSubmissionLimiter, identifier);
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Too many test submissions. Please wait a moment before trying again.',
+          limit: rateLimitResult.limit,
+          reset: rateLimitResult.reset,
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': String(rateLimitResult.limit || 0),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining || 0),
+            'X-RateLimit-Reset': String(rateLimitResult.reset || 0),
+          }
+        }
       );
     }
 
@@ -268,7 +292,16 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if cache update fails
     }
 
-  // 11. Return success with calculated stats and coins earned
+  // 11. Update user streak
+    let streak = null;
+    try {
+      streak = await updateUserStreak(user.id);
+    } catch (streakError) {
+      console.error('Error updating user streak:', streakError);
+      // Don't fail the request if streak update fails
+    }
+
+  // 12. Return success with calculated stats and coins earned
     return NextResponse.json({ 
       success: true, 
       data: {
@@ -276,7 +309,11 @@ export async function POST(request: NextRequest) {
         wpm,
         accuracy,
         coinsEarned,
-        totalCoins
+        totalCoins,
+        streak: streak ? {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+        } : undefined,
       }
     });
 
