@@ -17,7 +17,8 @@ A modern, feature-rich typing test application with real-time leaderboards, gami
 ### Competitive Features
 - 🏆 **Global Leaderboard** - Compete with players worldwide
 - 🔥 **Live Updates** - Instant leaderboard refresh using Supabase Realtime
-- ⚔️ **Multiplayer Duels** - Turn-based 1v1 matches with ELO ratings
+- ⚔️ **Multiplayer Duels** - Real-time simultaneous 1v1 matches with ELO ratings
+- ⏱️ **Countdown System** - 3-second countdown when both players ready
 - 📈 **Statistics Dashboard** - Track your progress over time with charts
 - 🎖️ **Daily Streaks** - Maintain consecutive day activity tracking
 
@@ -343,7 +344,8 @@ If issues persist:
 - [x] Server-side score validation
 - [x] WRCoins reward system
 - [x] Theme shop and customization
-- [x] Multiplayer ranked duels
+- [x] Multiplayer simultaneous duels with countdown
+- [x] Real-time match synchronization
 - [x] Rate limiting and spam protection
 - [x] Daily streak tracking
 - [x] Statistics dashboard with charts
@@ -360,9 +362,10 @@ If issues persist:
 - [ ] Practice mode with categories (code, quotes, common words)
 - [ ] Social features (friends, challenges)
 - [ ] Mobile app (React Native)
-- [ ] Typing race mode (real-time multiplayer)
+- [ ] Tournament mode (multi-player brackets)
 - [ ] Leaderboard filtering (by country, time period)
 - [ ] Profile customization (avatars, badges)
+- [ ] Spectator mode for multiplayer matches
 
 ## 🤝 Contributing
 
