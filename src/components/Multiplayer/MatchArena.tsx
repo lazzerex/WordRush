@@ -56,12 +56,9 @@ export function MatchArena({
   const latestStatsRef = useRef({ wpm: 0, accuracy: 100, progress: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isHost = me.is_host;
-  const opponentHasFinished = opponent?.is_finished ?? false;
-  const myTurn = isHost ? !hasFinished : opponentHasFinished && !hasFinished;
-  const opponentInRun = opponent ? !opponent.is_finished && (opponent.progress ?? 0) > 0 : false;
   const opponentReady = opponent?.is_ready ?? false;
-  const canType = myTurn && isActive && !hasFinished && phase !== 'completed';
+  const bothReady = isReady && opponentReady;
+  const canType = isActive && !hasFinished && phase !== 'completed';
 
   const totalWords = words.length;
 
@@ -92,21 +89,32 @@ export function MatchArena({
     }
   }, [me.is_finished]);
 
-  // Countdown from 3 to 0 when it's our turn and we're ready
+  // Trigger countdown in match state when both players are ready
   useEffect(() => {
-    if (!myTurn) {
-      if (countdown !== null) {
-        setCountdown(null);
-      }
-      return;
+    if (bothReady && match.state === 'pending' && !isActive && !hasFinished) {
+      // Use a small delay to ensure both ready states are synced
+      const timeout = setTimeout(async () => {
+        try {
+          const response = await fetch(`/api/multiplayer/matches/${match.id}/start-countdown`, {
+            method: 'POST',
+          });
+          if (!response.ok) {
+            console.error('Failed to start countdown');
+          }
+        } catch (err) {
+          console.error('Failed to trigger countdown', err);
+        }
+      }, 500);
+      return () => clearTimeout(timeout);
     }
+  }, [bothReady, match.state, match.id, isActive, hasFinished]);
 
-    if (!isReady || isActive || hasFinished || countdown !== null) {
-      return;
+  // Start countdown when both players are ready and match state changes to countdown
+  useEffect(() => {
+    if (match.state === 'countdown' && countdown === null && !isActive && !hasFinished) {
+      setCountdown(3);
     }
-
-    setCountdown(3);
-  }, [myTurn, isReady, isActive, hasFinished, countdown]);
+  }, [match.state, countdown, isActive, hasFinished]);
 
   // Handle countdown timer
   useEffect(() => {
@@ -119,6 +127,12 @@ export function MatchArena({
       setIsActive(true);
       if (inputRef.current) {
         inputRef.current.focus();
+      }
+      // Update match state to in-progress
+      if (match.state === 'countdown') {
+        fetch(`/api/multiplayer/matches/${match.id}/start-game`, {
+          method: 'POST',
+        }).catch((err) => console.error('Failed to start game', err));
       }
       return;
     }
@@ -186,7 +200,7 @@ export function MatchArena({
   }, [stats.wpm, stats.accuracy, progress, onUpdate, hasFinished, isActive]);
 
   const handleReady = async () => {
-    if (isReady || !myTurn || hasFinished) {
+    if (isReady || hasFinished) {
       return;
     }
     setIsReady(true);
@@ -198,7 +212,7 @@ export function MatchArena({
   };
 
   const handleInputChange = (value: string) => {
-    if (phase === 'completed' || !isActive || countdown !== null || !myTurn) {
+    if (phase === 'completed' || !isActive || countdown !== null) {
       return;
     }
 
@@ -252,10 +266,10 @@ export function MatchArena({
       console.error('Failed to submit final stats', err);
     }
 
-    if (!opponent || opponentHasFinished) {
+    if (!opponent || opponent?.is_finished) {
       await onFinishedLocally();
     }
-  }, [hasFinished, correctChars, incorrectChars, duration, onUpdate, onFinishedLocally, opponent, opponentHasFinished, totalWords]);
+  }, [hasFinished, correctChars, incorrectChars, duration, onUpdate, onFinishedLocally, opponent, totalWords]);
 
   // Main game timer
   useEffect(() => {
@@ -317,14 +331,12 @@ export function MatchArena({
   let myStatus: { label: string; variant: keyof typeof BADGE_STYLES };
   if (phase === 'completed' || hasFinished) {
     myStatus = { label: 'Completed', variant: 'positive' };
-  } else if (!myTurn) {
-    myStatus = { label: isHost ? 'Awaiting opponent' : 'Waiting for turn', variant: 'idle' };
   } else if (isActive) {
     myStatus = { label: 'Typing', variant: 'warning' };
   } else if (isReady) {
     myStatus = { label: 'Ready', variant: 'info' };
   } else {
-    myStatus = { label: 'Your turn', variant: 'idle' };
+    myStatus = { label: 'Not Ready', variant: 'idle' };
   }
 
   let opponentStatus: { label: string; variant: keyof typeof BADGE_STYLES };
@@ -332,26 +344,22 @@ export function MatchArena({
     opponentStatus = { label: 'Matching...', variant: 'idle' };
   } else if (phase === 'completed' || opponent.is_finished) {
     opponentStatus = { label: 'Completed', variant: 'positive' };
-  } else if (opponentInRun) {
+  } else if (isActive && (opponent.progress ?? 0) > 0) {
     opponentStatus = { label: 'Typing', variant: 'warning' };
   } else if (opponentReady) {
     opponentStatus = { label: 'Ready', variant: 'info' };
-  } else if (isHost && !hasFinished) {
-    opponentStatus = { label: 'Up next', variant: 'idle' };
-  } else if (!isHost && !opponentHasFinished) {
-    opponentStatus = { label: 'Playing', variant: 'warning' };
   } else {
-    opponentStatus = { label: 'Waiting', variant: 'idle' };
+    opponentStatus = { label: 'Not Ready', variant: 'idle' };
   }
 
   const showCountdown = countdown !== null && countdown >= 0;
   const inputDisabled = !canType;
-  const inputPlaceholder = !myTurn
-    ? 'Waiting for your turn...'
-    : hasFinished || phase === 'completed'
-      ? 'Run complete'
-      : !isReady
-        ? 'Click Ready Up to begin'
+  const inputPlaceholder = hasFinished || phase === 'completed'
+    ? 'Run complete'
+    : !isReady
+      ? 'Click Ready Up to begin'
+      : !bothReady
+        ? 'Waiting for opponent...'
         : !isActive
           ? 'Countdown in progress...'
           : 'Type here...';
@@ -360,31 +368,27 @@ export function MatchArena({
       return null;
     }
     if (hasFinished) {
-      return opponentHasFinished ? 'Run complete. Awaiting results.' : `Run complete. Waiting for ${opponentCopyName}'s run.`;
-    }
-    if (!myTurn) {
-      return isHost
-        ? `Waiting for ${opponentCopyName} to play their run.`
-        : `${opponentCopyName.charAt(0).toUpperCase()}${opponentCopyName.slice(1)} is setting the pace. You will go next.`;
+      return opponent?.is_finished ? 'Match complete. Awaiting results.' : `Waiting for ${opponentCopyName} to finish.`;
     }
     if (!isReady) {
-      return 'Click Ready Up when you are prepared to start your run.';
+      return 'Click Ready Up when you are prepared to start.';
+    }
+    if (!bothReady) {
+      return `Waiting for ${opponentCopyName} to ready up...`;
     }
     if (!isActive) {
-      return 'Get set! Your run starts as soon as the countdown hits zero.';
+      return 'Get ready! The match starts as soon as the countdown hits zero.';
     }
     return null;
   })();
 
   const headerHint = phase === 'completed'
     ? 'Match complete. Review the results below.'
-    : isHost
-      ? hasFinished
-        ? `Your run is logged. Waiting for ${opponentCopyName} to respond.`
-        : 'You set the pace first. Finish your run to set the benchmark.'
-      : opponentHasFinished
-        ? 'Your run now determines the outcome.'
-        : `${opponentCopyName.charAt(0).toUpperCase()}${opponentCopyName.slice(1)} plays first. Stay ready to begin after they finish.`;
+    : bothReady && isActive
+      ? 'Type as fast and accurately as you can!'
+      : bothReady
+        ? 'Both players ready. Countdown starting...'
+        : 'Waiting for both players to ready up.';
 
   return (
     <div className="pt-24 pb-12 px-4">
@@ -418,7 +422,7 @@ export function MatchArena({
               <div className="text-9xl font-bold text-yellow-500 animate-pulse">
                 {countdown}
               </div>
-              <p className="text-xl text-zinc-300 mt-4">Your run starts in...</p>
+              <p className="text-xl text-zinc-300 mt-4">Get ready to type!</p>
             </div>
           </div>
         )}
@@ -462,10 +466,10 @@ export function MatchArena({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={BADGE_STYLES[myStatus.variant]}>{myStatus.label}</span>
-                  {myTurn && !hasFinished && !isReady && (
+                  {!hasFinished && !isReady && (
                     <button
                       onClick={handleReady}
-                      disabled={!myTurn || countdown !== null || isActive}
+                      disabled={countdown !== null || isActive}
                       className="px-4 py-2 bg-yellow-500 text-zinc-900 rounded-lg font-semibold text-sm hover:bg-yellow-400 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Ready Up

@@ -67,11 +67,12 @@ export interface UserSettings {
 export interface MultiplayerMatch {
   id: string;
   duration: number;
-  state: 'pending' | 'countdown' | 'in-progress' | 'completed';
+  state: 'pending' | 'ready' | 'countdown' | 'in-progress' | 'completed';
   word_sequence: string[];
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
+  countdown_started_at: string | null;
 }
 
 export interface MultiplayerMatchPlayer {

@@ -34,6 +34,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
   const [error, setError] = useState<string | null>(null);
   const assignmentCleanup = useRef<(() => void) | null>(null);
   const matchCleanup = useRef<(() => void) | null>(null);
+  const matchStateCleanup = useRef<(() => void) | null>(null);
   const finalizeRequested = useRef(false);
   const playerNameMap = useRef<Map<string, string>>(new Map());
 
@@ -45,10 +46,21 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     setPhase('idle');
     setError(null);
     finalizeRequested.current = false;
-    assignmentCleanup.current?.();
-    assignmentCleanup.current = null;
-    matchCleanup.current?.();
-    matchCleanup.current = null;
+    
+    // Clean up all subscriptions
+    if (assignmentCleanup.current) {
+      assignmentCleanup.current();
+      assignmentCleanup.current = null;
+    }
+    if (matchCleanup.current) {
+      matchCleanup.current();
+      matchCleanup.current = null;
+    }
+    if (matchStateCleanup.current) {
+      matchStateCleanup.current();
+      matchStateCleanup.current = null;
+    }
+    
     playerNameMap.current.clear();
   }, []);
 
@@ -106,6 +118,8 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
 
     matchCleanup.current?.();
     matchCleanup.current = null;
+    matchStateCleanup.current?.();
+    matchStateCleanup.current = null;
 
     matchCleanup.current = service.subscribeToMatch(bundle.match.id, (payload) => {
       playerNameMap.current.set(
@@ -136,10 +150,22 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
         });
       }
     });
+
+    // Subscribe to match state changes (countdown, in-progress, etc.)
+    matchStateCleanup.current = service.subscribeToMatchState(bundle.match.id, (updatedMatch) => {
+      setMatch(updatedMatch);
+    });
   }, [service]);
 
   const startQueue = useCallback(async () => {
     setError(null);
+    
+    // Clean up any existing subscriptions first
+    if (assignmentCleanup.current) {
+      assignmentCleanup.current();
+      assignmentCleanup.current = null;
+    }
+    
     try {
       const existingMatchId = await service.findActiveAssignment();
       if (existingMatchId) {
@@ -154,12 +180,11 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     setPhase('queueing');
 
     try {
-      if (!assignmentCleanup.current) {
-        assignmentCleanup.current = await service.subscribeToAssignments(async (payload) => {
-          setPhase('matched');
-          await hydrateMatch(payload.match_id);
-        });
-      }
+      // Create fresh assignment subscription for new queue session
+      assignmentCleanup.current = await service.subscribeToAssignments(async (payload) => {
+        setPhase('matched');
+        await hydrateMatch(payload.match_id);
+      });
 
       const response: QueueStatus = await service.queueForRankedMatch();
 
@@ -174,6 +199,11 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
       console.error('Matchmaking failed', err);
       setError((err as Error).message ?? 'Unable to queue');
       setPhase('idle');
+      // Clean up on error
+      if (assignmentCleanup.current) {
+        assignmentCleanup.current();
+        assignmentCleanup.current = null;
+      }
     }
   }, [service, hydrateMatch]);
 
@@ -183,6 +213,9 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     } catch (err) {
       console.error('Failed to cancel queue', err);
     } finally {
+      // Clean up assignment subscription to prevent ghost matches
+      assignmentCleanup.current?.();
+      assignmentCleanup.current = null;
       resetMatch();
     }
   }, [service, resetMatch]);
@@ -220,6 +253,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     return () => {
       assignmentCleanup.current?.();
       matchCleanup.current?.();
+      matchStateCleanup.current?.();
     };
   }, []);
 

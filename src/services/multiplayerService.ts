@@ -201,7 +201,7 @@ export class SupabaseMultiplayerService {
       .select('match_id, match:multiplayer_matches!inner(id, state, created_at)')
       .eq('user_id', user.id)
       .is('result', null)
-      .in('match.state', ['pending', 'countdown', 'in-progress'])
+      .in('match.state', ['pending', 'ready', 'countdown', 'in-progress'])
       .gt('match.created_at', freshnessCutoff)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -245,6 +245,46 @@ export class SupabaseMultiplayerService {
     return () => {
       this.supabase.removeChannel(channel);
     };
+  }
+
+  subscribeToMatchState(
+    matchId: string,
+    onMatchUpdate: (match: MultiplayerMatch) => void
+  ): Cleanup {
+    const channel = this.supabase
+      .channel(`match-state-${matchId}`)
+      .on('postgres_changes', {
+        schema: 'public',
+        table: 'multiplayer_matches',
+        event: 'UPDATE',
+        filter: `id=eq.${matchId}`,
+      }, (payload) => {
+        onMatchUpdate(payload.new as MultiplayerMatch);
+      })
+      .subscribe();
+
+    return () => {
+      this.supabase.removeChannel(channel);
+    };
+  }
+
+  async updateMatchState(matchId: string, state: MultiplayerMatch['state']): Promise<void> {
+    const updates: Partial<MultiplayerMatch> = { state };
+    
+    if (state === 'countdown') {
+      updates.countdown_started_at = new Date().toISOString();
+    } else if (state === 'in-progress') {
+      updates.started_at = new Date().toISOString();
+    }
+
+    const { error } = await this.supabase
+      .from('multiplayer_matches')
+      .update(updates)
+      .eq('id', matchId);
+
+    if (error) {
+      throw error;
+    }
   }
 }
 
