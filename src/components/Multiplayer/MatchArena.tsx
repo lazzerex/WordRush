@@ -91,7 +91,7 @@ export function MatchArena({
 
   // Trigger countdown in match state when both players are ready
   useEffect(() => {
-    if (bothReady && match.state === 'pending' && !isActive && !hasFinished) {
+    if (bothReady && match.state === 'waiting' && !isActive && !hasFinished) {
       // Use a small delay to ensure both ready states are synced
       const timeout = setTimeout(async () => {
         try {

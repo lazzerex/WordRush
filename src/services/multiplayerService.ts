@@ -201,7 +201,7 @@ export class SupabaseMultiplayerService {
       .select('match_id, match:multiplayer_matches!inner(id, state, created_at)')
       .eq('user_id', user.id)
       .is('result', null)
-      .in('match.state', ['pending', 'ready', 'countdown', 'in-progress'])
+      .in('match.state', ['waiting', 'pending', 'ready', 'countdown', 'in-progress'])
       .gt('match.created_at', freshnessCutoff)
       .order('created_at', { ascending: false })
       .limit(1)

@@ -21,6 +21,8 @@ import {
   Target,
   History,
   ArrowRight,
+  Trophy,
+  Swords,
 } from 'lucide-react';
 
 interface AccountClientProps {
@@ -31,12 +33,26 @@ export default function AccountClient({ user }: AccountClientProps) {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
     loadStats();
+    loadProfile();
   }, []);
+
+  const loadProfile = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('elo_rating, wins, losses, draws, matches_played, last_ranked_at')
+      .eq('id', user.id)
+      .single();
+    
+    if (!error && data) {
+      setProfile(data);
+    }
+  };
 
   const loadStats = async () => {
     setLoadingStats(true);
@@ -75,6 +91,12 @@ export default function AccountClient({ user }: AccountClientProps) {
     month: 'long',
     day: 'numeric',
   });
+  const matchesPlayed = profile?.matches_played ?? 0;
+  const hasRankedMatches = matchesPlayed > 0;
+  const rankedWins = profile?.wins ?? 0;
+  const rankedLosses = profile?.losses ?? 0;
+  const rankedDraws = profile?.draws ?? 0;
+  const winRate = hasRankedMatches ? Math.round((rankedWins / matchesPlayed) * 100) : null;
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
@@ -218,7 +240,7 @@ export default function AccountClient({ user }: AccountClientProps) {
               </div>
             ) : stats && stats.totalTests > 0 ? (
               <>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                   <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp">
                     <div className="flex items-center justify-between text-sm text-zinc-500">
                       Total Tests
@@ -226,6 +248,14 @@ export default function AccountClient({ user }: AccountClientProps) {
                     </div>
                     <p className="mt-3 text-3xl font-bold text-zinc-50">{stats.totalTests}</p>
                     <p className="text-xs text-zinc-500 mt-1">Sessions recorded</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-700/60 bg-gradient-to-br from-purple-900/30 to-blue-900/30 p-6 transition-smooth hover:scale-105 animate-slideInUp animation-delay-50">
+                    <div className="flex items-center justify-between text-sm text-zinc-500">
+                      ELO Rating
+                      <Trophy className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <p className="mt-3 text-3xl font-bold text-purple-400">{profile?.elo_rating ?? 1000}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Ranked multiplayer</p>
                   </div>
                   <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp animation-delay-100">
                     <div className="flex items-center justify-between text-sm text-zinc-500">
@@ -352,6 +382,95 @@ export default function AccountClient({ user }: AccountClientProps) {
               </div>
             )}
           </section>
+
+          {/* Multiplayer Stats Section */}
+          {profile && (
+            <section className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl backdrop-blur-sm p-8 lg:p-10 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.6)] animate-slideInUp animation-delay-200">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center border border-purple-500/20">
+                  <Swords className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Multiplayer</p>
+                  <h2 className="text-2xl font-bold text-zinc-50">Ranked Stats</h2>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-6 transition-smooth hover:scale-105">
+                  <div className="flex items-center justify-between text-sm text-zinc-500">
+                    ELO Rating
+                    <Trophy className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <p className="mt-3 text-4xl font-bold text-purple-400">{profile.elo_rating ?? 1000}</p>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {(profile.elo_rating ?? 1000) >= 1500 ? 'Expert' : 
+                     (profile.elo_rating ?? 1000) >= 1200 ? 'Advanced' : 
+                     (profile.elo_rating ?? 1000) >= 900 ? 'Intermediate' : 'Beginner'}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105">
+                  <div className="flex items-center justify-between text-sm text-zinc-500">
+                    Matches Played
+                    <Swords className="w-4 h-4 text-zinc-600" />
+                  </div>
+                  <p className="mt-3 text-3xl font-bold text-zinc-50">{matchesPlayed}</p>
+                  <p className="text-xs text-zinc-500 mt-1">{hasRankedMatches ? 'Total duels' : 'Play your first ranked match'}</p>
+                </div>
+
+                <div className="rounded-2xl border border-green-500/20 bg-green-900/10 p-6 transition-smooth hover:scale-105">
+                  <div className="flex items-center justify-between text-sm text-zinc-500">
+                    Wins
+                    <Trophy className="w-4 h-4 text-green-400" />
+                  </div>
+                  <p className="mt-3 text-3xl font-bold text-green-400">{rankedWins}</p>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {hasRankedMatches ? `${winRate}% win rate` : 'No matches yet'}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-red-500/20 bg-red-900/10 p-6 transition-smooth hover:scale-105">
+                  <div className="flex items-center justify-between text-sm text-zinc-500">
+                    Losses
+                    <Target className="w-4 h-4 text-red-400" />
+                  </div>
+                  <p className="mt-3 text-3xl font-bold text-red-400">{rankedLosses}</p>
+                  <p className="text-xs text-zinc-500 mt-1">Keep improving</p>
+                </div>
+
+                <div className="rounded-2xl border border-yellow-500/20 bg-yellow-900/10 p-6 transition-smooth hover:scale-105">
+                  <div className="flex items-center justify-between text-sm text-zinc-500">
+                    Draws
+                    <Activity className="w-4 h-4 text-yellow-400" />
+                  </div>
+                  <p className="mt-3 text-3xl font-bold text-yellow-400">{rankedDraws}</p>
+                  <p className="text-xs text-zinc-500 mt-1">Close matches</p>
+                </div>
+              </div>
+
+              {profile.last_ranked_at && (
+                <div className="mt-6 text-xs text-zinc-500">
+                  Last ranked match: {new Date(profile.last_ranked_at).toLocaleString()}
+                </div>
+              )}
+
+              {!hasRankedMatches && (
+                <p className="mt-6 text-sm text-zinc-400">
+                  Jump into a ranked match to begin tracking your competitive progress.
+                </p>
+              )}
+
+              <AppLink
+                href="/multiplayer"
+                loadingMessage="Loading multiplayer…"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-purple-500/90 text-white px-5 py-2.5 font-semibold hover:bg-purple-400 transition-smooth shadow-lg shadow-purple-500/20"
+              >
+                <Swords className="w-4 h-4" />
+                Play Ranked Match
+              </AppLink>
+            </section>
+          )}
         </div>
       </main>
     </div>

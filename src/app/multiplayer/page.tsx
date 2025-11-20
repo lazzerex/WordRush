@@ -1,16 +1,29 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { Users, Plus, Search, Clock, Trophy, Zap, Loader2, Sword } from 'lucide-react';
 import { useMultiplayerMatch } from '@/hooks/useMultiplayerMatch';
 import { MatchArena } from '@/components/Multiplayer/MatchArena';
+import { createClient } from '@/lib/supabase/client';
 
 type TabType = 'find-match' | 'create-room';
+
+type RankedProfileStats = {
+  elo_rating: number | null;
+  wins: number | null;
+  losses: number | null;
+  draws: number | null;
+  matches_played: number | null;
+};
 
 export default function MultiplayerPage() {
   const [activeTab, setActiveTab] = useState<TabType>('find-match');
   const [comingSoonVisible, setComingSoonVisible] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+  const [rankedStats, setRankedStats] = useState<RankedProfileStats | null>(null);
+  const [rankedStatsLoading, setRankedStatsLoading] = useState(true);
+  const [rankedStatsError, setRankedStatsError] = useState<string | null>(null);
   const {
     phase,
     match,
@@ -36,6 +49,83 @@ export default function MultiplayerPage() {
     () => match && me && (phase === 'playing' || phase === 'completed'),
     [match, me, phase]
   );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRankedStats() {
+      setRankedStatsLoading(true);
+      setRankedStatsError(null);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error('Failed to resolve current user for ranked stats', userError);
+        if (isMounted) {
+          setRankedStatsError('Could not load your ranked stats.');
+          setRankedStatsLoading(false);
+        }
+        return;
+      }
+
+      if (!user) {
+        if (isMounted) {
+          setRankedStatsError('Sign in to see your ranked progress.');
+          setRankedStatsLoading(false);
+        }
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('elo_rating, wins, losses, draws, matches_played')
+        .eq('id', user.id)
+        .single();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (error) {
+        console.error('Failed to load ranked stats', error);
+        setRankedStatsError('Unable to fetch ranked stats right now.');
+      } else {
+        setRankedStats(data as RankedProfileStats);
+      }
+
+      setRankedStatsLoading(false);
+    }
+
+    loadRankedStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
+
+  const resolvedStats = rankedStats ?? {
+    elo_rating: null,
+    wins: null,
+    losses: null,
+    draws: null,
+    matches_played: null,
+  };
+  const matchesPlayed = resolvedStats.matches_played ?? 0;
+  const wins = resolvedStats.wins ?? 0;
+  const losses = resolvedStats.losses ?? 0;
+  const eloDisplay = rankedStatsLoading
+    ? '...'
+    : (resolvedStats.elo_rating ?? 1000).toString();
+  const winsDisplay = rankedStatsLoading ? '...' : wins.toString();
+  const lossesDisplay = rankedStatsLoading ? '...' : losses.toString();
+  const winRateDisplay = rankedStatsLoading
+    ? '...'
+    : matchesPlayed > 0
+      ? `${Math.round((wins / matchesPlayed) * 100)}%`
+      : '--%';
 
   if (inMatch && match && me) {
     return (
@@ -171,11 +261,15 @@ export default function MultiplayerPage() {
                 )}
 
                 <div className="grid grid-cols-4 gap-4 p-6 bg-zinc-900/50 rounded-xl border border-zinc-700/30">
-                  <StatBlock label="ELO Rating" value="--" accent="text-yellow-500" />
-                  <StatBlock label="Wins" value="--" accent="text-green-500" bordered />
-                  <StatBlock label="Losses" value="--" accent="text-red-500" bordered />
-                  <StatBlock label="Win Rate" value="--%" />
+                  <StatBlock label="ELO Rating" value={eloDisplay} accent="text-yellow-500" />
+                  <StatBlock label="Wins" value={winsDisplay} accent="text-green-500" bordered />
+                  <StatBlock label="Losses" value={lossesDisplay} accent="text-red-500" bordered />
+                  <StatBlock label="Win Rate" value={winRateDisplay} />
                 </div>
+
+                {rankedStatsError && (
+                  <p className="mt-3 text-sm text-red-400">{rankedStatsError}</p>
+                )}
 
                 <div className="mt-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
                   <div className="flex items-start gap-3">

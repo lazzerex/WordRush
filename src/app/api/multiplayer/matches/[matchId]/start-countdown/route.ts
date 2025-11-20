@@ -48,7 +48,7 @@ export async function POST(
       countdown_started_at: new Date().toISOString(),
     })
     .eq('id', matchId)
-    .eq('state', 'pending'); // Only update if still pending
+    .in('state', ['waiting', 'pending']); // Only update if still in a pre-game state
 
   if (updateError) {
     console.error('Failed to start countdown', updateError);

@@ -29,6 +29,7 @@ export interface Profile {
   elo_rating?: number;
   wins?: number;
   losses?: number;
+  draws?: number;
   matches_played?: number;
   last_ranked_at?: string | null;
 }
@@ -67,7 +68,7 @@ export interface UserSettings {
 export interface MultiplayerMatch {
   id: string;
   duration: number;
-  state: 'pending' | 'ready' | 'countdown' | 'in-progress' | 'completed';
+  state: 'waiting' | 'pending' | 'ready' | 'countdown' | 'in-progress' | 'completed';
   word_sequence: string[];
   created_at: string;
   started_at: string | null;
