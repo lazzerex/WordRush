@@ -1,29 +1,23 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Navigation from '@/components/Navigation';
-import { Users, Plus, Search, Clock, Trophy, Zap, Loader2, Sword } from 'lucide-react';
+import { Users, Plus, Search, Clock, Trophy, Zap, Loader2, Sword, TrendingUp, TrendingDown } from 'lucide-react';
 import { useMultiplayerMatch } from '@/hooks/useMultiplayerMatch';
 import { MatchArena } from '@/components/Multiplayer/MatchArena';
-import { createClient } from '@/lib/supabase/client';
+import { useRankedProfileStats } from '@/hooks/useRankedProfileStats';
+import { useAnimatedNumber } from '@/hooks/useAnimatedNumber';
 
 type TabType = 'find-match' | 'create-room';
-
-type RankedProfileStats = {
-  elo_rating: number | null;
-  wins: number | null;
-  losses: number | null;
-  draws: number | null;
-  matches_played: number | null;
-};
 
 export default function MultiplayerPage() {
   const [activeTab, setActiveTab] = useState<TabType>('find-match');
   const [comingSoonVisible, setComingSoonVisible] = useState(false);
-  const supabase = useMemo(() => createClient(), []);
-  const [rankedStats, setRankedStats] = useState<RankedProfileStats | null>(null);
-  const [rankedStatsLoading, setRankedStatsLoading] = useState(true);
-  const [rankedStatsError, setRankedStatsError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { stats: rankedStats, isLoading: rankedStatsLoading, error: rankedStatsError } = useRankedProfileStats(refreshTrigger);
+  const { value: animatedElo, trend: eloTrend } = useAnimatedNumber(rankedStats?.elo_rating ?? null);
+  const [eloChangeNotification, setEloChangeNotification] = useState<{ amount: number; visible: boolean } | null>(null);
+  const previousEloRef = useRef<number | null>(null);
   const {
     phase,
     match,
@@ -38,6 +32,29 @@ export default function MultiplayerPage() {
     resetMatch,
   } = useMultiplayerMatch();
 
+  // Track ELO changes and show notification
+  useEffect(() => {
+    if (!rankedStats?.elo_rating) return;
+    
+    if (previousEloRef.current === null) {
+      previousEloRef.current = rankedStats.elo_rating;
+      return;
+    }
+    
+    const change = rankedStats.elo_rating - previousEloRef.current;
+    if (change !== 0) {
+      setEloChangeNotification({ amount: change, visible: true });
+      previousEloRef.current = rankedStats.elo_rating;
+      
+      // Auto-hide after 5 seconds
+      const timer = setTimeout(() => {
+        setEloChangeNotification(prev => prev ? { ...prev, visible: false } : null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [rankedStats?.elo_rating]);
+
   const handleCreateRoom = () => {
     setComingSoonVisible(true);
     setTimeout(() => {
@@ -49,83 +66,28 @@ export default function MultiplayerPage() {
     () => match && me && (phase === 'playing' || phase === 'completed'),
     [match, me, phase]
   );
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadRankedStats() {
-      setRankedStatsLoading(true);
-      setRankedStatsError(null);
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        console.error('Failed to resolve current user for ranked stats', userError);
-        if (isMounted) {
-          setRankedStatsError('Could not load your ranked stats.');
-          setRankedStatsLoading(false);
-        }
-        return;
-      }
-
-      if (!user) {
-        if (isMounted) {
-          setRankedStatsError('Sign in to see your ranked progress.');
-          setRankedStatsLoading(false);
-        }
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('elo_rating, wins, losses, draws, matches_played')
-        .eq('id', user.id)
-        .single();
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (error) {
-        console.error('Failed to load ranked stats', error);
-        setRankedStatsError('Unable to fetch ranked stats right now.');
-      } else {
-        setRankedStats(data as RankedProfileStats);
-      }
-
-      setRankedStatsLoading(false);
-    }
-
-    loadRankedStats();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [supabase]);
-
-  const resolvedStats = rankedStats ?? {
-    elo_rating: null,
-    wins: null,
-    losses: null,
-    draws: null,
-    matches_played: null,
+  const fallbackStats = {
+    elo_rating: rankedStats?.elo_rating ?? 1000,
+    wins: rankedStats?.wins ?? 0,
+    losses: rankedStats?.losses ?? 0,
+    draws: rankedStats?.draws ?? 0,
+    matches_played: rankedStats?.matches_played ?? 0,
   };
-  const matchesPlayed = resolvedStats.matches_played ?? 0;
-  const wins = resolvedStats.wins ?? 0;
-  const losses = resolvedStats.losses ?? 0;
-  const eloDisplay = rankedStatsLoading
-    ? '...'
-    : (resolvedStats.elo_rating ?? 1000).toString();
-  const winsDisplay = rankedStatsLoading ? '...' : wins.toString();
-  const lossesDisplay = rankedStatsLoading ? '...' : losses.toString();
-  const winRateDisplay = rankedStatsLoading
-    ? '...'
-    : matchesPlayed > 0
-      ? `${Math.round((wins / matchesPlayed) * 100)}%`
-      : '--%';
+  const matchesPlayed = fallbackStats.matches_played ?? 0;
+  const wins = fallbackStats.wins ?? 0;
+  const losses = fallbackStats.losses ?? 0;
+  const winRateBase = matchesPlayed > 0 ? `${Math.round((wins / matchesPlayed) * 100)}%` : '--%';
+  const winRateDisplay = rankedStatsLoading && !rankedStats ? '...' : winRateBase;
+  const winsDisplay = rankedStatsLoading && !rankedStats ? '...' : wins.toString();
+  const lossesDisplay = rankedStatsLoading && !rankedStats ? '...' : losses.toString();
+  const eloValue = Math.round(animatedElo ?? fallbackStats.elo_rating ?? 1000).toLocaleString();
+  const eloValueClass = `text-3xl font-bold mb-1 transition-all duration-300 ${
+    eloTrend === 'up'
+      ? 'text-green-400 scale-105 drop-shadow-[0_0_12px_rgba(34,197,94,0.45)]'
+      : eloTrend === 'down'
+      ? 'text-red-400 scale-95 drop-shadow-[0_0_12px_rgba(248,113,113,0.35)]'
+      : 'text-yellow-500'
+  }`;
 
   if (inMatch && match && me) {
     return (
@@ -142,6 +104,11 @@ export default function MultiplayerPage() {
           onFinishedLocally={finalizeMatch}
           onBackToLobby={() => {
             resetMatch();
+            // Trigger stats refresh when returning to lobby with a small delay
+            // to ensure the database has processed the ELO update
+            setTimeout(() => {
+              setRefreshTrigger(prev => prev + 1);
+            }, 500);
           }}
         />
       </div>
@@ -154,6 +121,52 @@ export default function MultiplayerPage() {
   return (
     <div className="min-h-screen bg-zinc-900 wr-bg-primary wr-text-primary">
       <Navigation />
+      
+      {/* ELO Change Notification */}
+      {eloChangeNotification && (
+        <div 
+          className={`fixed top-24 right-6 z-50 transition-all duration-500 ${
+            eloChangeNotification.visible 
+              ? 'opacity-100 translate-x-0' 
+              : 'opacity-0 translate-x-full pointer-events-none'
+          }`}
+        >
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border-2 ${
+            eloChangeNotification.amount > 0
+              ? 'bg-gradient-to-br from-green-500/20 to-green-600/10 border-green-500/40 shadow-green-500/20'
+              : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/40 shadow-red-500/20'
+          }`}>
+            <div className={`p-2 rounded-xl ${
+              eloChangeNotification.amount > 0 ? 'bg-green-500/20' : 'bg-red-500/20'
+            }`}>
+              {eloChangeNotification.amount > 0 ? (
+                <TrendingUp className="w-6 h-6 text-green-400" />
+              ) : (
+                <TrendingDown className="w-6 h-6 text-red-400" />
+              )}
+            </div>
+            <div>
+              <div className={`text-sm font-semibold ${
+                eloChangeNotification.amount > 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                ELO Rating Changed
+              </div>
+              <div className={`text-2xl font-bold ${
+                eloChangeNotification.amount > 0 ? 'text-green-300' : 'text-red-300'
+              }`}>
+                {eloChangeNotification.amount > 0 ? '+' : ''}{eloChangeNotification.amount}
+              </div>
+            </div>
+            <button
+              onClick={() => setEloChangeNotification(prev => prev ? { ...prev, visible: false } : null)}
+              className="ml-2 text-zinc-400 hover:text-white transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 animate-fadeIn">
@@ -261,7 +274,13 @@ export default function MultiplayerPage() {
                 )}
 
                 <div className="grid grid-cols-4 gap-4 p-6 bg-zinc-900/50 rounded-xl border border-zinc-700/30">
-                  <StatBlock label="ELO Rating" value={eloDisplay} accent="text-yellow-500" />
+                  <StatBlock label="ELO Rating" accent="text-yellow-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className={eloValueClass}>{eloValue}</span>
+                      {eloTrend === 'up' && <TrendingUp className="w-5 h-5 text-green-400" />}
+                      {eloTrend === 'down' && <TrendingDown className="w-5 h-5 text-red-400" />}
+                    </div>
+                  </StatBlock>
                   <StatBlock label="Wins" value={winsDisplay} accent="text-green-500" bordered />
                   <StatBlock label="Losses" value={lossesDisplay} accent="text-red-500" bordered />
                   <StatBlock label="Win Rate" value={winRateDisplay} />
@@ -340,15 +359,18 @@ export default function MultiplayerPage() {
 
 interface StatBlockProps {
   label: string;
-  value: string;
+  value?: string;
   accent?: string;
   bordered?: boolean;
+  children?: React.ReactNode;
 }
 
-function StatBlock({ label, value, accent, bordered }: StatBlockProps) {
+function StatBlock({ label, value, accent, bordered, children }: StatBlockProps) {
   return (
     <div className={`text-center ${bordered ? 'border-x border-zinc-700/50' : ''}`}>
-      <div className={`text-2xl font-bold mb-1 ${accent ?? 'text-white'}`}>{value}</div>
+      <div className={`text-2xl font-bold mb-1 ${accent ?? 'text-white'}`}>
+        {children ?? value ?? '--'}
+      </div>
       <div className="text-xs text-zinc-500 uppercase tracking-wide">{label}</div>
     </div>
   );
