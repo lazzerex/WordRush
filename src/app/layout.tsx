@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import ThemeInitializer from '@/components/ThemeInitializer';
 import GlobalLoadingOverlay from '@/components/GlobalLoadingOverlay';
+import ClientRoot from '@/components/ClientRoot';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,7 +23,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeInitializer />
         <GlobalLoadingOverlay />
-        {children}
+        <ClientRoot>
+          {children}
+        </ClientRoot>
       </body>
     </html>
   );
