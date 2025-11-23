@@ -89,6 +89,17 @@ export default function MultiplayerPage() {
       : 'text-yellow-500'
   }`;
 
+  // Track original ELO before match starts
+  const [originalElo, setOriginalElo] = useState<number | null>(null);
+  useEffect(() => {
+    if (phase === 'playing' && originalElo === null && typeof rankedStats?.elo_rating === 'number') {
+      setOriginalElo(rankedStats.elo_rating);
+    }
+    if (phase !== 'playing' && phase !== 'completed') {
+      setOriginalElo(null);
+    }
+  }, [phase, rankedStats?.elo_rating]);
+
   if (inMatch && match && me) {
     return (
       <div className="min-h-screen bg-zinc-900 text-white">
@@ -104,12 +115,12 @@ export default function MultiplayerPage() {
           onFinishedLocally={finalizeMatch}
           onBackToLobby={() => {
             resetMatch();
-            // Trigger stats refresh when returning to lobby with a small delay
-            // to ensure the database has processed the ELO update
             setTimeout(() => {
               setRefreshTrigger(prev => prev + 1);
             }, 500);
           }}
+          originalElo={originalElo}
+          newElo={rankedStats?.elo_rating ?? null}
         />
       </div>
     );

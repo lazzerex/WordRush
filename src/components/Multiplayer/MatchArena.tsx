@@ -1,5 +1,7 @@
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Trophy, TrendingDown, Handshake } from 'lucide-react';
+
 import type {
   MultiplayerMatch,
   MultiplayerMatchPlayer,
@@ -8,6 +10,14 @@ import type { QueuePhase } from '@/hooks/useMultiplayerMatch';
 import { calculateStats } from '@/components/TypingTest/helpers';
 import type { PlayerUpdatePayload } from '@/services/multiplayerService';
 
+const UPDATE_THROTTLE_MS = 400;
+const BADGE_BASE = 'px-3 py-1 rounded-full text-xs font-semibold';
+const BADGE_STYLES = {
+  positive: `${BADGE_BASE} bg-green-500/20 text-green-400`,
+  warning: `${BADGE_BASE} bg-yellow-500/20 text-yellow-400`,
+  info: `${BADGE_BASE} bg-blue-500/20 text-blue-400`,
+  idle: `${BADGE_BASE} bg-zinc-700/50 text-zinc-400`,
+} as const;
 interface MatchArenaProps {
   match: MultiplayerMatch;
   me: MultiplayerMatchPlayer;
@@ -19,15 +29,6 @@ interface MatchArenaProps {
   onBackToLobby: () => void;
   error?: string | null;
 }
-
-const UPDATE_THROTTLE_MS = 400;
-const BADGE_BASE = 'px-3 py-1 rounded-full text-xs font-semibold';
-const BADGE_STYLES = {
-  positive: `${BADGE_BASE} bg-green-500/20 text-green-400`,
-  warning: `${BADGE_BASE} bg-yellow-500/20 text-yellow-400`,
-  info: `${BADGE_BASE} bg-blue-500/20 text-blue-400`,
-  idle: `${BADGE_BASE} bg-zinc-700/50 text-zinc-400`,
-} as const;
 
 export function MatchArena({
   match,
@@ -526,6 +527,7 @@ export function MatchArena({
         </div>
 
         {/* Match Result */}
+
         {phase === 'completed' && (me.result || opponent?.result) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/90 backdrop-blur-md animate-fadeIn">
             <div className="max-w-4xl w-full mx-4 p-10 bg-zinc-800/60 border border-zinc-700/50 rounded-3xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)] backdrop-blur-md animate-scaleIn">
@@ -553,7 +555,8 @@ export function MatchArena({
                   />
                 )}
               </div>
-              
+              {/* Animated ELO Counter */}
+              {/* ELO display removed: MultiplayerMatchPlayer does not have elo_rating */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* You */}
                 <div className={`p-8 rounded-2xl transition-all backdrop-blur-sm ${

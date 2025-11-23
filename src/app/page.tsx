@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+
 import { useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import FloatingLines from '@/components/FloatingLines';
@@ -70,79 +70,58 @@ function HomeContent() {
         </main>
       </div>
 
-      <AnimatePresence>
-        {overlayVisible && (
-          <motion.div
-            key="menu-overlay"
-            initial={{ opacity: 0, filter: 'blur(12px)' }}
-            animate={{ opacity: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, filter: 'blur(12px)' }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className={`fixed inset-0 z-30 flex items-center justify-center bg-zinc-900/95 px-6`}
-          >
-            {/* FloatingLines as animated background */}
-            <motion.div
-              key="floating-lines"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
-              className="absolute inset-0 pointer-events-none select-none"
-            >
-              <FloatingLines
-                enabledWaves={['top', 'middle', 'bottom']}
-                lineCount={[8, 12, 16]}
-                lineDistance={[6, 5, 4]}
-                linesGradient={['#fbbf24', '#60a5fa', '#a78bfa', '#f472b6']}
-                animationSpeed={0.8}
-                interactive={false}
-                parallax={false}
-                mixBlendMode="screen"
-              />
-            </motion.div>
+      {overlayVisible && (
+        <div className={`fixed inset-0 z-30 flex items-center justify-center bg-zinc-900/95 px-6`}>
+          {/* FloatingLines as animated background */}
+          <div className="absolute inset-0 pointer-events-none select-none">
+            <FloatingLines
+              enabledWaves={['top', 'middle', 'bottom']}
+              lineCount={[8, 12, 16]}
+              lineDistance={[6, 5, 4]}
+              linesGradient={['#fbbf24', '#60a5fa', '#a78bfa', '#f472b6']}
+              animationSpeed={0.8}
+              interactive={false}
+              parallax={false}
+              mixBlendMode="screen"
+            />
+          </div>
 
-            {/* Menu content */}
-            <motion.div
-              key="menu-content"
-              initial={{ opacity: 0, y: 48 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -48 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className={`relative z-10 flex flex-col items-center gap-8 text-center text-white transition-all duration-500 ease-out ${menuState === 'closing' ? '-translate-y-20 opacity-0' : menuState === 'opening' ? 'translate-y-12 opacity-0' : 'translate-y-0 opacity-100'}`}
-            >
-              <div className="mb-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-zinc-400 mb-2 animate-fade-in">Welcome to</p>
-                <h1 className="text-6xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">WordRush</h1>
-                <div className="h-1 w-20 bg-gradient-to-r from-yellow-500 to-blue-500 rounded-full mx-auto" />
-              </div>
-              <div className="flex flex-col items-center gap-4">
-                <button 
-                  type="button" 
-                  onClick={handleSingleplayer} 
-                  className="text-4xl font-semibold tracking-wide text-white transition-all duration-200 hover:text-yellow-400 hover:scale-105 drop-shadow-md"
-                >
-                  Singleplayer
-                </button>
-                <button 
-                  type="button" 
-                  onClick={handleMultiplayer} 
-                  className="text-4xl font-semibold tracking-wide text-white/70 transition-all duration-200 hover:text-white hover:scale-105 drop-shadow-md"
-                >
-                  Multiplayer
-                </button>
-                {!isAuthenticated && (
-                  <div className="mt-6 text-base text-white/70">
-                    New here?{' '}
-                    <Link href="/register?returnTo=/" className="underline decoration-yellow-500/40 underline-offset-4 transition-all hover:decoration-yellow-500 hover:text-yellow-400">
-                      Sign up
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* Menu content */}
+          <div
+            className={`relative z-10 flex flex-col items-center gap-8 text-center text-white transition-all duration-500 ease-out ${menuState === 'closing' ? '-translate-y-20 opacity-0' : menuState === 'opening' ? 'translate-y-12 opacity-0' : 'translate-y-0 opacity-100'}`}
+          >
+            <div className="mb-4">
+              <p className="text-xs uppercase tracking-[0.4em] text-zinc-400 mb-2 animate-fade-in">Welcome to</p>
+              <h1 className="text-6xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">WordRush</h1>
+              <div className="h-1 w-20 bg-gradient-to-r from-yellow-500 to-blue-500 rounded-full mx-auto" />
+            </div>
+            <div className="flex flex-col items-center gap-4">
+              <button 
+                type="button" 
+                onClick={handleSingleplayer} 
+                className="text-4xl font-semibold tracking-wide text-white transition-all duration-200 hover:text-yellow-400 hover:scale-105 drop-shadow-md"
+              >
+                Singleplayer
+              </button>
+              <button 
+                type="button" 
+                onClick={handleMultiplayer} 
+                className="text-4xl font-semibold tracking-wide text-white/70 transition-all duration-200 hover:text-white hover:scale-105 drop-shadow-md"
+              >
+                Multiplayer
+              </button>
+              {!isAuthenticated && (
+                <div className="mt-6 text-base text-white/70">
+                  New here?{' '}
+                  <Link href="/register?returnTo=/" className="underline decoration-yellow-500/40 underline-offset-4 transition-all hover:decoration-yellow-500 hover:text-yellow-400">
+                    Sign up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
