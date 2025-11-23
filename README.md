@@ -4,7 +4,7 @@ A modern, feature-rich typing test application with real-time leaderboards, gami
 
 **Live Demo:** [wordrush-io.vercel.app](https://wordrush-io.vercel.app/)
 
-<img width="1876" height="910" alt="image" src="https://github.com/user-attachments/assets/38d27e13-d541-4b0e-8ca2-3085ece70ec1" />
+<img width="1897" height="871" alt="image" src="https://github.com/user-attachments/assets/d8700093-c28f-4b52-be3a-03a7a6c97cf5" />
 
 <img width="1767" height="830" alt="image" src="https://github.com/user-attachments/assets/9ac4537f-616b-4e90-848e-deced8205752" />
 
