@@ -119,8 +119,6 @@ export default function MultiplayerPage() {
               setRefreshTrigger(prev => prev + 1);
             }, 500);
           }}
-          originalElo={originalElo}
-          newElo={rankedStats?.elo_rating ?? null}
         />
       </div>
     );
