@@ -1,15 +1,9 @@
-/**
- * TypingTest Component - Refactored
- * Main component that manages state and orchestrates child components
- */
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getWordPool } from '@/lib/wordPool';
-import { SettingsBar } from './TypingTest/SettingsBar';
-import { DurationSelector } from './TypingTest/DurationSelector';
-import { ResetButton } from './TypingTest/ResetButton';
+import { Menu, ShoppingBag, Palette, RotateCcw } from 'lucide-react';
+import Dock from './TypingTest/Dock';
 import { TestTimer } from './TypingTest/TestTimer';
 import { WordsDisplay } from './TypingTest/WordsDisplay';
 import { HiddenInput } from './TypingTest/HiddenInput';
@@ -365,19 +359,47 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Settings Bar */}
-      <div className="mb-8 flex items-center justify-between animate-fadeIn">
-    <SettingsBar onOpenMenu={onOpenMenu} />
-        <DurationSelector
-          selectedDuration={selectedDuration}
-          isLoadingWords={isLoadingWords}
-          wordPoolError={wordPoolError}
-          onDurationChange={handleDurationChange}
-        />
-        <ResetButton
-          isLoadingWords={isLoadingWords}
-          wordPoolError={wordPoolError}
-          onReset={handleReset}
+      {/* Dock bar between header and typing area */}
+      <div className="flex justify-center mb-10">
+        <Dock
+          items={[
+            {
+              icon: <Menu className="w-5 h-5 text-zinc-400" />,
+              label: 'Menu',
+              onClick: onOpenMenu || (() => {}),
+              className: 'hover:bg-zinc-800',
+            },
+            {
+              icon: <ShoppingBag className="w-5 h-5 text-zinc-400" />,
+              label: 'Shop',
+              onClick: () => window.location.href = '/shop',
+              className: 'hover:bg-zinc-800',
+            },
+            {
+              icon: <Palette className="w-5 h-5 text-zinc-400" />,
+              label: 'Customize',
+              onClick: () => window.location.href = '/customize',
+              className: 'hover:bg-zinc-800',
+            },
+            { icon: <div className="w-px h-8 bg-zinc-800" />, label: '', onClick: () => {}, className: 'pointer-events-none bg-transparent border-none shadow-none' },
+            ...([15, 30, 60, 120] as DurationOption[]).map((duration) => ({
+              icon: <span className={`text-sm font-semibold ${selectedDuration === duration ? 'text-yellow-500' : 'text-zinc-500'}`}>{duration}s</span>,
+              label: `${duration} seconds`,
+              onClick: () => handleDurationChange(duration),
+              className: `${selectedDuration === duration ? 'bg-zinc-800 border-zinc-700' : 'hover:bg-zinc-800'}`,
+            })),
+            { icon: <div className="w-px h-8 bg-zinc-800" />, label: '', onClick: () => {}, className: 'pointer-events-none bg-transparent border-none shadow-none' },
+            {
+              icon: <RotateCcw className="w-5 h-5 text-zinc-400" />,
+              label: 'Reset',
+              onClick: handleReset,
+              className: 'hover:bg-zinc-800',
+            },
+          ]}
+          spring={{ mass: 0.1, stiffness: 150, damping: 12 }}
+          magnification={70}
+          distance={140}
+          baseItemSize={50}
         />
       </div>
 
