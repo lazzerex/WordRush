@@ -358,7 +358,7 @@ export function MatchArena({
   const inputPlaceholder = hasFinished || phase === 'completed'
     ? 'Run complete'
     : !isReady
-      ? 'Click Ready Up to begin'
+      ? 'Click Ready to begin'
       : !bothReady
         ? 'Waiting for opponent...'
         : !isActive
@@ -372,10 +372,10 @@ export function MatchArena({
       return opponent?.is_finished ? 'Match complete. Awaiting results.' : `Waiting for ${opponentCopyName} to finish.`;
     }
     if (!isReady) {
-      return 'Click Ready Up when you are prepared to start.';
+      return 'Click Ready when you are prepared to start.';
     }
     if (!bothReady) {
-      return `Waiting for ${opponentCopyName} to ready up...`;
+      return `Waiting for ${opponentCopyName} to ready...`;
     }
     if (!isActive) {
       return 'Get ready! The match starts as soon as the countdown hits zero.';
@@ -389,7 +389,7 @@ export function MatchArena({
       ? 'Type as fast and accurately as you can!'
       : bothReady
         ? 'Both players ready. Countdown starting...'
-        : 'Waiting for both players to ready up.';
+        : 'Waiting for both players to click ready.';
 
   return (
     <div className="pt-24 pb-12 px-4">
@@ -473,7 +473,7 @@ export function MatchArena({
                       disabled={countdown !== null || isActive}
                       className="px-4 py-2 bg-yellow-500 text-zinc-900 rounded-lg font-semibold text-sm hover:bg-yellow-400 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Ready Up
+                      Ready
                     </button>
                   )}
                 </div>
