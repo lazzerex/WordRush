@@ -81,7 +81,7 @@ export const Word: React.FC<WordProps> = ({
         </>
       ) : isPastWord ? (
         /* Past words */
-        <span className={`transition-smooth ${wordStatus === 'correct' ? 'text-zinc-300' : 'text-red-400'}`}>
+        <span className={`transition-smooth ${wordStatus === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
           {word}
         </span>
       ) : (
