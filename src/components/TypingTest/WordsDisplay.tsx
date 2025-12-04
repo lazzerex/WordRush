@@ -171,7 +171,7 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
             <div className="bg-zinc-900/90 border border-yellow-500/40 rounded-xl px-6 py-3 backdrop-blur-sm transform transition-smooth hover:scale-105">
               <div className="flex items-center gap-3 text-yellow-400/90">
                 <Keyboard className="w-5 h-5" />
-                <span className="text-base font-medium">Click here to start typing</span>
+                <span className="text-base font-medium">Start typing</span>
               </div>
             </div>
           </div>

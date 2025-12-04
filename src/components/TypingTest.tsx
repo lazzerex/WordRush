@@ -357,6 +357,27 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     inputRef.current?.focus();
   };
 
+  // Always focus hidden input when overlay is dismissed and test is not complete
+  useEffect(() => {
+    if (!testComplete && !overlayVisible && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [overlayVisible, testComplete]);
+
+  // Allow starting test by pressing any key
+  useEffect(() => {
+    if (!testActive && overlayVisible && !testComplete && !isLoadingWords && !wordPoolError) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        setOverlayVisible(false);
+        inputRef.current?.focus();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [testActive, overlayVisible, testComplete, isLoadingWords, wordPoolError]);
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Dock bar between header and typing area */}
