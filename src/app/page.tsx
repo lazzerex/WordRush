@@ -6,7 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 
 import { useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
-import FloatingLines from '@/components/FloatingLines';
+
 import ClickSpark from '@/components/ClickSpark';
 import { createClient } from '@/lib/supabase/client';
 
@@ -72,19 +72,6 @@ function HomeContent() {
 
       {overlayVisible && (
         <div className={`fixed inset-0 z-30 flex items-center justify-center bg-zinc-900/95 px-6`}>
-          {/* FloatingLines as animated background */}
-          <div className="absolute inset-0 pointer-events-none select-none">
-            <FloatingLines
-              enabledWaves={['top', 'middle', 'bottom']}
-              lineCount={[8, 12, 16]}
-              lineDistance={[6, 5, 4]}
-              linesGradient={['#fbbf24', '#60a5fa', '#a78bfa', '#f472b6']}
-              animationSpeed={0.8}
-              interactive={false}
-              parallax={false}
-              mixBlendMode="screen"
-            />
-          </div>
 
           {/* Menu content */}
           <div
