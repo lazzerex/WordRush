@@ -19,6 +19,7 @@ interface SubmitResultRequest {
   duration: number;
   startTime: number;
   theme: string;
+  language?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -64,7 +65,8 @@ export async function POST(request: NextRequest) {
       expectedWords,
       duration,
       startTime,
-      theme 
+      theme,
+      language = 'en',
     } = body;
 
     // 2. Validate request data
@@ -183,12 +185,21 @@ export async function POST(request: NextRequest) {
       p_incorrect_chars: incorrectChars,
       p_duration: duration,
       p_theme: theme || 'monkeytype-inspired',
-    });
+      p_language: language,
+    }).single();
 
-    if (error || !data) {
-      console.error('Database error inserting result via RPC:', error);
+    if (error) {
+      console.error('Database error inserting result:', error);
       return NextResponse.json(
         { error: 'Failed to save result', details: error?.message ?? 'Unknown insert error' }, 
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      console.error('No data returned from insert_validated_typing_result');
+      return NextResponse.json(
+        { error: 'Failed to save result - no data returned' }, 
         { status: 500 }
       );
     }
@@ -206,6 +217,8 @@ export async function POST(request: NextRequest) {
 
     let totalCoins: number | null = null;
 
+    console.log(`Calculated coins to award: ${coinsEarned} (WPM: ${wpm}, Duration: ${duration}s)`);
+
     if (coinsEarned > 0) {
       // Try using RPC function first
       const { error: coinsError } = await adminClient.rpc('add_coins', {
@@ -218,25 +231,29 @@ export async function POST(request: NextRequest) {
         console.log('Attempting direct update instead...');
         
         // Fallback: Get current coins, then update
-        const { data: profileData } = await adminClient
+        const { data: profileData, error: fetchError } = await adminClient
           .from('profiles')
           .select('coins')
           .eq('id', user.id)
           .single();
         
-        const currentCoins = profileData?.coins || 0;
-        const newCoins = currentCoins + coinsEarned;
-        
-        const { error: updateError } = await adminClient
-          .from('profiles')
-          .update({ coins: newCoins })
-          .eq('id', user.id);
-        
-        if (updateError) {
-          console.error('Failed to award coins via direct update:', updateError);
+        if (fetchError) {
+          console.error('Failed to fetch profile for coin update:', fetchError);
         } else {
-          console.log(`Successfully awarded ${coinsEarned} coins to user ${user.id} (${currentCoins} -> ${newCoins})`);
-          totalCoins = newCoins;
+          const currentCoins = profileData?.coins || 0;
+          const newCoins = currentCoins + coinsEarned;
+          
+          const { error: updateError } = await adminClient
+            .from('profiles')
+            .update({ coins: newCoins })
+            .eq('id', user.id);
+          
+          if (updateError) {
+            console.error('Failed to award coins via direct update:', updateError);
+          } else {
+            console.log(`Successfully awarded ${coinsEarned} coins to user ${user.id} (${currentCoins} -> ${newCoins})`);
+            totalCoins = newCoins;
+          }
         }
       } else {
         console.log(`Successfully awarded ${coinsEarned} coins via RPC to user ${user.id}`);
@@ -250,8 +267,11 @@ export async function POST(request: NextRequest) {
           console.error('Failed to fetch updated coin balance:', profileError);
         } else {
           totalCoins = profileData?.coins ?? null;
+          console.log(`User ${user.id} now has ${totalCoins} total coins`);
         }
       }
+    } else {
+      console.log('No coins to award (coinsEarned = 0)');
     }
 
     if (totalCoins === null) {
@@ -286,6 +306,7 @@ export async function POST(request: NextRequest) {
         accuracy,
         created_at: data.created_at || new Date().toISOString(),
         duration,
+        language,
       });
     } catch (cacheError) {
       console.error('Error updating leaderboard cache:', cacheError);

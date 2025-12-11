@@ -211,6 +211,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           duration: selectedDuration,
           startTime: testStartTimeRef.current,
           theme: 'monkeytype-inspired',
+          language: selectedLanguage,
         }),
       });
 

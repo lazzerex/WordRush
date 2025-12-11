@@ -127,7 +127,7 @@ export async function updateUserStreak(userId: string): Promise<UserStreak | nul
 
   try {
     const key = `${STREAK_PREFIX}:${userId}`;
-    const data = await redis.get<string>(key);
+    const data = await redis.get<UserStreak>(key);
     
     const today = new Date().toISOString().split('T')[0];
     let streak: UserStreak;
@@ -140,7 +140,7 @@ export async function updateUserStreak(userId: string): Promise<UserStreak | nul
         lastActivityDate: today,
       };
     } else {
-      const existing = JSON.parse(data) as UserStreak;
+      const existing = data; // Already an object, no need to parse
       const lastDate = new Date(existing.lastActivityDate);
       const todayDate = new Date(today);
       const diffDays = Math.floor(
