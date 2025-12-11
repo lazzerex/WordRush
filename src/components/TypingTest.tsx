@@ -393,7 +393,13 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
             {
               icon: <Menu className="w-5 h-5 text-zinc-400" />,
               label: 'Menu',
-              onClick: onOpenMenu || (() => {}),
+              onClick: () => {
+                // Stop and reset the test, then open the menu
+                if (!overlayVisible) {
+                  handleReset();
+                }
+                if (onOpenMenu) onOpenMenu();
+              },
               className: 'hover:bg-zinc-800',
             },
             {
