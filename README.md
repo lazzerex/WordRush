@@ -1,6 +1,30 @@
-# WordRush ⚡
+# WordRush 
+<p align="center">
+   <img width="255" height="255" alt="wordrush" src="https://github.com/user-attachments/assets/880b8bf3-0c84-44a4-8b87-84850fd6c236" />
+</p>
 
-A modern, feature-rich typing test application with real-time leaderboards, gamification, and multiplayer duels.
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js%2015-black?style=flat&logo=next.js&logoColor=white"/>
+  <img src="https://img.shields.io/badge/React%2019-61DAFB?style=flat&logo=react&logoColor=black"/>
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Tailwind%20CSS%204-38B2AC?style=flat&logo=tailwind-css&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white"/>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/github/stars/lazzerex/WordRush?style=flat&logo=github"/>
+  <img src="https://img.shields.io/github/forks/lazzerex/WordRush?style=flat&logo=github"/>
+  <img src="https://img.shields.io/github/contributors/lazzerex/WordRush?style=flat"/>
+  <img src="https://img.shields.io/github/issues-pr-raw/lazzerex/WordRush?label=pull%20requests&style=flat&color=yellow"/>
+  <img src="https://img.shields.io/github/issues/lazzerex/WordRush?label=issues&style=flat&color=red"/>
+  <img src="https://img.shields.io/badge/Live%20Demo-online-brightgreen?style=flat&logo=vercel"/>
+  <img src="https://img.shields.io/badge/Real--time-enabled-blue?style=flat&logo=supabase"/>
+</p>
+
+<p align="center">
+  <strong>A modern, feature-rich typing test application with real-time leaderboards, gamification, and multiplayer duels</strong>
+</p>
 
 **Live Demo:** [wordrush-io.vercel.app](https://wordrush-io.vercel.app/)
 
