@@ -17,6 +17,7 @@ export async function addToLeaderboardCache(entry: {
   accuracy: number;
   created_at: string;
   duration: number;
+  language?: string;
 }): Promise<void> {
   if (!isRedisConfigured()) {
     console.log('Redis not configured, skipping cache update');
@@ -45,6 +46,7 @@ export async function addToLeaderboardCache(entry: {
       accuracy: entry.accuracy,
       created_at: entry.created_at,
       duration: entry.duration,
+      language: entry.language || 'en',
     });
 
     // Set TTL on entry

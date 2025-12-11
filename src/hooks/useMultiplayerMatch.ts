@@ -79,6 +79,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
         setPhase('idle');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [service]
   );
 

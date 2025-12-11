@@ -186,7 +186,21 @@ export async function POST(request: NextRequest) {
       p_duration: duration,
       p_theme: theme || 'monkeytype-inspired',
       p_language: language,
-    }).single();
+    }).single() as { 
+      data: { 
+        id: string; 
+        user_id: string;
+        wpm: number;
+        accuracy: number;
+        correct_chars: number;
+        incorrect_chars: number;
+        duration: number;
+        theme: string;
+        created_at: string;
+        language: string;
+      } | null; 
+      error: any;
+    };
 
     if (error) {
       console.error('Database error inserting result:', error);
