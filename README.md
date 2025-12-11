@@ -156,37 +156,45 @@ For enhanced performance and features:
 ```
 WordRush/
 ├── src/
-│   ├── app/                  # Next.js App Router
-│   │   ├── api/              # API routes
-│   │   │   ├── submit-result/    # Secure test submission
-│   │   │   ├── leaderboard/      # Leaderboard API
-│   │   │   ├── active-users/     # Active users counter
-│   │   │   └── user/streak/      # User streak tracking
+│   ├── app/                  # Next.js App Router & pages
+│   │   ├── api/              # API routes (active-users, leaderboard, multiplayer, redis-health, submit-result, user, etc.)
 │   │   ├── account/          # User dashboard
 │   │   ├── customize/        # Theme customization
 │   │   ├── leaderboard/      # Global rankings
-│   │   ├── multiplayer/      # Multiplayer duels
+│   │   ├── multiplayer/      # Multiplayer mode
 │   │   ├── shop/             # Theme shop
-│   │   └── page.tsx          # Home (typing test)
-│   ├── components/           # React components
-│   │   ├── TypingTest/       # Main typing test UI
-│   │   ├── Navigation.tsx    # Top nav with coins
-│   │   └── StatsChart.tsx    # Progress charts
-│   ├── lib/                  # Core utilities
-│   │   ├── redis.ts          # Redis client
-│   │   ├── ratelimit.ts      # Rate limiting
-│   │   ├── session.ts        # Session storage
-│   │   ├── leaderboard.ts    # Leaderboard logic
-│   │   └── supabase/         # Supabase clients
-│   ├── services/             # Business logic
-│   │   └── leaderboardCacheService.ts
+│   │   ├── results/          # Test results
+│   │   ├── login/            # Login page
+│   │   ├── register/         # Registration page
+│   │   ├── home/             # Home page
+│   │   ├── layout.tsx        # App layout
+│   │   ├── globals.css       # Global styles
+│   │   └── page.tsx          # Main typing test
+│   ├── components/           # Shared React components
+│   │   ├── TypingTest/       # Typing test UI (Dock, WordsDisplay, etc.)
+│   │   ├── Multiplayer/      # Multiplayer UI components
+│   │   ├── Navigation.tsx    # Top navigation bar
+│   │   ├── StatsChart.tsx    # Progress charts
+│   │   ├── ActivityHeatmap.tsx # User activity heatmap
+│   │   └── ...               # Other UI components
+│   ├── constants/            # Static config (testConfig, etc.)
 │   ├── hooks/                # Custom React hooks
-│   └── types/                # TypeScript types
+│   ├── lib/                  # Core utilities (leaderboard, ratelimit, redis, session, theme, typingResults, wordPool, supabase)
+│   ├── services/             # Business logic (leaderboardCacheService, multiplayerService, typingResultsService, wordPoolService)
+│   ├── types/                # TypeScript types
+│   └── utils/                # Utility functions
+├── database/
+│   └── migrations/           # SQL migrations (prod_db, test_db)
 ├── docs/                     # Documentation
 │   ├── ARCHITECTURE.md       # System architecture
-│   └── REDIS.md              # Redis features guide
-└── scripts/
-    └── test-security.js      # Security tests
+│   ├── ELO_SYSTEM.md         # ELO rating details
+│   ├── REDIS.md              # Redis features guide
+├── public/                   # Static assets (favicon, images)
+├── scripts/                  # Utility scripts (cache-manager, test-security.js)
+├── README.md                 # Project overview
+├── SECURITY_AUDIT_REPORT.md  # Security audit
+├── SECURITY_TESTING_GUIDE.md # Security testing guide
+└── ...
 ```
 
 ## 🔒 Security Features
