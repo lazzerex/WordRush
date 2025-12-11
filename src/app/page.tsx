@@ -71,8 +71,7 @@ function HomeContent() {
       </div>
 
       {overlayVisible && (
-        <div className={`fixed inset-0 z-30 flex items-center justify-center bg-zinc-900/95 px-6`}>
-
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-zinc-900/70 backdrop-blur-sm px-6">
           {/* Menu content */}
           <div
             className={`relative z-10 flex flex-col items-center gap-8 text-center text-white transition-all duration-500 ease-out ${menuState === 'closing' ? '-translate-y-20 opacity-0' : menuState === 'opening' ? 'translate-y-12 opacity-0' : 'translate-y-0 opacity-100'}`}
@@ -93,7 +92,7 @@ function HomeContent() {
               <button 
                 type="button" 
                 onClick={handleMultiplayer} 
-                className="text-4xl font-semibold tracking-wide text-white/70 transition-all duration-200 hover:text-white hover:scale-105 drop-shadow-md"
+                className="text-4xl font-semibold tracking-wide text-white transition-all duration-200 hover:text-yellow-400 hover:scale-105 drop-shadow-md"
               >
                 Multiplayer
               </button>

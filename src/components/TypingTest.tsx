@@ -16,7 +16,7 @@ const WORDS_BUFFER_THRESHOLD = 50;
 const WORDS_BATCH_SIZE = 120;
 const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
-  { code: 'vi', label: 'Tiếng Việt' }
+  { code: 'vi', label: 'Tiếng Việt (Beta)' }
 ];
 
 export interface TypingTestProps {
@@ -416,6 +416,12 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
               className: `${selectedDuration === duration ? 'bg-zinc-800 border-zinc-700' : 'hover:bg-zinc-800'}`,
             })),
             { icon: <div className="w-px h-8 bg-zinc-800" />, label: '', onClick: () => {}, className: 'pointer-events-none bg-transparent border-none shadow-none' },
+            {
+              icon: <RotateCcw className="w-5 h-5 text-zinc-400" />,
+              label: 'Reset',
+              onClick: handleReset,
+              className: 'hover:bg-zinc-800',
+            },
             {
               icon: <Globe className="w-5 h-5 text-zinc-400" />,
               label: SUPPORTED_LANGUAGES.find(l => l.code === selectedLanguage)?.label || 'Language',

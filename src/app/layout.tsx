@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" type="image/png" href="/wordrush.png" />
+        <link rel="icon" type="image/png" href="/wordrush-large.png" />
       </head>
       <body className={inter.className}>
         <ThemeInitializer />
