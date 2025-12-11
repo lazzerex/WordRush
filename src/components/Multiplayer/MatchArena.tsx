@@ -517,7 +517,7 @@ export function MatchArena({
                 type="text"
                 value={currentInput}
                 onChange={(event) => handleInputChange(event.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-700 focus:outline-none focus:border-yellow-500 text-white disabled:opacity-50"
+                className="w-full px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-700 focus:outline-none focus:border-yellow-500 text-white disabled:opacity-50 font-mono roboto-mono"
                 placeholder={inputPlaceholder}
                 disabled={inputDisabled}
                 autoFocus
