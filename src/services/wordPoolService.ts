@@ -4,7 +4,7 @@
  */
 
 export interface IWordPoolService {
-  fetchWords(): Promise<string[]>;
+  fetchWords(language?: string): Promise<string[]>;
   clearCache(): void;
 }
 
@@ -16,9 +16,9 @@ import { createClient } from '@/lib/supabase/client';
 export class SupabaseWordPoolService implements IWordPoolService {
   private cachedWordPool: string[] | null = null;
 
-  async fetchWords(): Promise<string[]> {
-    // Return cached data if available
-    if (this.cachedWordPool && this.cachedWordPool.length > 0) {
+  async fetchWords(language: string = 'en'): Promise<string[]> {
+    // Return cached data if available and language matches
+    if (this.cachedWordPool && this.cachedWordPool.length > 0 && this.lastLanguage === language) {
       return this.cachedWordPool;
     }
 
@@ -27,6 +27,7 @@ export class SupabaseWordPoolService implements IWordPoolService {
     const { data, error } = await supabase
       .from('word_pool')
       .select('word')
+      .eq('language', language)
       .order('word', { ascending: true });
 
     if (error) {
@@ -38,11 +39,14 @@ export class SupabaseWordPoolService implements IWordPoolService {
       .map((entry) => entry.word)
       .filter((word): word is string => Boolean(word && word.trim().length > 0));
 
-    // Cache the result
+    // Cache the result and language
     this.cachedWordPool = words;
+    this.lastLanguage = language;
 
     return words;
   }
+
+  private lastLanguage: string = 'en';
 
   clearCache(): void {
     this.cachedWordPool = null;

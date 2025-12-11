@@ -125,7 +125,7 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
       >
         <div
           ref={viewportRef}
-          className="text-2xl leading-loose font-mono overflow-hidden relative"
+          className="text-2xl leading-loose font-mono overflow-hidden relative roboto-mono"
           style={{
             height: `${lineHeightPx * 3}px`,
             lineHeight: `${lineHeightPx}px`,

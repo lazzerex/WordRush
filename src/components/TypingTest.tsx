@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getWordPool } from '@/lib/wordPool';
-import { Menu, ShoppingBag, Palette, RotateCcw } from 'lucide-react';
+import { Menu, ShoppingBag, Palette, RotateCcw, Globe } from 'lucide-react';
 import Dock from './TypingTest/Dock';
 import { TestTimer } from './TypingTest/TestTimer';
 import { WordsDisplay } from './TypingTest/WordsDisplay';
@@ -14,6 +14,10 @@ import { broadcastCoinsEvent, broadcastLoadingEvent } from '@/lib/ui-events';
 
 const WORDS_BUFFER_THRESHOLD = 50;
 const WORDS_BATCH_SIZE = 120;
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'vi', label: 'Tiếng Việt' }
+];
 
 export interface TypingTestProps {
   onOpenMenu?: () => void;
@@ -22,6 +26,8 @@ export interface TypingTestProps {
 const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   // State management
   const [wordPool, setWordPool] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+  // Remove dropdown, just show tooltip and toggle language on click
   const [wordsToType, setWordsToType] = useState<string[]>([]);
   const [currentWordIndex, setCurrentWordIndex] = useState<number>(0);
   const [currentInput, setCurrentInput] = useState<string>('');
@@ -54,7 +60,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
       setWordPoolError(null);
 
       try {
-        const words = await getWordPool();
+        const words = await getWordPool(selectedLanguage);
 
         if (!words || words.length === 0) {
           console.warn('Word pool is empty. Please populate the word_pool table.');
@@ -78,7 +84,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     };
 
     loadWordPool();
-  }, []);
+  }, [selectedDuration, selectedLanguage]);
 
   // Timer effect
   useEffect(() => {
@@ -411,9 +417,14 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
             })),
             { icon: <div className="w-px h-8 bg-zinc-800" />, label: '', onClick: () => {}, className: 'pointer-events-none bg-transparent border-none shadow-none' },
             {
-              icon: <RotateCcw className="w-5 h-5 text-zinc-400" />,
-              label: 'Reset',
-              onClick: handleReset,
+              icon: <Globe className="w-5 h-5 text-zinc-400" />,
+              label: SUPPORTED_LANGUAGES.find(l => l.code === selectedLanguage)?.label || 'Language',
+              onClick: () => {
+                // Toggle to next language in SUPPORTED_LANGUAGES
+                const idx = SUPPORTED_LANGUAGES.findIndex(l => l.code === selectedLanguage);
+                const nextIdx = (idx + 1) % SUPPORTED_LANGUAGES.length;
+                setSelectedLanguage(SUPPORTED_LANGUAGES[nextIdx].code);
+              },
               className: 'hover:bg-zinc-800',
             },
           ]}

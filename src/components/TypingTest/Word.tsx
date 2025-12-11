@@ -35,7 +35,7 @@ export const Word: React.FC<WordProps> = ({
     <span 
       className={`relative inline-block whitespace-nowrap align-top transition-smooth ${
         isPastWord ? 'opacity-60' : 'opacity-100'
-      }`}
+      } font-mono roboto-mono`}
       style={{
         width: `${displayWidthCh}ch`,
         marginRight: '0.75rem',
