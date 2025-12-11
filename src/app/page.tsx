@@ -76,10 +76,12 @@ function HomeContent() {
           <div
             className={`relative z-10 flex flex-col items-center gap-8 text-center text-white transition-all duration-500 ease-out ${menuState === 'closing' ? '-translate-y-20 opacity-0' : menuState === 'opening' ? 'translate-y-12 opacity-0' : 'translate-y-0 opacity-100'}`}
           >
-            <div className="mb-4">
+            <div className="mb-4 flex flex-col items-center">
+              <img src="/wordrush-large.png" alt="WordRush Logo" className="w-16 h-16 mb-2 select-none" draggable="false" />
               <p className="text-xs uppercase tracking-[0.4em] text-zinc-400 mb-2 animate-fade-in">Welcome to</p>
-              <h1 className="text-6xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">WordRush</h1>
-              <div className="h-1 w-20 bg-gradient-to-r from-yellow-500 to-blue-500 rounded-full mx-auto" />
+              <h1 className="text-6xl font-bold mb-3 tracking-tight drop-shadow-lg">
+                <span className="text-blue-500">Word</span><span className="text-yellow-400">Rush</span>
+              </h1>
             </div>
             <div className="flex flex-col items-center gap-4">
               <button 
