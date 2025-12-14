@@ -2,11 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
-    // Get base URLs from environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL || '';
-    
-    // Extract domains
+
+    // extract domains
     const supabaseDomain = supabaseUrl ? new URL(supabaseUrl).origin : '';
     const upstashDomain = upstashUrl ? new URL(upstashUrl).origin : '';
 
@@ -36,6 +35,16 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.alias = {
+        ...(config.resolve.alias || {}),
+        '@/lib/supabase/admin': false,
+      };
+    }
+    return config;
   },
 };
 
