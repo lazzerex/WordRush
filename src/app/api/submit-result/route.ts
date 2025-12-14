@@ -22,6 +22,18 @@ interface SubmitResultRequest {
   language?: string;
 }
 
+// Helper: Calculate timing variance for keystrokes
+function calculateTimingVariance(keystrokes: { timestamp: number }[]) {
+  if (keystrokes.length < 2) return 0;
+  const intervals = [];
+  for (let i = 1; i < keystrokes.length; i++) {
+    intervals.push(keystrokes[i].timestamp - keystrokes[i - 1].timestamp);
+  }
+  const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+  const variance = intervals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / intervals.length;
+  return Math.sqrt(variance);
+}
+
 export async function POST(request: NextRequest) {
   try {
   const supabase = await createClient();
@@ -167,14 +179,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-  // 7. Check for suspicious patterns (e.g., too few keystrokes for the WPM)
-    const minExpectedKeystrokes = Math.floor(correctChars * 0.5); // At least 50% of correct chars
-    if (keystrokes.length < minExpectedKeystrokes) {
+
+  // 7. Enhanced keystroke anti-cheat validation
+    const expectedKeystrokes = correctChars + incorrectChars;
+    const keystrokeRatio = keystrokes.length / (expectedKeystrokes || 1);
+    if (keystrokeRatio < 0.8 || keystrokeRatio > 3.0) {
       return NextResponse.json(
-        { error: 'Insufficient keystroke data for claimed performance' }, 
+        { error: 'Invalid keystroke-to-character ratio' },
         { status: 400 }
       );
     }
+
+    // Backspace pattern check
+    const backspaceCount = keystrokes.filter(k => k.key === 'Backspace').length;
+    const backspaceRatio = keystrokes.length > 0 ? backspaceCount / keystrokes.length : 0;
+    if (backspaceRatio > 0.5) {
+      return NextResponse.json(
+        { error: 'Suspicious typing pattern' },
+        { status: 400 }
+      );
+    }
+
+    // Timing variance check
+    const timingVariance = calculateTimingVariance(keystrokes);
+    if (timingVariance < 10) {
+      return NextResponse.json(
+        { error: 'Unnatural typing detected' },
+        { status: 400 }
+      );
+    }
+
 
   // 8. Insert validated result into database
     const { data, error } = await adminClient.rpc('insert_validated_typing_result', {
