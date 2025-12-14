@@ -96,6 +96,12 @@ export default function Navigation() {
               href="/"
               loadingMessage="Loading typing test…"
               className="flex items-center gap-2 group"
+              onClick={e => {
+                // If in singleplayer, trigger menu open event
+                if (typeof window !== 'undefined' && window.dispatchEvent) {
+                  window.dispatchEvent(new CustomEvent('wordrush:openMenu'));
+                }
+              }}
             >
               <Keyboard className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
               <h1 className="text-xl font-bold text-zinc-100 group-hover:text-yellow-500 transition-colors wr-text-primary">

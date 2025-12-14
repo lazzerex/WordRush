@@ -86,6 +86,24 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     loadWordPool();
   }, [selectedDuration, selectedLanguage]);
 
+
+  // Handle menu open from logo (custom event)
+  useEffect(() => {
+  const handler = () => {
+    // Immediately stop any active test
+    if (testActive) {
+      setTestActive(false);
+    }
+    
+    if (!overlayVisible) {
+      handleReset();
+    }
+    if (onOpenMenu) onOpenMenu();
+  };
+  window.addEventListener('wordrush:openMenu', handler);
+  return () => window.removeEventListener('wordrush:openMenu', handler);
+}, [overlayVisible, onOpenMenu, testActive]); // Add testActive to dependencies
+
   // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout | undefined;

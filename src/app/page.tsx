@@ -59,6 +59,13 @@ function HomeContent() {
     }
   };
 
+  // Listen for logo click event to open menu
+  useEffect(() => {
+    const handler = () => handleOpenMenu();
+    window.addEventListener('wordrush:openMenu', handler);
+    return () => window.removeEventListener('wordrush:openMenu', handler);
+  }, [menuState]);
+
   const overlayVisible = menuState !== 'closed';
 
   return (
