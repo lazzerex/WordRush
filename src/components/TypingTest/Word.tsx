@@ -35,16 +35,16 @@ export const Word: React.FC<WordProps> = ({
     <span 
       className={`relative inline-block whitespace-nowrap align-top transition-smooth ${
         isPastWord ? 'opacity-60' : 'opacity-100'
-      } font-mono roboto-mono`}
+      } font-mono roboto-mono font-medium`}
       style={{
         width: `${displayWidthCh}ch`,
-        marginRight: '0.75rem',
+        marginRight: '1.5rem',
       }}
     >
       {isCurrentWord ? (
         <>
           {/* Current word - character by character */}
-          {word.split('').map((char, charIndex) => {
+            {word.split('').map((char, charIndex) => {
             const typedChar = currentInput[charIndex];
             let className = 'text-zinc-500 transition-colors duration-150';
             let highlightClass = '';
@@ -71,7 +71,7 @@ export const Word: React.FC<WordProps> = ({
           
           {/* Cursor */}
           <span
-            className="pointer-events-none absolute w-[2px] h-[1.4em] bg-yellow-400 rounded-full animate-caret"
+            className="pointer-events-none absolute w-[1.5px] h-[1.35em] bg-yellow-400 rounded animate-caret"
             style={{
               left: `calc(${cursorPositionCh}ch)`,
               top: '50%',
@@ -81,12 +81,12 @@ export const Word: React.FC<WordProps> = ({
         </>
       ) : isPastWord ? (
         /* Past words */
-        <span className={`transition-smooth ${wordStatus === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
+        <span className={`transition-smooth ${wordStatus === 'correct' ? 'text-green-400' : 'text-red-400'} font-medium`}>
           {word}
         </span>
       ) : (
         /* Future words */
-        <span className="text-zinc-600 transition-smooth">
+        <span className="text-zinc-500 transition-smooth font-medium">
           {word}
         </span>
       )}

@@ -36,7 +36,7 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
   const viewportRef = useRef<HTMLDivElement>(null);
   const wordsContainerRef = useRef<HTMLDivElement>(null);
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
-  const [lineHeightPx, setLineHeightPx] = useState<number>(56);
+  const [lineHeightPx, setLineHeightPx] = useState<number>(64);
   const [wordLineMap, setWordLineMap] = useState<number[]>([]);
 
   const measureLines = useCallback(() => {
@@ -125,7 +125,7 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
       >
         <div
           ref={viewportRef}
-          className="text-2xl leading-loose font-mono overflow-hidden relative roboto-mono"
+          className="text-3xl md:text-4xl leading-relaxed font-mono roboto-mono font-medium tracking-wide overflow-hidden relative"
           style={{
             height: `${lineHeightPx * 3}px`,
             lineHeight: `${lineHeightPx}px`,
