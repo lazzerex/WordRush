@@ -1,3 +1,19 @@
+// Detects unnatural "bursts" of perfectly timed keystrokes
+function detectTypingBursts(gaps: number[]): boolean {
+  const windowSize = 10; // Check 10-keystroke windows
+  for (let i = 0; i <= gaps.length - windowSize; i++) {
+    const window = gaps.slice(i, i + windowSize);
+    const mean = window.reduce((a, b) => a + b, 0) / window.length;
+    const windowVariance = Math.sqrt(
+      window.reduce((sum, gap) => sum + Math.pow(gap - mean, 2), 0) / window.length
+    );
+    // If any window has variance < 5ms, it's suspiciously consistent
+    if (windowVariance < 5) {
+      return true; // Burst detected
+    }
+  }
+  return false;
+}
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
@@ -100,10 +116,16 @@ export async function POST(request: NextRequest) {
     const sortedKeystrokes = [...keystrokes].sort((a, b) => a.timestamp - b.timestamp);
     const firstKeystroke = sortedKeystrokes[0]?.timestamp || startTime;
     const lastKeystroke = sortedKeystrokes[sortedKeystrokes.length - 1]?.timestamp || startTime;
+
   const expectedDurationMs = duration * 1000;
-  // Allow at least 5s of drift (for short tests) and scale tolerance for longer durations
-  const toleranceMs = Math.max(5000, Math.round(expectedDurationMs * 0.12));
-    const actualDurationFromKeystrokes = lastKeystroke - startTime;
+  // Stricter tolerance: 2s base + 3% of duration, capped at 5s
+  const BASE_TOLERANCE = 2000; // 2 seconds
+  const SCALE_TOLERANCE = 0.03; // 3%
+  const toleranceMs = Math.min(
+    BASE_TOLERANCE + Math.round(expectedDurationMs * SCALE_TOLERANCE),
+    5000
+  );
+  const actualDurationFromKeystrokes = lastKeystroke - startTime;
 
     if (actualDurationFromKeystrokes < -2000) {
       return NextResponse.json(
@@ -112,11 +134,64 @@ export async function POST(request: NextRequest) {
       );
     }
     
+
     if (firstKeystroke < startTime - 1000 || lastKeystroke > startTime + expectedDurationMs + toleranceMs) {
       return NextResponse.json(
         { error: 'Invalid keystroke timestamps' }, 
         { status: 400 }
       );
+    }
+
+    // --- Keystroke gap validation (anti-timing attack) ---
+    const keystrokeGaps = [];
+    for (let i = 1; i < sortedKeystrokes.length; i++) {
+      const gap = sortedKeystrokes[i].timestamp - sortedKeystrokes[i - 1].timestamp;
+      keystrokeGaps.push(gap);
+      // Detect suspiciously large gaps (pause for AI generation)
+      if (gap > 3000) { // 3 seconds without keystroke
+        return NextResponse.json(
+          { error: 'Suspicious keystroke pattern detected' },
+          { status: 400 }
+        );
+      }
+    }
+    if (keystrokeGaps.length > 0) {
+      const avgGap = keystrokeGaps.reduce((a, b) => a + b, 0) / keystrokeGaps.length;
+      if (avgGap < 20 || avgGap > 2000) {
+        return NextResponse.json(
+          { error: 'Invalid keystroke timing pattern' },
+          { status: 400 }
+        );
+      }
+
+      // --- timing variance check (lenient, only catch robotic) ---
+      const timingVariance = calculateTimingVariance(sortedKeystrokes);
+      // only flag if variance is really low (< 5ms = robotic)
+      if (timingVariance < 5) {
+        return NextResponse.json(
+          { error: 'Unnatural typing detected' },
+          { status: 400 }
+        );
+      }
+
+      // --- Keystroke rate distribution check (lenient for fast typists) ---
+      const testDurationMs = lastKeystroke - firstKeystroke;
+      const keystrokesPerSecond = keystrokes.length / (testDurationMs / 1000);
+      // Allow up to 30 keystrokes/second (360 WPM) for bursts, min 1/sec
+      if (keystrokesPerSecond < 1 || keystrokesPerSecond > 30) {
+        return NextResponse.json(
+          { error: 'Invalid keystroke rate distribution' },
+          { status: 400 }
+        );
+      }
+
+      // --- Burst detection (optional, advanced) ---
+      if (detectTypingBursts(keystrokeGaps)) {
+        return NextResponse.json(
+          { error: 'Automated typing pattern detected' },
+          { status: 400 }
+        );
+      }
     }
 
     if (actualDurationFromKeystrokes > expectedDurationMs + toleranceMs) {
@@ -196,15 +271,6 @@ export async function POST(request: NextRequest) {
     if (backspaceRatio > 0.5) {
       return NextResponse.json(
         { error: 'Suspicious typing pattern' },
-        { status: 400 }
-      );
-    }
-
-    // Timing variance check
-    const timingVariance = calculateTimingVariance(keystrokes);
-    if (timingVariance < 10) {
-      return NextResponse.json(
-        { error: 'Unnatural typing detected' },
         { status: 400 }
       );
     }
