@@ -66,7 +66,8 @@ export async function POST(request: NextRequest) {
 
     // 2. Check rate limit (20 submissions per minute per user)
     const identifier = getRateLimitIdentifier(request, user.id);
-    const rateLimitResult = await checkRateLimit(testSubmissionLimiter, identifier);
+    // Pass fallback limit (20 per minute) to match Redis config
+    const rateLimitResult = await checkRateLimit(testSubmissionLimiter, identifier, 20);
     
     if (!rateLimitResult.success) {
       return NextResponse.json(
