@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     // Check rate limit (30 requests per minute per IP)
     const identifier = getRateLimitIdentifier(request);
-    const rateLimitResult = await checkRateLimit(leaderboardLimiter, identifier);
+    // Pass fallback limit (30 per minute) to match Redis config
+    const rateLimitResult = await checkRateLimit(leaderboardLimiter, identifier, 30);
     
     if (!rateLimitResult.success) {
       return NextResponse.json(
