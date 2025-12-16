@@ -1,5 +1,24 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { redis, isRedisConfigured } from './redis';
+import { LRUCache } from 'lru-cache';
+// Fallback in-memory rate limiter (used if Redis is down)
+const memoryLimiter = new LRUCache<string, number[]>({
+  max: 10000, // max unique identifiers
+  ttl: 60000 // 1 minute
+});
+
+function fallbackRateLimit(identifier: string, limit: number): boolean {
+  const now = Date.now();
+  const requests = memoryLimiter.get(identifier) || [];
+  // Remove requests older than 1 minute
+  const recent = requests.filter((time: number) => now - time < 60000);
+  if (recent.length >= limit) {
+    return false;
+  }
+  recent.push(now);
+  memoryLimiter.set(identifier, recent);
+  return true;
+}
 
 // Rate limiters for different endpoints
 // Using sliding window algorithm for smoother rate limiting
@@ -79,7 +98,8 @@ export const generalLimiter = isRedisConfigured()
  */
 export async function checkRateLimit(
   limiter: Ratelimit | null,
-  identifier: string
+  identifier: string,
+  fallbackLimit: number = 20 // default fallback limit per minute
 ): Promise<{
   success: boolean;
   limit?: number;
@@ -89,12 +109,12 @@ export async function checkRateLimit(
 }> {
   if (!limiter) {
     // Rate limiting disabled (Redis not configured)
+    console.warn('Rate limiting disabled - Redis not configured');
     return { success: true };
   }
 
   try {
     const { success, limit, remaining, reset } = await limiter.limit(identifier);
-
     return {
       success,
       limit,
@@ -103,9 +123,20 @@ export async function checkRateLimit(
       error: success ? undefined : 'Rate limit exceeded. Please try again later.',
     };
   } catch (error) {
-    console.error('Rate limit check error:', error);
-    // On error, allow the request (fail open)
-    return { success: true };
+    console.error('Rate limit check error - FAILING CLOSED:', error);
+    // Fail closed: fallback to in-memory limiter
+    const allowed = fallbackRateLimit(identifier, fallbackLimit);
+    if (!allowed) {
+      return {
+        success: false,
+        error: 'Rate limiting temporarily unavailable. Please try again.'
+      };
+    }
+    // If allowed by fallback, return limited info
+    return {
+      success: true,
+      error: 'Redis unavailable, using fallback rate limiter.'
+    };
   }
 }
 
