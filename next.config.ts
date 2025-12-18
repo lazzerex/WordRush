@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  productionBrowserSourceMaps: false,
   async headers() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL || '';
