@@ -1,7 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { redis, isRedisConfigured } from '@/lib/redis';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Simple admin check: require X-ADMIN-SECRET header to match env var
+  const adminSecret = process.env.ADMIN_SECRET;
+  const providedSecret = request.headers.get('x-admin-secret');
+  if (!adminSecret || providedSecret !== adminSecret) {
+    return NextResponse.json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Admin secret required.'
+    }, { status: 401 });
+  }
   try {
     // Check if Redis is configured
     if (!isRedisConfigured()) {
