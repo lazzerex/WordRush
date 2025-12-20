@@ -1,25 +1,10 @@
-// Detects unnatural "bursts" of perfectly timed keystrokes
-function detectTypingBursts(gaps: number[]): boolean {
-  const windowSize = 10; // Check 10-keystroke windows
-  for (let i = 0; i <= gaps.length - windowSize; i++) {
-    const window = gaps.slice(i, i + windowSize);
-    const mean = window.reduce((a, b) => a + b, 0) / window.length;
-    const windowVariance = Math.sqrt(
-      window.reduce((sum, gap) => sum + Math.pow(gap - mean, 2), 0) / window.length
-    );
-    // If any window has variance < 5ms, it's suspiciously consistent
-    if (windowVariance < 5) {
-      return true; // Burst detected
-    }
-  }
-  return false;
-}
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { addToLeaderboardCache } from '@/services/leaderboardCacheService';
 import { checkRateLimit, getRateLimitIdentifier, testSubmissionLimiter } from '@/lib/ratelimit';
 import { updateUserStreak } from '@/lib/session';
+import { redis } from '@/lib/redis';
 
 interface KeystrokeEvent {
   timestamp: number;
@@ -38,6 +23,23 @@ interface SubmitResultRequest {
   language?: string;
 }
 
+// Detects unnatural "bursts" of perfectly timed keystrokes
+function detectTypingBursts(gaps: number[]): boolean {
+  const windowSize = 10; // Check 10-keystroke windows
+  for (let i = 0; i <= gaps.length - windowSize; i++) {
+    const window = gaps.slice(i, i + windowSize);
+    const mean = window.reduce((a, b) => a + b, 0) / window.length;
+    const windowVariance = Math.sqrt(
+      window.reduce((sum, gap) => sum + Math.pow(gap - mean, 2), 0) / window.length
+    );
+    // If any window has variance < 5ms, it's suspiciously consistent
+    if (windowVariance < 5) {
+      return true; // Burst detected
+    }
+  }
+  return false;
+}
+
 // Helper: Calculate timing variance for keystrokes
 function calculateTimingVariance(keystrokes: { timestamp: number }[]) {
   if (keystrokes.length < 2) return 0;
@@ -52,8 +54,8 @@ function calculateTimingVariance(keystrokes: { timestamp: number }[]) {
 
 export async function POST(request: NextRequest) {
   try {
-  const supabase = await createClient();
-  const adminClient = createAdminClient();
+    const supabase = await createClient();
+    const adminClient = createAdminClient();
     
     // 1. Verify user authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -63,6 +65,50 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const body = await request.json();
+    const {
+      testId,
+      keystrokes,
+      wordsTyped,
+      expectedWords,
+      duration,
+      startTime,
+      theme,
+      language = 'en',
+    } = body;
+
+    // CRITICAL FIX: Idempotency/replay protection with atomic operation
+    if (!testId || typeof testId !== 'string') {
+      console.error('[ReplayProtection] Missing or invalid test ID');
+      return NextResponse.json({ error: 'Missing test ID' }, { status: 400 });
+    }
+
+    // Validate testId format (UUID v4)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(testId)) {
+      console.error('[ReplayProtection] Invalid test ID format:', testId);
+      return NextResponse.json({ error: 'Invalid test ID format' }, { status: 400 });
+    }
+
+    // Use Redis SET with NX for atomic check-and-set (prevents race conditions)
+    const testKey = `test:${user.id}:${testId}`;
+    console.log('[ReplayProtection] Checking test ID:', testId);
+    
+    // Use SET with options object (ioredis/upstash style)
+    // Returns null if key already exists (NX option), otherwise returns 'OK'
+    const wasSet = await redis.set(testKey, '1', { ex: 86400, nx: true });
+    
+    if (!wasSet) {
+      console.warn('[ReplayProtection] Duplicate submission detected for test:', testId);
+      console.warn('[ReplayProtection] User:', user.id);
+      return NextResponse.json(
+        { error: 'Test result already submitted' }, 
+        { status: 400 }
+      );
+    }
+
+    console.log('[ReplayProtection] Test ID accepted:', testId);
 
     // 2. Check rate limit (20 submissions per minute per user)
     const identifier = getRateLimitIdentifier(request, user.id);
@@ -87,18 +133,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body: SubmitResultRequest = await request.json();
-    const { 
-      keystrokes,
-      wordsTyped,
-      expectedWords,
-      duration,
-      startTime,
-      theme,
-      language = 'en',
-    } = body;
-
-    // 2. Validate request data
+    // 3. Validate request data
     if (!keystrokes || !Array.isArray(keystrokes) || keystrokes.length === 0) {
       return NextResponse.json(
         { error: 'Invalid keystroke data' }, 
@@ -113,42 +148,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Verify keystroke timestamps are sequential and within test duration
+    // 4. Verify keystroke timestamps are sequential and within test duration
     const sortedKeystrokes = [...keystrokes].sort((a, b) => a.timestamp - b.timestamp);
     const firstKeystroke = sortedKeystrokes[0]?.timestamp || startTime;
     const lastKeystroke = sortedKeystrokes[sortedKeystrokes.length - 1]?.timestamp || startTime;
 
-  const expectedDurationMs = duration * 1000;
-  // Stricter tolerance: 2s base + 3% of duration, capped at 5s
-  const BASE_TOLERANCE = 2000; // 2 seconds
-  const SCALE_TOLERANCE = 0.03; // 3%
-  const toleranceMs = Math.min(
-    BASE_TOLERANCE + Math.round(expectedDurationMs * SCALE_TOLERANCE),
-    5000
-  );
-  const actualDurationFromKeystrokes = lastKeystroke - startTime;
+    const expectedDurationMs = duration * 1000;
+    // Lenient tolerance to account for:
+    // - Network latency (submission time)
+    // - Timer precision (JavaScript setTimeout drift)
+    // - User typing during final second
+    const BASE_TOLERANCE = 10000; // 10 seconds base tolerance (will need more tests)
+    const SCALE_TOLERANCE = 0.10; // 10% of test duration
+    const toleranceMs = Math.max(
+      BASE_TOLERANCE,
+      Math.round(expectedDurationMs * SCALE_TOLERANCE)
+    );
+    const actualDurationFromKeystrokes = lastKeystroke - startTime;
+
+    // Log timing info for debugging
+    console.log('[Timing] Start time:', new Date(startTime).toISOString());
+    console.log('[Timing] First keystroke:', new Date(firstKeystroke).toISOString());
+    console.log('[Timing] Last keystroke:', new Date(lastKeystroke).toISOString());
+    console.log('[Timing] Expected duration:', expectedDurationMs, 'ms');
+    console.log('[Timing] Actual duration:', actualDurationFromKeystrokes, 'ms');
+    console.log('[Timing] Tolerance:', toleranceMs, 'ms');
 
     if (actualDurationFromKeystrokes < -2000) {
+      console.error('[Timing] Keystrokes precede start time');
       return NextResponse.json(
         { error: 'Invalid timing - keystrokes precede recorded start time' },
         { status: 400 }
       );
     }
     
-
-    if (firstKeystroke < startTime - 1000 || lastKeystroke > startTime + expectedDurationMs + toleranceMs) {
+    // Allow keystrokes to start slightly before recorded start (1s grace period)
+    // and extend beyond expected duration with tolerance
+    if (firstKeystroke < startTime - 1000) {
+      console.error('[Timing] First keystroke too early:', {
+        firstKeystroke: new Date(firstKeystroke).toISOString(),
+        startTime: new Date(startTime).toISOString(),
+        difference: startTime - firstKeystroke
+      });
       return NextResponse.json(
-        { error: 'Invalid keystroke timestamps' }, 
+        { error: 'Invalid keystroke timestamps - test started too early' }, 
+        { status: 400 }
+      );
+    }
+    
+    if (lastKeystroke > startTime + expectedDurationMs + toleranceMs) {
+      console.error('[Timing] Last keystroke too late:', {
+        lastKeystroke: new Date(lastKeystroke).toISOString(),
+        expectedEnd: new Date(startTime + expectedDurationMs).toISOString(),
+        allowedEnd: new Date(startTime + expectedDurationMs + toleranceMs).toISOString(),
+        exceeded: lastKeystroke - (startTime + expectedDurationMs + toleranceMs)
+      });
+      return NextResponse.json(
+        { error: 'Invalid keystroke timestamps - test took too long' }, 
         { status: 400 }
       );
     }
 
-    // --- Keystroke gap validation (anti-timing attack) ---
+    // 5. Keystroke gap validation (anti-timing attack)
     const keystrokeGaps = [];
     for (let i = 1; i < sortedKeystrokes.length; i++) {
       const gap = sortedKeystrokes[i].timestamp - sortedKeystrokes[i - 1].timestamp;
       keystrokeGaps.push(gap);
-      // Detect suspiciously large gaps (pause for AI generation)
+      // Detect suspiciously large gaps (pause for AI generation, scripts,etc...)
       if (gap > 3000) { // 3 seconds without keystroke
         return NextResponse.json(
           { error: 'Suspicious keystroke pattern detected' },
@@ -156,6 +222,7 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+
     if (keystrokeGaps.length > 0) {
       const avgGap = keystrokeGaps.reduce((a, b) => a + b, 0) / keystrokeGaps.length;
       if (avgGap < 20 || avgGap > 2000) {
@@ -165,7 +232,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // --- timing variance check (lenient, only catch robotic) ---
+      // Timing variance check (lenient, only catch robotic)
       const timingVariance = calculateTimingVariance(sortedKeystrokes);
       // only flag if variance is really low (< 5ms = robotic)
       if (timingVariance < 5) {
@@ -175,7 +242,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // --- Keystroke rate distribution check (lenient for fast typists) ---
+      // Keystroke rate distribution check (lenient for fast typists)
       const testDurationMs = lastKeystroke - firstKeystroke;
       const keystrokesPerSecond = keystrokes.length / (testDurationMs / 1000);
       // Allow up to 30 keystrokes/second (360 WPM) for bursts, min 1/sec
@@ -186,7 +253,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // --- Burst detection (optional, advanced) ---
+      // Burst detection (optional, advanced)
       if (detectTypingBursts(keystrokeGaps)) {
         return NextResponse.json(
           { error: 'Automated typing pattern detected' },
@@ -205,7 +272,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-  // 4. Server-side recalculation of stats
+    // 6. Server-side recalculation of stats
     let correctChars = 0;
     let incorrectChars = 0;
     let totalWords = 0;
@@ -234,13 +301,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-  // 5. Calculate WPM and accuracy
+    // 7. Calculate WPM and accuracy
     const timeInMinutes = duration / 60;
     const wpm = timeInMinutes > 0 ? Math.round((correctChars / 5) / timeInMinutes) : 0;
     const totalChars = correctChars + incorrectChars;
     const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
 
-  // 6. Validate results are humanly possible
+    // 8. Validate results are humanly possible
     if (wpm > 300) {
       return NextResponse.json(
         { error: 'WPM exceeds human capability (max 300 WPM)' }, 
@@ -255,8 +322,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-
-  // 7. Enhanced keystroke anti-cheat validation
+    // 9. Enhanced keystroke anti-cheat validation
     const expectedKeystrokes = correctChars + incorrectChars;
     const keystrokeRatio = keystrokes.length / (expectedKeystrokes || 1);
     if (keystrokeRatio < 0.8 || keystrokeRatio > 3.0) {
@@ -276,8 +342,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-
-  // 8. Insert validated result into database
+    // 10. Insert validated result into database
     const { data, error } = await adminClient.rpc('insert_validated_typing_result', {
       p_user_id: user.id,
       p_wpm: wpm,
@@ -319,14 +384,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Test result saved successfully:', {
+    console.log('[Success] Test result saved:', {
+      testId,
       user_id: user.id,
       wpm,
       accuracy,
       duration
     });
 
-    // 9. Award WRCoins proportionally to performance and duration
+    // 11. Award WRCoins proportionally to performance and duration
     const baseMultiplier = duration > 0 ? duration / 7 : 0; // Scale roughly with legacy rewards
     const coinsEarned = baseMultiplier > 0 ? Math.max(0, Math.round(wpm * baseMultiplier)) : 0;
 
@@ -403,7 +469,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-  // 10. Update Redis leaderboard cache
+    // 12. Update Redis leaderboard cache
     try {
       // Fetch username for cache
       const { data: profileData } = await adminClient
@@ -428,7 +494,7 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if cache update fails
     }
 
-  // 11. Update user streak
+    // 13. Update user streak
     let streak = null;
     try {
       streak = await updateUserStreak(user.id);
@@ -437,11 +503,12 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if streak update fails
     }
 
-  // 12. Return success with calculated stats and coins earned
+    // 14. Return success with calculated stats and coins earned
     return NextResponse.json({ 
       success: true, 
       data: {
         ...data,
+        testId, // Return the test ID for debugging
         wpm,
         accuracy,
         coinsEarned,
