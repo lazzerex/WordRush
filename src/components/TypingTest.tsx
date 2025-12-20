@@ -24,10 +24,12 @@ export interface TypingTestProps {
 }
 
 const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
+  // Unique test ID for replay protection
+  const testIdRef = useRef<string | null>(null);
+  
   // State management
   const [wordPool, setWordPool] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
-  // Remove dropdown, just show tooltip and toggle language on click
   const [wordsToType, setWordsToType] = useState<string[]>([]);
   const [currentWordIndex, setCurrentWordIndex] = useState<number>(0);
   const [currentInput, setCurrentInput] = useState<string>('');
@@ -52,6 +54,15 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   const keystrokesRef = useRef<KeystrokeData[]>([]);
   const wordsTypedRef = useRef<string[]>([]);
   const testStartTimeRef = useRef<number>(0);
+
+  // Helper function to generate and store new test ID
+  const generateNewTestId = (): string => {
+    const newTestId = crypto.randomUUID();
+    testIdRef.current = newTestId;
+    localStorage.setItem('currentTestId', newTestId);
+    console.log('[TestID] Generated new test ID:', newTestId);
+    return newTestId;
+  };
 
   // Load word pool and initialize words
   useEffect(() => {
@@ -84,25 +95,26 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     };
 
     loadWordPool();
+    // Generate a new testId for each test initialization
+    generateNewTestId();
   }, [selectedDuration, selectedLanguage]);
-
 
   // Handle menu open from logo (custom event)
   useEffect(() => {
-  const handler = () => {
-    // Immediately stop any active test
-    if (testActive) {
-      setTestActive(false);
-    }
-    
-    if (!overlayVisible) {
-      handleReset();
-    }
-    if (onOpenMenu) onOpenMenu();
-  };
-  window.addEventListener('wordrush:openMenu', handler);
-  return () => window.removeEventListener('wordrush:openMenu', handler);
-}, [overlayVisible, onOpenMenu, testActive]); // Add testActive to dependencies
+    const handler = () => {
+      // Immediately stop any active test
+      if (testActive) {
+        setTestActive(false);
+      }
+      
+      if (!overlayVisible) {
+        handleReset();
+      }
+      if (onOpenMenu) onOpenMenu();
+    };
+    window.addEventListener('wordrush:openMenu', handler);
+    return () => window.removeEventListener('wordrush:openMenu', handler);
+  }, [overlayVisible, onOpenMenu, testActive]);
 
   // Timer effect
   useEffect(() => {
@@ -114,7 +126,10 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           const newTime = prevTime - 1;
           if (newTime <= 0) {
             clearInterval(interval);
-            completeTest();
+            // Stop accepting keystrokes immediately when timer hits 0
+            setTestActive(false);
+            // Complete test in next tick to ensure state is updated
+            setTimeout(() => completeTest(), 0);
             return 0;
           }
           return newTime;
@@ -141,7 +156,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setWpm(0);
     setAccuracy(100);
     setOverlayVisible(true);
-  setCoinsEarned(null);
+    setCoinsEarned(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
     wordsTypedRef.current = [];
@@ -196,7 +211,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setWpm(0);
     setAccuracy(100);
     setOverlayVisible(true);
-  setCoinsEarned(null);
+    setCoinsEarned(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
     wordsTypedRef.current = [];
@@ -216,13 +231,27 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
 
     try {
       resultSavedRef.current = true;
+      
+      // CRITICAL: Validate test ID exists before submission
+      const testId = testIdRef.current;
+      if (!testId) {
+        console.error('[TestID] No test ID found - cannot submit results');
+        console.error('[TestID] This should never happen - test ID should be generated on mount');
+        // Don't attempt submission without valid test ID
+        return;
+      }
+
+      console.log('[TestID] Submitting results with test ID:', testId);
+      
       broadcastLoadingEvent({ active: true, message: 'Syncing your rewards…' });
+      
       const response = await fetch('/api/submit-result', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          testId,
           keystrokes: keystrokesRef.current,
           wordsTyped: wordsTypedRef.current,
           expectedWords: wordsToType,
@@ -256,12 +285,18 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           broadcastCoinsEvent(data.totalCoins);
         }
       };
+
       if (!response.ok) {
         // Handle unauthorized (not logged in) silently - this is expected behavior
         if (response.status === 401) {
-          // User is not logged in - don't log error, just skip saving
-          // Stats are already calculated and displayed
+          console.log('[TestID] User not logged in - results not saved');
           return;
+        }
+        
+        // Handle duplicate submission
+        if (response.status === 400 && result.error?.includes('already submitted')) {
+          console.warn('[TestID] Duplicate submission detected:', testId);
+          console.warn('[TestID] This test was already submitted');
         }
         
         // For other errors, log but don't break the UX
@@ -269,7 +304,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
         applyServerData(result.data);
       } else {
         // Successfully saved - update with server-validated stats if available
+        console.log('[TestID] Results saved successfully:', testId);
         applyServerData(result.data);
+        
+        // Clear the test ID from localStorage after successful submission
+        localStorage.removeItem('currentTestId');
       }
     } catch (error) {
       // Network or other errors - log but don't break UX
@@ -282,6 +321,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   // Handle input changes
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isLoadingWords || wordPoolError || wordPool.length === 0) {
+      return;
+    }
+
+    // Don't accept input if test is complete
+    if (testComplete) {
       return;
     }
 
@@ -351,6 +395,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
       return;
     }
 
+    // CRITICAL FIX: Generate new test ID on reset
+    generateNewTestId();
+
     const randomWords = generateRandomWords(wordPool, selectedDuration);
     initializeTest(randomWords, selectedDuration);
 
@@ -367,6 +414,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     if (isLoadingWords || wordPoolError || wordPool.length === 0) {
       return;
     }
+
+    // CRITICAL FIX: Generate new test ID when duration changes
+    generateNewTestId();
 
     const randomWords = generateRandomWords(wordPool, duration);
     initializeTest(randomWords, duration);
