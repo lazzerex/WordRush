@@ -39,35 +39,38 @@
 <img width="1440" height="836" alt="image" src="https://github.com/user-attachments/assets/1b261163-8804-453f-a8d2-a0cdd64370e5" />
 
 
-## ✨ Features
+## Features
 
 ### Core Typing Experience
-- ⌨️ **Multiple Durations** - Test your speed at 15s, 30s, 60s, or 120s
-- 📊 **Real-time Stats** - Live WPM and accuracy tracking
-- 🎯 **Word Highlighting** - Clear visual feedback for correct/incorrect typing
-- 🔄 **Instant Reset** - Quick restart without page reload
+- **Multiple Durations** - Test your speed at 15s, 30s, 60s, or 120s
+- **Real-time Stats** - Live WPM and accuracy tracking
+- **Word Highlighting** - Clear visual feedback for correct/incorrect typing
+- **Instant Reset** - Quick restart without page reload
+- **Multi-language Support** - English and Vietnamese (Beta)
 
 ### Competitive Features
-- 🏆 **Global Leaderboard** - Compete with players worldwide
-- 🔥 **Live Updates** - Instant leaderboard refresh using Supabase Realtime
-- ⚔️ **Multiplayer Duels** - Real-time simultaneous 1v1 matches with ELO ratings
-- ⏱️ **Countdown System** - 3-second countdown when both players ready
-- 📈 **Statistics Dashboard** - Track your progress over time with charts
-- 🎖️ **Daily Streaks** - Maintain consecutive day activity tracking
+- **Global Leaderboard** - Compete with players worldwide
+- **Live Updates** - Instant leaderboard refresh using Supabase Realtime
+- **Multiplayer Duels** - Real-time simultaneous 1v1 matches with ELO ratings
+- **Countdown System** - 3-second countdown when both players ready
+- **Statistics Dashboard** - Track your progress over time with charts
+- **Daily Streaks** - Maintain consecutive day activity tracking
 
 ### Gamification System
-- 💰 **WRCoins** - Earn currency by completing tests (10 coins per second)
-- 🛍️ **Theme Shop** - Purchase beautiful themes with earned coins
-- 🎨 **Customization** - 7+ themes including Cyberpunk, Sunset, and Light Mode
-- 👥 **Active Users Counter** - See how many players are online
+- **WRCoins** - Earn currency by completing tests (10 coins per second)
+- **Theme Shop** - Purchase beautiful themes with earned coins
+- **Customization** - 7+ themes including Cyberpunk, Sunset, and Light Mode
+- **Active Users Counter** - See how many players are online
 
 ### Security & Performance
-- 🔒 **Secure Validation** - Server-side score validation prevents cheating
-- 🛡️ **Rate Limiting** - API protection against spam and abuse
-- ⚡ **Redis Caching** - 90% reduction in database queries
-- 🚀 **Optimized Performance** - Fast page loads with Next.js 15
+- **Secure Validation** - Advanced server-side score validation prevents cheating
+- **Lenient Keystroke Validation** - Natural typing experience with pause support
+- **Rate Limiting** - API protection against spam and abuse
+- **Redis Caching** - 90% reduction in database queries
+- **Optimized Performance** - Fast page loads with Next.js 15
+- **Cache Consistency** - Automatic recovery from cache inconsistencies
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Category | Technology |
 |----------|------------|
@@ -85,13 +88,15 @@
 
 - **Instant Real-time Updates**: PostgreSQL LISTEN/NOTIFY via Supabase Realtime
 - **High-Performance Caching**: Redis sorted sets with pipeline batching (90% DB load reduction)
-- **Rate Limiting**: Sliding window algorithm protects against spam and abuse
+- **Intelligent Rate Limiting**: Sliding window algorithm protects against spam and abuse
+- **Advanced Anti-Cheat**: Multi-layer keystroke validation with lenient natural typing support
 - **Server-Side Validation**: Keystroke tracking and WPM recalculation prevent cheating
 - **Row Level Security**: Database-level policies enforce data access controls
+- **Cache Consistency**: Automatic detection and recovery from cache inconsistencies
 
-> 📖 **Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/REDIS.md`](docs/REDIS.md) for in-depth technical details.
+**Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/REDIS.md`](docs/REDIS.md) for in-depth technical details.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **Node.js 18+** - [Download here](https://nodejs.org/)
@@ -135,7 +140,7 @@
    npm run dev
    ```
    
-   Open [http://localhost:3000](http://localhost:3000) 🎉
+   Open [http://localhost:3000](http://localhost:3000)
 
 ### Optional: Redis Setup
 
@@ -151,7 +156,7 @@ For enhanced performance and features:
 - ❌ No active users counter
 - ❌ No daily streaks
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 WordRush/
@@ -188,7 +193,7 @@ WordRush/
 ├── docs/                     # Documentation
 │   ├── ARCHITECTURE.md       # System architecture
 │   ├── ELO_SYSTEM.md         # ELO rating details
-│   ├── REDIS.md              # Redis features guide
+│   └── REDIS.md              # Redis features guide
 ├── public/                   # Static assets (favicon, images)
 ├── scripts/                  # Utility scripts (cache-manager, test-security.js)
 ├── README.md                 # Project overview
@@ -197,19 +202,21 @@ WordRush/
 └── ...
 ```
 
-## 🔒 Security Features
+## Security Features
 
 WordRush implements **enterprise-grade security** to ensure fair competition:
 
 ### Multi-Layer Protection
 
-1. **🔐 Authentication Required** - Supabase Auth (email/password, OAuth)
-2. **⌨️ Keystroke Tracking** - Every keystroke timestamped and validated
-3. **⏱️ Timing Validation** - Server verifies test duration (±5s tolerance)
-4. **🖥️ Server-Side Recalculation** - WPM/accuracy computed from raw keystrokes
-5. **✅ Sanity Checks** - WPM ≤ 300, accuracy 0-100%, valid durations only
-6. **🛡️ Row Level Security** - PostgreSQL RLS blocks direct client inserts
-7. **🚦 Rate Limiting** - Sliding window algorithm prevents spam (20 submissions/min)
+1. **Authentication Required** - Supabase Auth (email/password, OAuth)
+2. **Keystroke Tracking** - Every keystroke timestamped and validated
+3. **Lenient Timing Validation** - Server verifies test duration with generous tolerance for natural typing
+4. **Smart Pause Detection** - Allows thinking breaks (up to 10s, max 3 per test)
+5. **Server-Side Recalculation** - WPM/accuracy computed from raw keystrokes
+6. **Sanity Checks** - WPM ≤ 480, accuracy 0-100%, valid durations only
+7. **Row Level Security** - PostgreSQL RLS blocks direct client inserts
+8. **Rate Limiting** - Sliding window algorithm prevents spam (20 submissions/min)
+9. **Flexible Validation** - Supports slow typists (0.5 keystrokes/sec) to fast typists (40 keystrokes/sec)
 
 ### Data Flow
 
@@ -223,12 +230,19 @@ User Types → Keystrokes Tracked → API Validates → Server Recalculates → 
 
 ### Protected Against
 
-✅ Console manipulation  
-✅ Direct database insertion  
-✅ Timing manipulation  
-✅ Impossible scores (>300 WPM)  
-✅ Fake keystroke data  
-✅ API spam/abuse  
+- Console manipulation  
+- Direct database insertion  
+- Timing manipulation  
+- Impossible scores (>480 WPM)  
+- Fake keystroke data  
+- API spam/abuse  
+- Robotic typing patterns
+
+While maintaining natural typing experience with support for:
+- Thinking pauses and breaks
+- Varied typing speeds (slow to fast)
+- Natural rhythm variations
+- Correction delays  
 
 ### Testing Security
 
@@ -237,9 +251,9 @@ Run the security test suite:
 node scripts/test-security.js
 ```
 
-Expected output: RLS blocks all unauthorized insertions ✅
+Expected output: RLS blocks all unauthorized insertions
 
-## 🚀 Deployment
+## Deployment
 
 ### Vercel (Recommended)
 
@@ -282,7 +296,7 @@ Compatible with any Next.js 15 hosting:
 - **Railway**: Auto-deploy from GitHub
 - **AWS Amplify**: Use SSR configuration
 
-## 📜 Available Scripts
+## Available Scripts
 
 | Command | Description |
 |---------|-------------|
@@ -292,14 +306,14 @@ Compatible with any Next.js 15 hosting:
 | `npm run lint` | Run ESLint checks |
 | `node scripts/test-security.js` | Test security measures |
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
 <details>
 <summary><b>"new row violates row-level security policy"</b></summary>
 
-✅ **This is expected!** It means security is working correctly.
+This is expected! It means security is working correctly.
 - Users cannot insert directly to the database
 - All submissions must go through the secure API
 - Run migrations if this blocks legitimate submissions
@@ -360,12 +374,13 @@ If issues persist:
    - Browser console logs
    - Steps to reproduce
 
-## 📚 Documentation
+## Documentation
 
 | Document | Description |
 |----------|-------------|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture, data flow, and design decisions |
 | [`docs/REDIS.md`](docs/REDIS.md) | Complete Redis features guide with examples |
+| [`docs/ELO_SYSTEM.md`](docs/ELO_SYSTEM.md) | ELO rating system implementation |
 | `database/migrations/` | SQL migration files for database setup |
 | `scripts/test-security.js` | Security validation test suite |
 
@@ -376,39 +391,40 @@ If issues persist:
 - [Upstash Redis Docs](https://docs.upstash.com/redis) - Redis client reference
 - [Tailwind CSS](https://tailwindcss.com/docs) - Styling reference
 
-## 🗺️ Roadmap
+## Roadmap
 
-### Completed ✅
-- [x] Core typing test with multiple durations
-- [x] User authentication and accounts
-- [x] Global leaderboard with live updates
-- [x] Server-side score validation
-- [x] WRCoins reward system
-- [x] Theme shop and customization
-- [x] Multiplayer simultaneous duels with countdown
-- [x] Real-time match synchronization
-- [x] Rate limiting and spam protection
-- [x] Daily streak tracking
-- [x] Statistics dashboard with charts
-- [x] Active users counter
+### Completed
+- Core typing test with multiple durations
+- User authentication and accounts
+- Global leaderboard with live updates
+- Advanced server-side score validation with lenient keystroke checking
+- WRCoins reward system
+- Theme shop and customization
+- Multiplayer simultaneous duels with countdown
+- Real-time match synchronization
+- Rate limiting and spam protection
+- Daily streak tracking
+- Statistics dashboard with charts
+- Active users counter
+- Cache consistency detection and recovery
 
-### In Progress 🚧
-- [ ] Achievement system
-- [ ] Mobile responsive improvements
-- [ ] Performance optimizations
+### In Progress
+- Achievement system
+- Mobile responsive improvements
+- Performance optimizations
 
-### Planned 📋
-- [ ] Daily login rewards
-- [ ] Custom word lists
-- [ ] Practice mode with categories (code, quotes, common words)
-- [ ] Social features (friends, challenges)
-- [ ] Mobile app (React Native)
-- [ ] Tournament mode (multi-player brackets)
-- [ ] Leaderboard filtering (by country, time period)
-- [ ] Profile customization (avatars, badges)
-- [ ] Spectator mode for multiplayer matches
+### Planned
+- Daily login rewards
+- Custom word lists
+- Practice mode with categories (code, quotes, common words)
+- Social features (friends, challenges)
+- Mobile app (React Native)
+- Tournament mode (multi-player brackets)
+- Leaderboard filtering (by country, time period)
+- Profile customization (avatars, badges)
+- Spectator mode for multiplayer matches
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Here's how to get started:
 
@@ -427,17 +443,17 @@ Contributions are welcome! Here's how to get started:
 - Test security implications of changes
 - Ensure all TypeScript types are properly defined
 
-## 📄 License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
-## 💬 Support & Community
+## Support & Community
 
 - **Issues**: [GitHub Issues](https://github.com/lazzerex/WordRush/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/lazzerex/WordRush/discussions)
 - **Live Demo**: [wordrush-io.vercel.app](https://wordrush-io.vercel.app/)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built with amazing open-source technologies:
 
@@ -451,6 +467,6 @@ Built with amazing open-source technologies:
 
 ---
 
-**Made with ⚡ by [@lazzerex](https://github.com/lazzerex)**
+**Made with by [@lazzerex](https://github.com/lazzerex)**
 
-*If you find this project helpful, consider giving it a ⭐ on GitHub!*
+*If you find this project helpful, consider giving it a star on GitHub!*
