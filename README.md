@@ -62,6 +62,13 @@
 - **Customization** - 7+ themes including Cyberpunk, Sunset, and Light Mode
 - **Active Users Counter** - See how many players are online
 
+### Admin Management
+- **Admin Dashboard** - Comprehensive system monitoring and user management
+- **User Moderation** - Promote/demote admins, manage user accounts
+- **Result Oversight** - Review and remove suspicious typing results
+- **Audit Logging** - Complete trail of all admin actions for accountability
+- **Statistics Panel** - Real-time metrics on users, tests, and activity
+
 ### Security & Performance
 - **Secure Validation** - Advanced server-side score validation prevents cheating
 - **Lenient Keystroke Validation** - Natural typing experience with pause support
@@ -93,8 +100,9 @@
 - **Server-Side Validation**: Keystroke tracking and WPM recalculation prevent cheating
 - **Row Level Security**: Database-level policies enforce data access controls
 - **Cache Consistency**: Automatic detection and recovery from cache inconsistencies
+- **Admin System**: Comprehensive management tools with audit logging
 
-**Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/REDIS.md`](docs/REDIS.md) for in-depth technical details.
+**Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/REDIS.md`](docs/REDIS.md), and [`docs/ADMIN_SYSTEM.md`](docs/ADMIN_SYSTEM.md) for in-depth technical details.
 
 ## Quick Start
 
