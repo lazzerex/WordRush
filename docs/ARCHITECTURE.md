@@ -45,11 +45,12 @@ The live leaderboard system uses a **hybrid architecture** combining Supabase Re
 | Key Pattern | Type | Purpose | TTL | Example |
 |------------|------|---------|-----|---------|
 | `leaderboard:{duration}` | Sorted Set | Stores composite scores for ranking | None | `leaderboard:30` |
-| `entry:{entryId}` | Hash | Full entry details (username, wpm, etc.) | 1 hour | `entry:abc123` |
+| `entry:{entryId}` | Hash | Full entry details (username, wpm, etc.) | None | `entry:abc123` |
 | `ratelimit:test-submission:{id}` | String | Rate limit counter | 60s | `ratelimit:test-submission:user:xyz` |
 | `ratelimit:leaderboard:{id}` | String | Rate limit counter | 60s | `ratelimit:leaderboard:ip:1.2.3.4` |
 | `ratelimit:auth:{id}` | String | Rate limit counter | 60s | `ratelimit:auth:ip:1.2.3.4` |
 | `ratelimit:purchase:{id}` | String | Rate limit counter | 60s | `ratelimit:purchase:user:xyz` |
+| `test:{userId}:{testId}` | String | Test idempotency tracking | 24 hours | `test:user_xyz:abc-123` |
 | `session:typing:{sessionId}` | String (JSON) | Active typing session | 5 min | `session:typing:sess_123` |
 | `streak:user:{userId}` | String (JSON) | User daily streak data | 7 days | `streak:user:user_xyz` |
 | `active:users` | Sorted Set | Online users with timestamps | None | `active:users` |
@@ -57,8 +58,10 @@ The live leaderboard system uses a **hybrid architecture** combining Supabase Re
 **Key Features:**
 - **Composite Scoring**: `wpm * 1,000,000 + accuracy * 1,000 + timestamp_inverse`
 - **Pipeline Operations**: Batch fetches reduce Redis calls by 90% per page load
-- **TTL Management**: Automatic cleanup of expired data
+- **No TTL on Entry Hashes**: Entries persist as long as they're in the sorted set
+- **Cache Consistency Detection**: Automatic fallback if >50% of expected entries are missing
 - **Sliding Window**: Rate limiting uses @upstash/ratelimit library
+- **Idempotency Protection**: Redis NX atomic operations prevent duplicate test submissions
 
 ## Data Flow
 
@@ -66,17 +69,25 @@ The live leaderboard system uses a **hybrid architecture** combining Supabase Re
 
 ```
 1. Client submits test → POST /api/submit-result
-2. Check rate limit (20 submissions/min per user)
+2. Check test ID idempotency (Redis NX atomic operation)
+   - If already submitted: Return 400 Bad Request
+   - If new: Mark as submitted and continue
+3. Check rate limit (20 submissions/min per user)
    - If exceeded: Return 429 Too Many Requests
    - If allowed: Continue
-3. Server validates and saves to PostgreSQL (typing_results table)
-4. Server updates Redis cache (sorted set + hash)
-5. Update user daily streak (increment if consecutive day)
-6. Award WRCoins based on duration
-7. PostgreSQL triggers Realtime INSERT notification
-8. All subscribed clients receive instant notification
-9. Clients refresh leaderboard (fetch from Redis cache or DB fallback)
-10. Return response with WPM, accuracy, coins, and streak data
+4. Validate keystroke data (lenient for natural typing)
+   - Allow pauses up to 30 seconds
+   - Support 0.5-40 keystrokes/second (30-480 WPM)
+   - Permit up to 3 long pauses (10+ seconds) for thinking
+   - Detect only extreme robotic patterns (<3ms variance)
+5. Server validates and saves to PostgreSQL (typing_results table)
+6. Server updates Redis cache (sorted set + hash, no TTL)
+7. Update user daily streak (increment if consecutive day)
+8. Award WRCoins based on duration
+9. PostgreSQL triggers Realtime INSERT notification
+10. All subscribed clients receive instant notification
+11. Clients refresh leaderboard (fetch from Redis cache or DB fallback)
+12. Return response with WPM, accuracy, coins, and streak data
 ```
 
 ### Leaderboard Page Load
@@ -87,10 +98,12 @@ The live leaderboard system uses a **hybrid architecture** combining Supabase Re
    - If exceeded: Return 429 Too Many Requests
    - If allowed: Continue
 3. Server checks Redis cache first
-4. If cache hit: Return cached data (fast!)
-5. If cache miss: Query PostgreSQL + populate Redis + return data
+4. If cache hit with sufficient entries: Return cached data (fast!)
+5. If cache miss or <50% expected entries: Query PostgreSQL + populate Redis + return data
 6. Client subscribes to Supabase Realtime channel for live updates
-7. Client polls active users count every 30 seconds
+7. On page 1: Auto-refresh when new results are inserted
+8. On other pages: Manual refresh available
+9. Client polls active users count every 30 seconds
 ```
 
 ## Performance Metrics
@@ -148,7 +161,7 @@ The live leaderboard system uses a **hybrid architecture** combining Supabase Re
 
 ## Implemented Redis Features
 
-### Rate Limiting ✅
+### Rate Limiting
 - **Test Submissions**: 20 requests/minute per user (prevents spam)
 - **Leaderboard API**: 30 requests/minute per IP (prevents abuse)
 - **Auth Endpoints**: 5 requests/minute per IP (prevents brute force)
@@ -156,34 +169,46 @@ The live leaderboard system uses a **hybrid architecture** combining Supabase Re
 - **Algorithm**: Sliding window for smooth rate limiting
 - **Analytics**: Built-in tracking for monitoring usage patterns
 
-### Session Storage ✅
+### Session Storage
 - **Typing Sessions**: Store active test sessions with 5-minute TTL
 - **Auto-expiry**: Sessions clean up automatically
 - **Data Stored**: User ID, start time, duration, word list, theme
 
-### User Streaks ✅
+### Test Idempotency
+- **Replay Protection**: Each test has unique UUID generated on client
+- **Atomic Check**: Redis NX operation ensures one-time submission
+- **24-hour TTL**: Test IDs expire after 1 day
+- **Race Condition Safe**: Handles concurrent submissions correctly
+
+### User Streaks
 - **Daily Tracking**: Consecutive days of activity
 - **Streak Types**: Current streak + longest streak
 - **Auto-reset**: Breaks if user misses a day
 - **TTL**: 7-day expiry on streak data
 
-### Active Users ✅
+### Active Users
 - **Real-time Counter**: Shows number of online players
 - **Sorted Set**: Uses Redis sorted sets with timestamps
 - **Auto-cleanup**: Removes inactive users (>2 minutes idle)
 - **Efficient**: Single Redis call to get count
 
+### Leaderboard Caching
+- **Cache Strategy**: Write-through and read-through with intelligent fallback
+- **Consistency Detection**: Automatic recovery when cache is incomplete
+- **No TTL on Entries**: Prevents cache inconsistency issues
+- **Pipeline Batching**: Reduces Redis calls by 90%
+
 ## Future Enhancements
 
 ### Redis Use Cases to Implement
-- [ ] Leaderboard trending data (hot/cold cache tiers)
-- [ ] Typing test history caching (recent tests per user)
+- Leaderboard trending data (hot/cold cache tiers)
+- Typing test history caching (recent tests per user)
 
 ### Supabase Realtime Use Cases
-- [x] Live leaderboard updates ✅
-- [x] Multiplayer match updates ✅
-- [ ] Live typing race mode (multiple users typing same words)
-- [ ] Global notifications (achievements, badges)
+- Live leaderboard updates (Implemented)
+- Multiplayer match updates (Implemented)
+- Live typing race mode (multiple users typing same words)
+- Global notifications (achievements, badges)
 
 ## Monitoring
 
