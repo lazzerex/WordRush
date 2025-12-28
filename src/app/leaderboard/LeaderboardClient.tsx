@@ -108,7 +108,10 @@ export default function LeaderboardClient() {
         (payload) => {
           console.log('🔥 New typing result detected, refreshing leaderboard...', payload);
           // Refresh leaderboard when someone completes a test
-          loadLeaderboard(pageRef.current);
+          // Only refresh if we're on the first page (most relevant for new entries)
+          if (pageRef.current === 1) {
+            loadLeaderboard(pageRef.current);
+          }
         }
       )
       .subscribe((status) => {
@@ -116,7 +119,10 @@ export default function LeaderboardClient() {
           console.log('✅ Subscribed to live leaderboard updates for duration:', selectedDuration);
           setLiveUpdatesEnabled(true);
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          console.log('❌ Live updates disconnected');
+          console.log('❌ Live updates disconnected, status:', status);
+          setLiveUpdatesEnabled(false);
+        } else if (status === 'TIMED_OUT') {
+          console.log('⏱️ Live updates timed out, will retry...');
           setLiveUpdatesEnabled(false);
         }
       });
@@ -251,8 +257,14 @@ export default function LeaderboardClient() {
                   Top scores • Showing {showingFrom}-{showingTo} of {totalCount || 0}
                 </p>
                 {liveUpdatesEnabled && (
-                  <div className="flex items-center gap-1.5 rounded-full bg-green-500/10 border border-green-500/30 px-2 py-0.5">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                  <div 
+                    className="flex items-center gap-1.5 rounded-full bg-green-500/10 border border-green-500/30 px-2.5 py-1"
+                    title="Real-time updates enabled via Supabase Realtime"
+                  >
+                    <div className="relative">
+                      <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                      <div className="absolute inset-0 h-1.5 w-1.5 rounded-full bg-green-400 animate-ping" />
+                    </div>
                     <span className="text-[10px] uppercase tracking-wider text-green-400 font-semibold">Live</span>
                   </div>
                 )}
