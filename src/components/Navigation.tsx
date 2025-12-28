@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import { Trophy, User as UserIcon, LogIn, UserPlus, LogOut, Keyboard, Coins } from 'lucide-react';
+import { Trophy, User as UserIcon, LogIn, UserPlus, LogOut, Keyboard, Coins, Shield } from 'lucide-react';
 import { COINS_EVENT, CoinsEventDetail } from '@/lib/ui-events';
 import AppLink from '@/components/AppLink';
 import OnlinePlayersCounter from '@/components/OnlinePlayersCounter';
@@ -12,6 +12,7 @@ import OnlinePlayersCounter from '@/components/OnlinePlayersCounter';
 export default function Navigation() {
   const [user, setUser] = useState<User | null>(null);
   const [coins, setCoins] = useState<number>(0);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const supabase = createClient();
@@ -23,6 +24,7 @@ export default function Navigation() {
       setLoading(false);
       if (user) {
         loadUserCoins(user.id);
+        checkAdminStatus(user.id);
       }
     });
 
@@ -33,8 +35,10 @@ export default function Navigation() {
       setUser(session?.user ?? null);
       if (session?.user) {
         loadUserCoins(session.user.id);
+        checkAdminStatus(session.user.id);
       } else {
         setCoins(0);
+        setIsAdmin(false);
       }
     });
 
@@ -67,6 +71,16 @@ export default function Navigation() {
       .single();
     
     setCoins(data?.coins || 0);
+  };
+
+  const checkAdminStatus = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', userId)
+      .single();
+    
+    setIsAdmin(data?.is_admin || false);
   };
 
   const handleSignOut = async () => {
@@ -131,6 +145,16 @@ export default function Navigation() {
             
             {user ? (
               <>
+                {isAdmin && (
+                  <AppLink
+                    href="/admin"
+                    loadingMessage="Loading admin dashboard…"
+                    className="px-4 py-2 text-yellow-400 hover:text-yellow-300 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-yellow-500/10 border border-yellow-500/20"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </AppLink>
+                )}
                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-lg wr-surface">
                   <UserIcon className="w-4 h-4 text-zinc-500" />
                   <span className="text-sm text-zinc-400 wr-text-secondary">
