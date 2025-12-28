@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Trophy,
   Swords,
+  Shield,
 } from 'lucide-react';
 
 interface AccountClientProps {
@@ -34,6 +35,7 @@ export default function AccountClient({ user }: AccountClientProps) {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -45,12 +47,13 @@ export default function AccountClient({ user }: AccountClientProps) {
   const loadProfile = async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('elo_rating, wins, losses, draws, matches_played, last_ranked_at')
+      .select('elo_rating, wins, losses, draws, matches_played, last_ranked_at, is_admin')
       .eq('id', user.id)
       .single();
     
     if (!error && data) {
       setProfile(data);
+      setIsAdmin(data.is_admin || false);
     }
   };
 
