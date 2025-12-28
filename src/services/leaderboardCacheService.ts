@@ -2,7 +2,6 @@ import { redis, LEADERBOARD_KEYS, calculateLeaderboardScore, createLeaderboardMe
 import type { LeaderboardEntry } from '@/types/leaderboard';
 import { getLeaderboardPaginated } from '@/lib/leaderboard';
 
-const CACHE_TTL = 3600; // 1 hour in seconds
 const MAX_LEADERBOARD_SIZE = 1000; // Keep top 1000 entries per duration
 
 /**
@@ -49,8 +48,8 @@ export async function addToLeaderboardCache(entry: {
       language: entry.language || 'en',
     });
 
-    // Set TTL on entry
-    pipeline.expire(entryKey, CACHE_TTL);
+    // Don't set TTL on entry hashes - they should persist as long as they're in the leaderboard
+    // The leaderboard sorted set will manage which entries are kept (via ZREMRANGEBYRANK)
 
     // Trim leaderboard to top N entries
     pipeline.zremrangebyrank(leaderboardKey, 0, -(MAX_LEADERBOARD_SIZE + 1));
@@ -87,12 +86,13 @@ export async function getLeaderboardFromCache(
       return null;
     }
 
-    // Calculate offset
-    const offset = (page - 1) * pageSize;
-    const end = offset + pageSize - 1;
+    // Calculate offset for Redis ZRANGE (0-based indexing)
+    const startIndex = (page - 1) * pageSize;
+    const stopIndex = startIndex + pageSize - 1;
 
     // Get members with scores (highest to lowest)
-    const membersWithScores = await redis.zrange(leaderboardKey, offset, end, {
+    // Note: withScores returns [member, score, member, score, ...]
+    const membersWithScores = await redis.zrange(leaderboardKey, startIndex, stopIndex, {
       rev: true,
       withScores: true,
     });
@@ -106,9 +106,12 @@ export async function getLeaderboardFromCache(
     const pipeline = redis.pipeline();
     const entryIds: string[] = [];
     
-    // Build pipeline to fetch all entries at once
+    // withScores returns alternating [member, score, member, score, ...]
+    // So we iterate by 2 to get only the members (at even indices)
     for (let i = 0; i < membersWithScores.length; i += 2) {
       const member = membersWithScores[i] as string;
+      if (!member) continue; // Skip if member is undefined
+      
       const { entryId } = parseLeaderboardMember(member);
       entryIds.push(entryId);
       pipeline.hgetall(LEADERBOARD_KEYS.entry(entryId));
@@ -121,7 +124,7 @@ export async function getLeaderboardFromCache(
     if (results && Array.isArray(results)) {
       results.forEach((result: any, index: number) => {
         const entryData = result;
-        if (entryData && typeof entryData === 'object') {
+        if (entryData && typeof entryData === 'object' && Object.keys(entryData).length > 0) {
           entries.push({
             id: String(entryData.id || ''),
             user_id: String(entryData.user_id || ''),
@@ -130,11 +133,21 @@ export async function getLeaderboardFromCache(
             wpm: Number(entryData.wpm || 0),
             accuracy: Number(entryData.accuracy || 0),
             created_at: String(entryData.created_at || new Date().toISOString()),
-            rank: offset + index + 1,
+            rank: startIndex + index + 1,
           });
         }
       });
     }
+
+    // If we have members but no/few entries, it means hashes are missing/expired
+    // Return null to trigger a cache refresh from database
+    const expectedEntries = Math.min(pageSize, total - startIndex);
+    if (entries.length < expectedEntries * 0.5) {
+      console.warn(`⚠️ Cache inconsistency detected: expected ~${expectedEntries} entries, got ${entries.length}. Triggering refresh.`);
+      return null;
+    }
+
+    console.log(`✅ Retrieved ${entries.length} entries from cache (page ${page}, total: ${total})`);
 
     return { entries, total };
   } catch (error) {
@@ -235,7 +248,7 @@ export async function refreshLeaderboardCache(duration: number): Promise<void> {
         created_at: entry.created_at,
         duration: duration,
       });
-      pipeline.expire(entryKey, CACHE_TTL);
+      // Don't set TTL - entries persist as long as they're in the sorted set
     }
     
     await pipeline.exec();
