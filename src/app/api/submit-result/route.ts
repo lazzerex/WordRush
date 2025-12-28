@@ -24,7 +24,8 @@ interface SubmitResultRequest {
 }
 
 // Detects unnatural "bursts" of perfectly timed keystrokes
-function detectTypingBursts(gaps: number[]): boolean {
+// More lenient threshold for natural fast typing
+function detectTypingBursts(gaps: number[], threshold: number = 3): boolean {
   const windowSize = 10; // Check 10-keystroke windows
   for (let i = 0; i <= gaps.length - windowSize; i++) {
     const window = gaps.slice(i, i + windowSize);
@@ -32,8 +33,8 @@ function detectTypingBursts(gaps: number[]): boolean {
     const windowVariance = Math.sqrt(
       window.reduce((sum, gap) => sum + Math.pow(gap - mean, 2), 0) / window.length
     );
-    // If any window has variance < 5ms, it's suspiciously consistent
-    if (windowVariance < 5) {
+    // If any window has variance below threshold, it's suspiciously consistent
+    if (windowVariance < threshold) {
       return true; // Burst detected
     }
   }
@@ -209,57 +210,85 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Keystroke gap validation (anti-timing attack)
+    // 5. Keystroke gap validation (anti-timing attack) - LENIENT for natural typing
     const keystrokeGaps = [];
+    let suspiciouslyLongPauses = 0;
+    
     for (let i = 1; i < sortedKeystrokes.length; i++) {
       const gap = sortedKeystrokes[i].timestamp - sortedKeystrokes[i - 1].timestamp;
       keystrokeGaps.push(gap);
-      // Detect suspiciously large gaps (pause for AI generation, scripts,etc...)
-      if (gap > 3000) { // 3 seconds without keystroke
+      
+      // Track very long pauses (> 10 seconds) but allow a few (thinking breaks are normal)
+      if (gap > 10000) {
+        suspiciouslyLongPauses++;
+      }
+      
+      // Only reject if there are multiple extremely long pauses (indicates automation/AI)
+      if (gap > 30000) { // 30 seconds - definitely suspicious
+        console.error('[Keystroke] Extremely long pause detected:', gap, 'ms');
         return NextResponse.json(
-          { error: 'Suspicious keystroke pattern detected' },
+          { error: 'Test session expired or invalid - please try again' },
           { status: 400 }
         );
       }
     }
 
+    // Allow up to 3 long pauses (10+ seconds) for natural thinking breaks
+    if (suspiciouslyLongPauses > 3) {
+      console.error('[Keystroke] Too many long pauses:', suspiciouslyLongPauses);
+      return NextResponse.json(
+        { error: 'Test contains too many long pauses - please maintain consistent typing' },
+        { status: 400 }
+      );
+    }
+
     if (keystrokeGaps.length > 0) {
       const avgGap = keystrokeGaps.reduce((a, b) => a + b, 0) / keystrokeGaps.length;
-      if (avgGap < 20 || avgGap > 2000) {
+      
+      // Very lenient average gap check - only catch extreme outliers
+      // Allows: slow typists (up to 3 second average), fast typists (down to 10ms average)
+      if (avgGap < 10 || avgGap > 3000) {
+        console.error('[Keystroke] Invalid average gap:', avgGap, 'ms');
         return NextResponse.json(
-          { error: 'Invalid keystroke timing pattern' },
+          { error: 'Invalid typing pattern detected - please type naturally' },
           { status: 400 }
         );
       }
 
-      // Timing variance check (lenient, only catch robotic)
+      // Timing variance check (only catch robotic typing)
       const timingVariance = calculateTimingVariance(sortedKeystrokes);
-      // only flag if variance is really low (< 5ms = robotic)
-      if (timingVariance < 5) {
+      // Only flag if variance is extremely low (< 3ms = robotic/scripted)
+      if (timingVariance < 3) {
+        console.error('[Keystroke] Robotic timing variance:', timingVariance, 'ms');
         return NextResponse.json(
-          { error: 'Unnatural typing detected' },
+          { error: 'Please type naturally without automation tools' },
           { status: 400 }
         );
       }
 
-      // Keystroke rate distribution check (lenient for fast typists)
+      // Keystroke rate distribution check (very lenient)
       const testDurationMs = lastKeystroke - firstKeystroke;
       const keystrokesPerSecond = keystrokes.length / (testDurationMs / 1000);
-      // Allow up to 30 keystrokes/second (360 WPM) for bursts, min 1/sec
-      if (keystrokesPerSecond < 1 || keystrokesPerSecond > 30) {
+      
+      // Allow: slow hunt-and-peck (0.5/sec) to superhuman bursts (40/sec = 480 WPM)
+      if (keystrokesPerSecond < 0.5 || keystrokesPerSecond > 40) {
+        console.error('[Keystroke] Invalid keystroke rate:', keystrokesPerSecond, '/sec');
         return NextResponse.json(
-          { error: 'Invalid keystroke rate distribution' },
+          { error: 'Invalid typing speed detected' },
           { status: 400 }
         );
       }
 
-      // Burst detection (optional, advanced)
-      if (detectTypingBursts(keystrokeGaps)) {
-        return NextResponse.json(
-          { error: 'Automated typing pattern detected' },
-          { status: 400 }
-        );
-      }
+      // Burst detection (OPTIONAL - disabled by default for better UX)
+      // Uncomment if you need stricter validation
+      // const burstThreshold = 3; // Less than 3ms variance in a 10-keystroke window
+      // if (detectTypingBursts(keystrokeGaps, burstThreshold)) {
+      //   console.error('[Keystroke] Robotic burst pattern detected');
+      //   return NextResponse.json(
+      //     { error: 'Automated typing pattern detected' },
+      //     { status: 400 }
+      //   );
+      // }
     }
 
     if (actualDurationFromKeystrokes > expectedDurationMs + toleranceMs) {
