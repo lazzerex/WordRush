@@ -2,7 +2,7 @@
 
 This guide explains all Redis-powered features in WordRush and how to use them.
 
-## 🛡️ Rate Limiting
+## Rate Limiting
 
 ### Overview
 Prevents API abuse and spam by limiting the number of requests per time window.
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-## 💾 Session Storage
+## Session Storage
 
 ### Overview
 Stores temporary typing test sessions to enable session validation and recovery.
@@ -114,7 +114,7 @@ await deleteTypingSession('session-123');
 - **Auto-cleanup**: Redis automatically removes expired sessions
 - **Extension**: Can extend TTL if needed
 
-## 🔥 User Streaks
+## User Streaks
 
 ### Overview
 Tracks consecutive days of activity to gamify engagement.
@@ -192,7 +192,7 @@ function UserProfile() {
 }
 ```
 
-## 👥 Active Users Counter
+## Active Users Counter
 
 ### Overview
 Shows real-time count of active users (typing or browsing).
@@ -231,7 +231,7 @@ Already integrated in `OnlinePlayersCounter` component:
 - **GET** `/api/active-users` - Get current count
 - **POST** `/api/active-users` - Mark current user as active
 
-## 📦 Leaderboard Caching
+## Leaderboard Caching
 
 ### Overview
 Caches leaderboard data to reduce PostgreSQL load by ~90%.
@@ -246,13 +246,15 @@ Caches leaderboard data to reduce PostgreSQL load by ~90%.
 **Hash** (`entry:{entryId}`):
 - Stores full entry details
 - Fields: id, user_id, username, email, wpm, accuracy, created_at, duration
+- No TTL: Entries persist as long as they're in the sorted set
 
 ### Cache Strategy
 
 1. **Read-through**: Check cache first, fallback to database
 2. **Write-through**: Update cache when new results submitted
 3. **Background Refresh**: Populate cache on miss
-4. **TTL**: 1 hour expiry on entries
+4. **Consistency Detection**: Automatic fallback if >50% of expected entries are missing
+5. **No TTL**: Prevents cache inconsistency issues
 
 ### Pipeline Batching
 
@@ -272,7 +274,7 @@ entries.forEach(entry => {
 const results = await pipeline.exec();
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -308,7 +310,7 @@ export async function markUserActive(userId: string): Promise<void> {
 }
 ```
 
-## 📊 Monitoring
+## Monitoring
 
 ### Redis Dashboard (Upstash)
 
@@ -335,7 +337,7 @@ Monitor these metrics in your Upstash Console:
 3. **Increase Cache TTL**: From 1hr to 6hr for leaderboard
 4. **Batch Operations**: Always use pipeline for multiple operations
 
-## 🐛 Debugging
+## Debugging
 
 ### Enable Debug Logging
 
@@ -367,7 +369,7 @@ try {
 - Verify cleanup logic is removing stale users
 - Check if timestamps are being set correctly
 
-## 🚀 Best Practices
+## Best Practices
 
 1. **Always Handle Failures**: Redis operations should fail gracefully
 2. **Use Pipelines**: Batch multiple operations into one
@@ -377,7 +379,7 @@ try {
 6. **Rate Limit Wisely**: Don't make limits too restrictive
 7. **Cache Invalidation**: Clear cache when data changes significantly
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Upstash Redis Docs](https://docs.upstash.com/redis)
 - [@upstash/ratelimit Docs](https://github.com/upstash/ratelimit)
