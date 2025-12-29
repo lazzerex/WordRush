@@ -8,45 +8,34 @@ export interface IWordPoolService {
   clearCache(): void;
 }
 
-/**
- * Supabase implementation of Word Pool Service with caching
- */
-import { createClient } from '@/lib/supabase/client';
-
-export class SupabaseWordPoolService implements IWordPoolService {
+// Simple API-based implementation with client-side cache
+export class ApiWordPoolService implements IWordPoolService {
   private cachedWordPool: string[] | null = null;
+  private lastLanguage: string = 'en';
 
   async fetchWords(language: string = 'en'): Promise<string[]> {
-    // Return cached data if available and language matches
     if (this.cachedWordPool && this.cachedWordPool.length > 0 && this.lastLanguage === language) {
+      console.log('[Word Pool Service] Returning cached words:', this.cachedWordPool.length);
       return this.cachedWordPool;
     }
 
-    const supabase = createClient();
+    console.log('[Word Pool Service] Fetching words via API...');
+    const response = await fetch(`/api/word-pool?language=${encodeURIComponent(language)}`, {
+      cache: 'no-store',
+    });
 
-    const { data, error } = await supabase
-      .from('word_pool')
-      .select('word')
-      .eq('language', language)
-      .order('word', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching word pool:', error);
+    if (!response.ok) {
+      console.error('[Word Pool Service] API error:', response.status);
       return [];
     }
 
-    const words = (data ?? [])
-      .map((entry) => entry.word)
-      .filter((word): word is string => Boolean(word && word.trim().length > 0));
+    const { words } = (await response.json()) as { words?: string[] };
+    const sanitized = (words ?? []).filter((w) => w && w.trim().length > 0);
 
-    // Cache the result and language
-    this.cachedWordPool = words;
+    this.cachedWordPool = sanitized;
     this.lastLanguage = language;
-
-    return words;
+    return sanitized;
   }
-
-  private lastLanguage: string = 'en';
 
   clearCache(): void {
     this.cachedWordPool = null;
@@ -54,14 +43,14 @@ export class SupabaseWordPoolService implements IWordPoolService {
 }
 
 // Singleton instance for caching to work across the app
-let serviceInstance: SupabaseWordPoolService | null = null;
+let serviceInstance: ApiWordPoolService | null = null;
 
 /**
  * Factory function to get word pool service (singleton)
  */
 export function createWordPoolService(): IWordPoolService {
   if (!serviceInstance) {
-    serviceInstance = new SupabaseWordPoolService();
+    serviceInstance = new ApiWordPoolService();
   }
   return serviceInstance;
 }
