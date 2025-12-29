@@ -43,7 +43,10 @@ function HomeContent() {
   const handleSingleplayer = () => {
     if (menuState !== 'open') return;
     setMenuState('closing');
-    window.setTimeout(() => setMenuState('closed'), 480);
+    window.setTimeout(() => {
+      setMenuState('closed');
+      window.dispatchEvent(new CustomEvent('wordrush:closeMenu'));
+    }, 480);
   };
 
   const handleMultiplayer = () => {
