@@ -1,15 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 export function useOnlineUsers() {
   const [onlineCount, setOnlineCount] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
+  const { supabase, isInitialized } = useSupabase();
 
   useEffect(() => {
-    const supabase = createClient();
+    if (!supabase || !isInitialized) return;
     let channel: RealtimeChannel | null = null;
 
     const setupPresence = async () => {
@@ -68,7 +69,7 @@ export function useOnlineUsers() {
       }
       setIsTracking(false);
     };
-  }, []);
+  }, [supabase, isInitialized]);
 
   return { onlineCount, isTracking };
 }

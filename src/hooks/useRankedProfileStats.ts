@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+"use client";
+
+import { useEffect, useState } from 'react';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 export interface RankedProfileStats {
   elo_rating: number | null;
@@ -17,13 +19,14 @@ interface UseRankedProfileStatsResult {
 }
 
 export function useRankedProfileStats(refreshTrigger?: number): UseRankedProfileStatsResult {
-  const supabase = useMemo(() => createClient(), []);
+  const { supabase, isInitialized } = useSupabase();
   const [userId, setUserId] = useState<string | null>(null);
   const [stats, setStats] = useState<RankedProfileStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!supabase || !isInitialized) return;
     let active = true;
     supabase.auth.getUser().then(({ data: { user }, error: authError }) => {
       if (!active) {
@@ -46,10 +49,10 @@ export function useRankedProfileStats(refreshTrigger?: number): UseRankedProfile
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, [supabase, isInitialized]);
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !supabase || !isInitialized) {
       return undefined;
     }
 
@@ -115,7 +118,7 @@ export function useRankedProfileStats(refreshTrigger?: number): UseRankedProfile
         supabase.removeChannel(channelRef);
       }
     };
-  }, [userId, supabase, refreshTrigger]);
+  }, [userId, supabase, refreshTrigger, isInitialized]);
 
   return {
     stats,

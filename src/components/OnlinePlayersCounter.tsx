@@ -2,22 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Users } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 
 export default function OnlinePlayersCounter() {
   const [onlineCount, setOnlineCount] = useState(0);
-  const [userId, setUserId] = useState<string | null>(null);
-  const supabase = createClient();
 
   useEffect(() => {
-    // Get user ID
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
-    });
-  }, [supabase]);
-
-  useEffect(() => {
-    if (!userId) return;
+    let isMounted = true;
 
     // Fetch active users count
     async function fetchActiveUsers() {
@@ -25,7 +15,9 @@ export default function OnlinePlayersCounter() {
         const response = await fetch('/api/active-users');
         if (response.ok) {
           const data = await response.json();
-          setOnlineCount(data.data.activeUsers);
+          if (isMounted) {
+            setOnlineCount(data.data.activeUsers);
+          }
         }
       } catch (error) {
         console.error('Error fetching active users:', error);
@@ -35,8 +27,6 @@ export default function OnlinePlayersCounter() {
     // Mark current user as active
     async function markActive() {
       try {
-        // Call a simple endpoint or do it client-side won't work with Redis
-        // Instead we'll track through activity
         await fetch('/api/active-users', { method: 'POST' });
       } catch (error) {
         console.error('Error marking user active:', error);
@@ -53,8 +43,11 @@ export default function OnlinePlayersCounter() {
       markActive();
     }, 30000);
 
-    return () => clearInterval(interval);
-  }, [userId]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   if (onlineCount === 0) {
     return null;
