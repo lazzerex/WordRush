@@ -1,16 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import AccountClient from './AccountClient';
 
 export default async function AccountPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  // Middleware ensures user exists, but double-check for type safety
   if (!user) {
-    redirect('/login');
+    return null;
   }
 
   return (
