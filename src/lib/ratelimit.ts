@@ -94,6 +94,20 @@ export const generalLimiter = isRedisConfigured()
   : null;
 
 /**
+ * Chat message rate limiter
+ * Prevents chat spam
+ * Limit: 5 messages per 60 seconds per user/guest
+ */
+export const chatLimiter = isRedisConfigured()
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, '60 s'),
+      analytics: true,
+      prefix: 'ratelimit:chat',
+    })
+  : null;
+
+/**
  * Helper to check rate limit and return standardized response
  */
 export async function checkRateLimit(
