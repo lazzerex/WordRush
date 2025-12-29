@@ -9,62 +9,35 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 
 interface SupabaseContextType {
-  supabase: SupabaseClient | null;
+  supabase: SupabaseClient;
   isInitialized: boolean;
 }
 
-const SupabaseContext = createContext<SupabaseContextType>({
-  supabase: null,
-  isInitialized: false,
-});
+const SupabaseContext = createContext<SupabaseContextType | null>(null);
 
 export function SupabaseProvider({ children }: { children: ReactNode }) {
-  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
+  const [supabase] = useState<SupabaseClient>(() => {
+    console.log('[SupabaseProvider] Creating client synchronously...');
+    return createClient();
+  });
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    console.log('[SupabaseProvider] Starting initialization...');
-    let mounted = true;
+    console.log('[SupabaseProvider] Starting session load...');
     
-    async function initializeSupabase() {
-      try {
-        console.log('[SupabaseProvider] Creating client...');
-        const client = createClient();
-        
-        if (mounted) {
-          console.log('[SupabaseProvider] Client created, marking as ready');
-          setSupabase(client);
-          setIsInitialized(true);
-        }
-        
-        // Get session in background (don't await, don't block)
-        console.log('[SupabaseProvider] Triggering session load in background...');
-        client.auth.getSession().then(({ data, error }) => {
-          if (error) {
-            console.warn('[SupabaseProvider] Session load error (non-fatal):', error);
-          } else {
-            console.log('[SupabaseProvider] Session loaded:', { hasSession: !!data.session });
-          }
-        }).catch(err => {
-          console.error('[SupabaseProvider] Session load exception:', err);
-        });
-        
-      } catch (error) {
-        console.error('[SupabaseProvider] Failed to initialize:', error);
-        if (mounted) {
-          // Still mark as initialized so the app doesn't hang
-          setIsInitialized(true);
-        }
+    // Load session to ensure auth is ready
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.warn('[SupabaseProvider] Session load error:', error);
+      } else {
+        console.log('[SupabaseProvider] Session loaded:', { hasSession: !!data.session });
       }
-    }
-
-    initializeSupabase();
-
-    return () => {
-      console.log('[SupabaseProvider] Cleaning up');
-      mounted = false;
-    };
-  }, []);
+      setIsInitialized(true);
+    }).catch(err => {
+      console.error('[SupabaseProvider] Session load exception:', err);
+      setIsInitialized(true);
+    });
+  }, [supabase]);
 
   console.log('[SupabaseProvider] Render - isInitialized:', isInitialized);
 
@@ -77,5 +50,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
 export function useSupabase() {
   const context = useContext(SupabaseContext);
+  if (!context) {
+    throw new Error('useSupabase must be used within SupabaseProvider');
+  }
   return context;
 }
