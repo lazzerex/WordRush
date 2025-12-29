@@ -63,9 +63,16 @@ export async function middleware(request: NextRequest) {
     console.error('Auth error in middleware:', error);
   }
 
-  // Protect account page - redirect to login if not authenticated
-  if (request.nextUrl.pathname.startsWith('/account') && !user) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  // Protect authenticated routes - redirect to login if not authenticated
+  const protectedRoutes = ['/account', '/admin', '/shop', '/customize'];
+  const isProtectedRoute = protectedRoutes.some(route => 
+    request.nextUrl.pathname.startsWith(route)
+  );
+
+  if (isProtectedRoute && !user) {
+    const redirectUrl = new URL('/login', request.url);
+    redirectUrl.searchParams.set('returnTo', request.nextUrl.pathname);
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Protect admin routes - check if user is admin
