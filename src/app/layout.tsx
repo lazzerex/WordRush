@@ -5,6 +5,7 @@ import './globals.css';
 import ThemeInitializer from '@/components/ThemeInitializer';
 import GlobalLoadingOverlay from '@/components/GlobalLoadingOverlay';
 import ClientRoot from '@/components/ClientRoot';
+import ChatBox from '@/components/ChatBox';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,6 +30,7 @@ export default function RootLayout({
         <ClientRoot>
           {children}
         </ClientRoot>
+        <ChatBox />
       </body>
     </html>
   );

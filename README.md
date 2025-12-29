@@ -62,6 +62,14 @@
 - **Customization** - 7+ themes including Cyberpunk, Sunset, and Light Mode
 - **Active Users Counter** - See how many players are online
 
+### Live Chat System
+- **Real-time Messaging** - Instant chat with Supabase Realtime
+- **Guest Support** - Chat without signing up (messages expire in 1 hour)
+- **Authenticated Chat** - Sign in to keep messages for 24 hours
+- **Content Moderation** - Profanity filter and spam detection
+- **Rate Limiting** - 5 messages per minute to prevent abuse
+- **Live User Count** - See how many people are online
+
 ### Admin Management
 - **Admin Dashboard** - Comprehensive system monitoring and user management
 - **User Moderation** - Promote/demote admins, manage user accounts
@@ -101,8 +109,9 @@
 - **Row Level Security**: Database-level policies enforce data access controls
 - **Cache Consistency**: Automatic detection and recovery from cache inconsistencies
 - **Admin System**: Comprehensive management tools with audit logging
+- **Live Chat**: Real-time messaging with guest support and automatic expiry
 
-**Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/REDIS.md`](docs/REDIS.md), and [`docs/ADMIN_SYSTEM.md`](docs/ADMIN_SYSTEM.md) for in-depth technical details.
+**Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/REDIS.md`](docs/REDIS.md), [`docs/ADMIN_SYSTEM.md`](docs/ADMIN_SYSTEM.md), and [`docs/CHAT_SYSTEM.md`](docs/CHAT_SYSTEM.md) for in-depth technical details.
 
 ## Quick Start
 
