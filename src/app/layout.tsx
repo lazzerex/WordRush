@@ -25,12 +25,12 @@ export default function RootLayout({
         <link rel="icon" type="image/png" href="/wordrush-large.png" />
       </head>
       <body className={inter.className}>
-        <ThemeInitializer />
-        <GlobalLoadingOverlay />
         <ClientRoot>
+          <ThemeInitializer />
+          <GlobalLoadingOverlay />
           {children}
+          <ChatBox />
         </ClientRoot>
-        <ChatBox />
       </body>
     </html>
   );
