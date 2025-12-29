@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import Navigation from '@/components/Navigation';
 import { Coins, Lock, Check, ShoppingCart } from 'lucide-react';
 import type { Theme } from '@/types/database';
 import { broadcastCoinsEvent } from '@/lib/ui-events';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 interface ThemeWithOwnership extends Theme {
   owned: boolean;
@@ -17,13 +17,15 @@ export default function ShopClient() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  const supabase = createClient();
+  const { supabase, isInitialized } = useSupabase();
 
   useEffect(() => {
+    if (!supabase || !isInitialized) return;
     loadShopData();
-  }, []);
+  }, [supabase, isInitialized]);
 
   const loadShopData = async () => {
+    if (!supabase) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -67,6 +69,7 @@ export default function ShopClient() {
   };
 
   const purchaseTheme = async (theme: ThemeWithOwnership) => {
+    if (!supabase) return;
     if (theme.owned) {
       setMessage({ text: 'You already own this theme!', type: 'error' });
       return;

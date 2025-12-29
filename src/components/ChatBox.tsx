@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useSupabase } from '@/components/SupabaseProvider';
 import { 
   getOrCreateGuestId, 
   formatRelativeTime,
@@ -32,36 +32,15 @@ export default function ChatBox() {
   const [username, setUsername] = useState<string>('');
   const [guestData, setGuestData] = useState<GuestData | null>(null);
   const [userCount, setUserCount] = useState(0);
-  const [isTyping, setIsTyping] = useState<string[]>([]);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const supabase = createClient();
-
-  // Listen for menu open/close events
-  useEffect(() => {
-    const handleMenuOpen = () => {
-      setIsMenuOpen(true);
-      setIsOpen(false); // Auto-close chat when menu opens
-    };
-    
-    const handleMenuClose = () => {
-      setIsMenuOpen(false);
-    };
-    
-    window.addEventListener('wordrush:openMenu', handleMenuOpen);
-    window.addEventListener('wordrush:closeMenu', handleMenuClose);
-    
-    return () => {
-      window.removeEventListener('wordrush:openMenu', handleMenuOpen);
-      window.removeEventListener('wordrush:closeMenu', handleMenuClose);
-    };
-  }, []);
+  const { supabase, isInitialized } = useSupabase();
 
   // Get user info and load username
   useEffect(() => {
+    if (!supabase || !isInitialized) return;
+
     const loadUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -110,7 +89,7 @@ export default function ChatBox() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase, isInitialized]);
 
   // Load initial messages when chat opens
   useEffect(() => {
@@ -121,7 +100,7 @@ export default function ChatBox() {
 
   // Setup realtime subscription
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !supabase || !isInitialized) return;
 
     const channel = supabase
       .channel('chat_messages')
@@ -182,7 +161,7 @@ export default function ChatBox() {
     return () => {
       channel.unsubscribe();
     };
-  }, [isOpen, user]);
+  }, [isOpen, user, supabase, isInitialized]);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {

@@ -2,13 +2,13 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 
 import ClickSpark from '@/components/ClickSpark';
-import { createClient } from '@/lib/supabase/client';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 // Use dynamic import to avoid hydration issues for the typing test
 const TypingTest = dynamic(() => import('@/components/TypingTest'), { ssr: false });
@@ -21,9 +21,11 @@ function HomeContent() {
   const [menuState, setMenuState] = useState<MenuState>(autoStart ? 'closed' : 'open');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const supabase = useMemo(() => createClient(), []);
+  const { supabase, isInitialized } = useSupabase();
 
   useEffect(() => {
+    if (!supabase || !isInitialized) return;
+
     let isMounted = true;
 
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -38,7 +40,7 @@ function HomeContent() {
       isMounted = false;
       data.subscription?.unsubscribe?.();
     };
-  }, [supabase]);
+  }, [supabase, isInitialized]);
 
   const handleSingleplayer = () => {
     if (menuState !== 'open') return;

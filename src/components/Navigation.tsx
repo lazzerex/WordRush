@@ -1,49 +1,64 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
 import { Trophy, User as UserIcon, LogIn, UserPlus, LogOut, Keyboard, Coins, Shield } from 'lucide-react';
 import { COINS_EVENT, CoinsEventDetail } from '@/lib/ui-events';
 import AppLink from '@/components/AppLink';
 import OnlinePlayersCounter from '@/components/OnlinePlayersCounter';
+import { useSupabase } from '@/components/SupabaseProvider';
+
+type UserInfo = {
+  id: string;
+  email: string | null;
+  displayName: string;
+};
 
 export default function Navigation() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [coins, setCoins] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const supabase = createClient();
+  const { supabase } = useSupabase();
+
+  const loadUserProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/me');
+      if (!response.ok) {
+        throw new Error('Failed to load user');
+      }
+
+      const data = await response.json();
+      setUser(data.user);
+      setCoins(data.coins ?? 0);
+      setIsAdmin(data.isAdmin ?? false);
+    } catch (error) {
+      console.error('[Navigation] Failed to load user profile', error);
+      setUser(null);
+      setCoins(0);
+      setIsAdmin(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setLoading(false);
-      if (user) {
-        loadUserCoins(user.id);
-        checkAdminStatus(user.id);
-      }
-    });
+    loadUserProfile();
+  }, [loadUserProfile]);
 
-    // Listen for auth changes
+  useEffect(() => {
+    if (!supabase) return;
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserCoins(session.user.id);
-        checkAdminStatus(session.user.id);
-      } else {
-        setCoins(0);
-        setIsAdmin(false);
-      }
+    } = supabase.auth.onAuthStateChange(() => {
+      loadUserProfile();
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, [supabase, loadUserProfile]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -63,28 +78,10 @@ export default function Navigation() {
     };
   }, []);
 
-  const loadUserCoins = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('coins')
-      .eq('id', userId)
-      .single();
-    
-    setCoins(data?.coins || 0);
-  };
-
-  const checkAdminStatus = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', userId)
-      .single();
-    
-    setIsAdmin(data?.is_admin || false);
-  };
-
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
+    await loadUserProfile();
   };
 
   if (loading) {
@@ -158,7 +155,7 @@ export default function Navigation() {
                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-lg wr-surface">
                   <UserIcon className="w-4 h-4 text-zinc-500" />
                   <span className="text-sm text-zinc-400 wr-text-secondary">
-                    {user.user_metadata?.username || user.email?.split('@')[0]}
+                    {user.displayName}
                   </span>
                 </div>
                 <AppLink

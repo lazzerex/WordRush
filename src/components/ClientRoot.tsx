@@ -1,10 +1,13 @@
 "use client";
 import GlobalClickSparkProvider from '@/components/GlobalClickSparkProvider';
+import { SupabaseProvider } from '@/components/SupabaseProvider';
 
 export default function ClientRoot({ children }: { children: React.ReactNode }) {
   return (
-    <GlobalClickSparkProvider>
-      {children}
-    </GlobalClickSparkProvider>
+    <SupabaseProvider>
+      <GlobalClickSparkProvider>
+        {children}
+      </GlobalClickSparkProvider>
+    </SupabaseProvider>
   );
 }

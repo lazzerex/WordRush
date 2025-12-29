@@ -1,12 +1,12 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import AppLink from '@/components/AppLink';
 import { LogIn, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { broadcastLoadingEvent } from '@/lib/ui-events';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 function LoginPageContent() {
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo') || '/account';
-  const supabase = createClient();
+  const { supabase } = useSupabase();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +28,7 @@ function LoginPageContent() {
     let triggeredGlobalLoading = false;
 
     try {
+      if (!supabase) throw new Error('Supabase not ready');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -59,6 +60,7 @@ function LoginPageContent() {
       broadcastLoadingEvent({ active: true, message: 'Signing in with Google…' });
 
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+      if (!supabase) throw new Error('Supabase not ready');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

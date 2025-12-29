@@ -11,6 +11,7 @@ import { TestResults } from './TypingTest/TestResults';
 import { generateRandomWords, calculateStats } from './TypingTest/helpers';
 import type { DurationOption, WordStatus, KeystrokeData } from './TypingTest/types';
 import { broadcastCoinsEvent, broadcastLoadingEvent } from '@/lib/ui-events';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 const WORDS_BUFFER_THRESHOLD = 50;
 const WORDS_BATCH_SIZE = 120;
@@ -26,6 +27,8 @@ export interface TypingTestProps {
 const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   // Unique test ID for replay protection
   const testIdRef = useRef<string | null>(null);
+  
+  const { isInitialized } = useSupabase();
   
   // State management
   const [wordPool, setWordPool] = useState<string[]>([]);
@@ -66,7 +69,14 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
 
   // Load word pool and initialize words
   useEffect(() => {
+    // Wait for Supabase to be initialized before fetching words
+    if (!isInitialized) {
+      console.log('[TypingTest] Waiting for Supabase to initialize...');
+      return;
+    }
+
     const loadWordPool = async () => {
+      console.log('[TypingTest] Loading word pool...');
       setIsLoadingWords(true);
       setWordPoolError(null);
 
@@ -97,7 +107,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     loadWordPool();
     // Generate a new testId for each test initialization
     generateNewTestId();
-  }, [selectedDuration, selectedLanguage]);
+  }, [selectedDuration, selectedLanguage, isInitialized]);
 
   // Handle menu open from logo (custom event)
   useEffect(() => {

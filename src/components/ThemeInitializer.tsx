@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import {
   applyThemeVariables,
   getStoredThemePreference,
@@ -9,10 +8,13 @@ import {
   clearThemePreference,
 } from '@/lib/theme';
 import { THEME_EVENT, ThemeEventDetail } from '@/lib/ui-events';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 const ThemeInitializer = () => {
+  const { supabase } = useSupabase();
+
   useEffect(() => {
-    const supabase = createClient();
+    if (!supabase) return;
     let cancelled = false;
 
     const applyAndPersistTheme = (detail: { themeId: string; cssVariables: Record<string, string>; themeName?: string }) => {
@@ -102,7 +104,7 @@ const ThemeInitializer = () => {
       subscription.unsubscribe();
       window.removeEventListener(THEME_EVENT, handleThemeEvent as EventListener);
     };
-  }, []);
+  }, [supabase]);
 
   return null;
 };

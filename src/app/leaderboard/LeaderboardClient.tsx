@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSupabase } from '@/components/SupabaseProvider';
 import { getUserRank } from '@/lib/leaderboard';
 import type { LeaderboardEntry } from '@/types/leaderboard';
 import type { User } from '@supabase/supabase-js';
@@ -23,14 +23,15 @@ export default function LeaderboardClient() {
   const [totalCount, setTotalCount] = useState(0);
   const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
   const pageRef = useRef(page);
-  const supabase = useMemo(() => createClient(), []);
+  const { supabase, isInitialized } = useSupabase();
 
   useEffect(() => {
     // Get current user
+    if (!supabase || !isInitialized) return;
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
-  }, [supabase]);
+  }, [supabase, isInitialized]);
 
   const loadLeaderboard = useCallback(
     async (requestedPage: number = 1) => {
@@ -95,6 +96,8 @@ export default function LeaderboardClient() {
   // Subscribe to Supabase Realtime for live leaderboard updates
   useEffect(() => {
     // Create a channel for leaderboard updates
+    if (!supabase || !isInitialized) return () => {};
+
     const channel = supabase
       .channel(`leaderboard:${selectedDuration}`)
       .on(
@@ -132,7 +135,7 @@ export default function LeaderboardClient() {
       supabase.removeChannel(channel);
       setLiveUpdatesEnabled(false);
     };
-  }, [selectedDuration, loadLeaderboard, supabase]);
+  }, [selectedDuration, loadLeaderboard, supabase, isInitialized]);
 
   useEffect(() => {
     loadUserRank();

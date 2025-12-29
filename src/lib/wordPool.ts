@@ -1,23 +1,19 @@
-/**
- * Word Pool API - Refactored to use service layer
- * Maintains backward compatibility while following SOLID principles
- */
-
-import { createWordPoolService } from '@/services/wordPoolService';
-
-/**
- * Fetches the word pool. Results are cached per session.
- * @deprecated Consider using createWordPoolService() directly for better control
- */
+// Fetch word pool via server API (uses service role safely server-side)
 export async function getWordPool(language: string = 'en'): Promise<string[]> {
-  const service = createWordPoolService();
-  return service.fetchWords(language);
+  const response = await fetch(`/api/word-pool?language=${encodeURIComponent(language)}`, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    console.error('[wordPool] Failed to fetch word pool:', response.status);
+    return [];
+  }
+
+  const { words } = (await response.json()) as { words?: string[] };
+  return words ?? [];
 }
 
-/**
- * Clears the word pool cache.
- */
+// No-op cache invalidation (kept for compatibility)
 export function invalidateWordPoolCache() {
-  const service = createWordPoolService();
-  service.clearCache();
+  // API route is uncached; nothing to invalidate
 }

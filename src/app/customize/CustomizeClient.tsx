@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import Navigation from '@/components/Navigation';
 import { Palette, Lock, Check, Settings } from 'lucide-react';
 import type { Theme } from '@/types/database';
 import { applyThemeVariables, storeThemePreference } from '@/lib/theme';
 import { broadcastThemeEvent } from '@/lib/ui-events';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 interface ThemeWithOwnership extends Theme {
   owned: boolean;
@@ -18,13 +18,15 @@ export default function CustomizeClient() {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  const supabase = createClient();
+  const { supabase, isInitialized } = useSupabase();
 
   useEffect(() => {
+    if (!supabase || !isInitialized) return;
     loadCustomizeData();
-  }, []);
+  }, [supabase, isInitialized]);
 
   const loadCustomizeData = async () => {
+    if (!supabase) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -90,6 +92,7 @@ export default function CustomizeClient() {
   };
 
   const applyTheme = async (theme: ThemeWithOwnership) => {
+    if (!supabase) return;
     if (!theme.owned) {
       setMessage({ text: 'You need to buy this theme from the shop first!', type: 'error' });
       return;
