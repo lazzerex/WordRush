@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '@/components/SupabaseProvider';
 import { 
   getOrCreateGuestId, 
@@ -10,6 +10,7 @@ import {
   type ChatMessage,
   type GuestData
 } from '@/lib/chat';
+import { createClient as createBrowserSupabase } from '@/lib/supabase/client';
 import { 
   MessageCircle, 
   Send, 
@@ -32,45 +33,75 @@ export default function ChatBox() {
   const [username, setUsername] = useState<string>('');
   const [guestData, setGuestData] = useState<GuestData | null>(null);
   const [userCount, setUserCount] = useState(0);
+  const [authLoading, setAuthLoading] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const fallbackClientRef = useRef<SupabaseClient | null>(null);
   const { supabase, isInitialized } = useSupabase();
+
+  // Fallback to a single browser client instance if provider failed to initialize
+  const getSupabaseClient = () => {
+    if (supabase) return supabase;
+    if (!fallbackClientRef.current) {
+      fallbackClientRef.current = createBrowserSupabase();
+    }
+    return fallbackClientRef.current;
+  };
 
   // Get user info and load username
   useEffect(() => {
-    if (!supabase || !isInitialized) return;
+    if (!isInitialized) return;
 
     const loadUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      
-      if (user) {
-        // Load username from profiles table
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', user.id)
-          .single();
+      setAuthLoading(true);
+      try {
+        // Try session first (fast, local), then fall back to getUser (network) to avoid stale guest state.
+        const client = getSupabaseClient();
+        const { data: sessionData } = await client.auth.getSession();
+        let currentUser = sessionData.session?.user ?? null;
+
+        if (!currentUser) {
+          const { data: userData } = await client.auth.getUser();
+          currentUser = userData.user ?? null;
+        }
+
+        setUser(currentUser);
         
-        setUsername(profile?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'User');
-      } else {
-        // Initialize guest data
-        const guest = getOrCreateGuestId();
-        setGuestData(guest);
-        setUsername(guest.displayName);
+        if (currentUser) {
+          // Load username from profiles table
+          const { data: profile } = await client
+            .from('profiles')
+            .select('username')
+            .eq('id', currentUser.id)
+            .single();
+          
+          const loadedUsername = profile?.username || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User';
+          setUsername(loadedUsername);
+          setGuestData(null);
+          console.log('[ChatBox] Loaded user:', { userId: currentUser.id, username: loadedUsername });
+        } else {
+          // Initialize guest data
+          const guest = getOrCreateGuestId();
+          setGuestData(guest);
+          setUsername(guest.displayName);
+        }
+      } finally {
+        setAuthLoading(false);
       }
     };
 
     loadUserData();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const client = getSupabaseClient();
+    const { data: { subscription } } = client.auth.onAuthStateChange(async (event, session) => {
+      setAuthLoading(true);
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         
         // Load username from profiles
-        const { data: profile } = await supabase
+        const { data: profile } = await client
           .from('profiles')
           .select('username')
           .eq('id', session.user.id)
@@ -84,6 +115,7 @@ export default function ChatBox() {
         setGuestData(guest);
         setUsername(guest.displayName);
       }
+      setAuthLoading(false);
     });
 
     return () => {
@@ -100,9 +132,11 @@ export default function ChatBox() {
 
   // Setup realtime subscription
   useEffect(() => {
-    if (!isOpen || !supabase || !isInitialized) return;
+    if (!isOpen || !isInitialized) return;
 
-    const channel = supabase
+    const client = getSupabaseClient();
+
+    const channel = client
       .channel('chat_messages')
       .on(
         'postgres_changes',
@@ -136,7 +170,9 @@ export default function ChatBox() {
       )
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        setUserCount(Object.keys(state).length);
+        const count = Object.keys(state).length;
+        console.log('[ChatBox] Presence sync:', { count, state });
+        setUserCount(count);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         // Handle user join
@@ -145,14 +181,17 @@ export default function ChatBox() {
         // Handle user leave
       })
       .subscribe(async (status) => {
+        console.log('[ChatBox] Channel subscription status:', status);
         if (status === 'SUBSCRIBED') {
           const guest = !user ? getOrCreateGuestId() : null;
-          await channel.track({
+          const presenceData = {
             user_id: user?.id || null,
             guest_id: guest?.id || null,
-            username: user?.user_metadata?.username || guest?.displayName || 'Guest',
+            username: username || user?.user_metadata?.username || guest?.displayName || 'Guest',
             online_at: new Date().toISOString(),
-          });
+          };
+          console.log('[ChatBox] Tracking presence:', presenceData);
+          await channel.track(presenceData);
         }
       });
 
@@ -171,6 +210,33 @@ export default function ChatBox() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Determine if a message belongs to the current viewer (auth or guest)
+  const isMyMessage = (msg: ChatMessage) => {
+    // For authenticated users, match by user_id
+    if (user?.id && msg.user_id) {
+      const isMatch = msg.user_id === user.id;
+      console.log('[ChatBox] isMyMessage auth check:', { msgUserId: msg.user_id, myUserId: user.id, isMatch, msgUsername: msg.username });
+      return isMatch;
+    }
+    
+    // For guests, match by guest_id
+    if (!user && msg.is_guest && msg.guest_id && guestData?.id) {
+      const isMatch = msg.guest_id === guestData.id;
+      console.log('[ChatBox] isMyMessage guest check:', { msgGuestId: msg.guest_id, myGuestId: guestData.id, isMatch, msgUsername: msg.username });
+      return isMatch;
+    }
+
+    // Fallback: match username case-insensitively
+    const viewerName = (username || user?.user_metadata?.username || user?.email?.split('@')[0] || guestData?.displayName || '').toLowerCase();
+    if (viewerName && msg.username) {
+      const isMatch = msg.username.toLowerCase() === viewerName;
+      console.log('[ChatBox] isMyMessage username check:', { msgUsername: msg.username, myUsername: viewerName, isMatch });
+      return isMatch;
+    }
+
+    return false;
+  };
 
   const loadMessages = async () => {
     setLoading(true);
@@ -204,15 +270,34 @@ export default function ChatBox() {
     setError(null);
 
     try {
-      const isGuest = !user;
+      const client = getSupabaseClient();
+
+      // Re-fetch current user state to ensure we have the latest auth status (session first for speed)
+      const { data: sessionData } = await client.auth.getSession();
+      const sessionUser = sessionData.session?.user ?? null;
+      const currentUser = sessionUser ?? (await client.auth.getUser()).data.user ?? null;
+      const isGuest = !currentUser;
       const guest = isGuest ? getOrCreateGuestId() : null;
+
+      // Derive a fresh username to avoid empty payloads if state is stale
+      const derivedUsername = username
+        || currentUser?.user_metadata?.username
+        || currentUser?.email?.split('@')[0]
+        || guest?.displayName
+        || 'User';
+
+      if (!derivedUsername) {
+        setError('Username not available. Please refresh the page.');
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
 
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: inputMessage,
-          username,
+          username: derivedUsername,
           isGuest,
           guestId: guest?.id,
         }),
@@ -225,6 +310,26 @@ export default function ChatBox() {
       }
 
       setInputMessage('');
+
+      // Optimistically add the sent message so the sender sees it immediately
+      if (data.message) {
+        const patched = {
+          ...data.message,
+          user_id: data.message.user_id ?? currentUser?.id ?? null,
+          guest_id: data.message.guest_id ?? guest?.id ?? null,
+          username: data.message.username || derivedUsername,
+          is_guest: data.message.is_guest ?? isGuest,
+        } as ChatMessage;
+
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === patched.id)) return prev;
+          return [...prev, patched];
+        });
+        scrollToBottom();
+      }
+
+      // Sync with server to ensure we have authoritative data (helps when realtime lags)
+      loadMessages();
       
     } catch (err: any) {
       console.error('Error sending message:', err);
@@ -281,8 +386,8 @@ export default function ChatBox() {
         </button>
       </div>
 
-      {/* Signup incentive banner for guests */}
-      {!user && (
+      {/* Signup incentive banner for guests (wait until auth resolved) */}
+      {!authLoading && !user && (
         <div className="p-3 bg-yellow-500/10 border-b border-yellow-500/20 text-xs text-yellow-400 flex items-start gap-2">
           <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <p>
@@ -313,7 +418,7 @@ export default function ChatBox() {
             <div
               key={msg.id}
               className={`flex flex-col gap-1 ${
-                msg.user_id === user?.id ? 'items-end' : 'items-start'
+                isMyMessage(msg) ? 'items-end' : 'items-start'
               }`}
             >
               <div className="flex items-center gap-2 text-xs">
@@ -330,7 +435,7 @@ export default function ChatBox() {
               </div>
               <div
                 className={`max-w-[80%] px-3 py-2 rounded-xl ${
-                  msg.user_id === user?.id
+                  isMyMessage(msg)
                     ? 'bg-yellow-500/20 border border-yellow-500/30 text-zinc-100'
                     : msg.is_guest
                     ? 'bg-zinc-800 border border-zinc-700 text-zinc-300'
