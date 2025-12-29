@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import AppLink from '@/components/AppLink';
 import type { User } from '@supabase/supabase-js';
@@ -9,6 +8,7 @@ import { getUserStats } from '@/lib/typingResults';
 import type { UserStats } from '@/types/database';
 import Navigation from '@/components/Navigation';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
+import { useSupabase } from '@/components/SupabaseProvider';
 import {
   User as UserIcon,
   Mail,
@@ -37,14 +37,16 @@ export default function AccountClient({ user }: AccountClientProps) {
   const [profile, setProfile] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const { supabase } = useSupabase();
 
   useEffect(() => {
+    if (!supabase) return;
     loadStats();
     loadProfile();
-  }, []);
+  }, [supabase]);
 
   const loadProfile = async () => {
+    if (!supabase) return;
     const { data, error } = await supabase
       .from('profiles')
       .select('elo_rating, wins, losses, draws, matches_played, last_ranked_at, is_admin')
@@ -65,6 +67,7 @@ export default function AccountClient({ user }: AccountClientProps) {
   };
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     // This function will be called after the user confirms sign-out in the toast
     setLoading(true);
     try {
