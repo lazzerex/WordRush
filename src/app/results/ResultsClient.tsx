@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { getUserResultsPaginated, deleteResult } from '@/lib/typingResults';
@@ -23,7 +22,6 @@ export default function ResultsClient({ user }: ResultsClientProps) {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     loadResults(page);
