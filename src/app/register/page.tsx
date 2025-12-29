@@ -1,12 +1,12 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import AppLink from '@/components/AppLink';
 import { UserPlus, CheckCircle2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { broadcastLoadingEvent } from '@/lib/ui-events';
+import { useSupabase } from '@/components/SupabaseProvider';
 
 function RegisterPageContent() {
   const [email, setEmail] = useState('');
@@ -22,7 +22,7 @@ function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo') || '/account';
-  const supabase = createClient();
+  const { supabase } = useSupabase();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +44,7 @@ function RegisterPageContent() {
     }
 
     try {
+      if (!supabase) throw new Error('Supabase not ready');
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -78,6 +79,7 @@ function RegisterPageContent() {
       broadcastLoadingEvent({ active: true, message: 'Connecting to Google…' });
 
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+      if (!supabase) throw new Error('Supabase not ready');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
