@@ -23,9 +23,8 @@ interface SubmitResultRequest {
   language?: string;
 }
 
-// Detects unnatural "bursts" of perfectly timed keystrokes
-// More lenient threshold for natural fast typing
-function detectTypingBursts(gaps: number[], threshold: number = 3): boolean {
+
+function detectTypingBursts(gaps: number[], threshold: number = 1.5): boolean {
   const windowSize = 10; // Check 10-keystroke windows
   for (let i = 0; i <= gaps.length - windowSize; i++) {
     const window = gaps.slice(i, i + windowSize);
@@ -33,15 +32,15 @@ function detectTypingBursts(gaps: number[], threshold: number = 3): boolean {
     const windowVariance = Math.sqrt(
       window.reduce((sum, gap) => sum + Math.pow(gap - mean, 2), 0) / window.length
     );
-    // If any window has variance below threshold, it's suspiciously consistent
+  
     if (windowVariance < threshold) {
-      return true; // Burst detected
+      return true; 
     }
   }
   return false;
 }
 
-// Helper: Calculate timing variance for keystrokes
+
 function calculateTimingVariance(keystrokes: { timestamp: number }[]) {
   if (keystrokes.length < 2) return 0;
   const intervals = [];
@@ -58,7 +57,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const adminClient = createAdminClient();
     
-    // 1. Verify user authentication
+    // Verify user authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(
@@ -79,7 +78,7 @@ export async function POST(request: NextRequest) {
       language = 'en',
     } = body;
 
-    // CRITICAL FIX: Idempotency/replay protection with atomic operation
+    //Idempotency/replay protection with atomic operation
     if (!testId || typeof testId !== 'string') {
       console.error('[ReplayProtection] Missing or invalid test ID');
       return NextResponse.json({ error: 'Missing test ID' }, { status: 400 });
@@ -96,8 +95,7 @@ export async function POST(request: NextRequest) {
     const testKey = `test:${user.id}:${testId}`;
     console.log('[ReplayProtection] Checking test ID:', testId);
     
-    // Use SET with options object (ioredis/upstash style)
-    // Returns null if key already exists (NX option), otherwise returns 'OK'
+    // Use SET with options object, the classic ioredis/upstash style i guess
     const wasSet = await redis.set(testKey, '1', { ex: 86400, nx: true });
     
     if (!wasSet) {
@@ -111,9 +109,8 @@ export async function POST(request: NextRequest) {
 
     console.log('[ReplayProtection] Test ID accepted:', testId);
 
-    // 2. Check rate limit (20 submissions per minute per user)
+    // Check rate limit (20 submissions per minute per user)
     const identifier = getRateLimitIdentifier(request, user.id);
-    // Pass fallback limit (20 per minute) to match Redis config
     const rateLimitResult = await checkRateLimit(testSubmissionLimiter, identifier, 20);
     
     if (!rateLimitResult.success) {
@@ -134,8 +131,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Validate request data
-    if (!keystrokes || !Array.isArray(keystrokes) || keystrokes.length === 0) {
+    // Validate request data
+    if (!keystrokes || !Array.isArray(keystrokes)) {
       return NextResponse.json(
         { error: 'Invalid keystroke data' }, 
         { status: 400 }
@@ -149,18 +146,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Verify keystroke timestamps are sequential and within test duration
+    // Verify keystroke timestamps are sequential and within test duration
+    
+    if (keystrokes.length === 0) {
+      console.log('[Validation] No keystrokes recorded - skipping timing validation');
+    }
+    
     const sortedKeystrokes = [...keystrokes].sort((a, b) => a.timestamp - b.timestamp);
     const firstKeystroke = sortedKeystrokes[0]?.timestamp || startTime;
     const lastKeystroke = sortedKeystrokes[sortedKeystrokes.length - 1]?.timestamp || startTime;
 
     const expectedDurationMs = duration * 1000;
-    // Lenient tolerance to account for:
-    // - Network latency (submission time)
-    // - Timer precision (JavaScript setTimeout drift)
-    // - User typing during final second
-    const BASE_TOLERANCE = 10000; // 10 seconds base tolerance (will need more tests)
-    const SCALE_TOLERANCE = 0.10; // 10% of test duration
+    const BASE_TOLERANCE = 20000; // 20 seconds base tolerance
+    const SCALE_TOLERANCE = 0.20; // 20% of test duration
     const toleranceMs = Math.max(
       BASE_TOLERANCE,
       Math.round(expectedDurationMs * SCALE_TOLERANCE)
@@ -183,9 +181,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Allow keystrokes to start slightly before recorded start (1s grace period)
-    // and extend beyond expected duration with tolerance
-    if (firstKeystroke < startTime - 1000) {
+    // Allow keystrokes to start before recorded start (5s grace period for clock sync issues)
+    if (keystrokes.length > 0 && firstKeystroke < startTime - 5000) {
       console.error('[Timing] First keystroke too early:', {
         firstKeystroke: new Date(firstKeystroke).toISOString(),
         startTime: new Date(startTime).toISOString(),
@@ -197,7 +194,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (lastKeystroke > startTime + expectedDurationMs + toleranceMs) {
+    if (keystrokes.length > 0 && lastKeystroke > startTime + expectedDurationMs + toleranceMs) {
       console.error('[Timing] Last keystroke too late:', {
         lastKeystroke: new Date(lastKeystroke).toISOString(),
         expectedEnd: new Date(startTime + expectedDurationMs).toISOString(),
@@ -210,98 +207,87 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Keystroke gap validation (anti-timing attack) - LENIENT for natural typing
+    // keystroke gap validation (anti-timing attack)
     const keystrokeGaps = [];
     let suspiciouslyLongPauses = 0;
     
-    for (let i = 1; i < sortedKeystrokes.length; i++) {
-      const gap = sortedKeystrokes[i].timestamp - sortedKeystrokes[i - 1].timestamp;
-      keystrokeGaps.push(gap);
-      
-      // Track very long pauses (> 10 seconds) but allow a few (thinking breaks are normal)
-      if (gap > 10000) {
-        suspiciouslyLongPauses++;
+    if (keystrokes.length >= 10) {
+      for (let i = 1; i < sortedKeystrokes.length; i++) {
+        const gap = sortedKeystrokes[i].timestamp - sortedKeystrokes[i - 1].timestamp;
+        keystrokeGaps.push(gap);
+        
+        if (gap > 10000) {
+          suspiciouslyLongPauses++;
+        }
+        
+        if (gap > 30000) { 
+          console.error('[Keystroke] Extremely long pause detected:', gap, 'ms');
+          return NextResponse.json(
+            { error: 'Test session expired or invalid - please try again' },
+            { status: 400 }
+          );
+        }
       }
-      
-      // Only reject if there are multiple extremely long pauses (indicates automation/AI)
-      if (gap > 30000) { // 30 seconds - definitely suspicious
-        console.error('[Keystroke] Extremely long pause detected:', gap, 'ms');
+
+      if (suspiciouslyLongPauses > 3) {
+        console.error('[Keystroke] Too many long pauses:', suspiciouslyLongPauses);
         return NextResponse.json(
-          { error: 'Test session expired or invalid - please try again' },
+          { error: 'Test contains too many long pauses - please maintain consistent typing' },
           { status: 400 }
         );
       }
+
+      if (keystrokeGaps.length > 0) {
+        const avgGap = keystrokeGaps.reduce((a, b) => a + b, 0) / keystrokeGaps.length;
+        
+        if (avgGap < 3 || avgGap > 5000) {
+          console.error('[Keystroke] Invalid average gap:', avgGap, 'ms');
+          return NextResponse.json(
+            { error: 'Invalid typing pattern detected - please type naturally' },
+            { status: 400 }
+          );
+        }
+
+        // too many false positive (will check later)
+        // const timingVariance = calculateTimingVariance(sortedKeystrokes);
+        // console.log('[Debug] Timing variance:', timingVariance, 'ms');
+
+        const testDurationMs = lastKeystroke - firstKeystroke;
+        const keystrokesPerSecond = testDurationMs > 0 ? keystrokes.length / (testDurationMs / 1000) : 0;
+        
+  
+        if (keystrokesPerSecond > 0 && (keystrokesPerSecond < 0.1 || keystrokesPerSecond > 100)) {
+          console.error('[Keystroke] Invalid keystroke rate:', keystrokesPerSecond, '/sec');
+          return NextResponse.json(
+            { error: 'Invalid typing speed detected' },
+            { status: 400 }
+          );
+        }
+
+        
+        // uncomment below function if need to check for burst detection
+        // const burstThreshold = 3; 
+        // if (detectTypingBursts(keystrokeGaps, burstThreshold)) {
+        //   console.error('[Keystroke] Robotic burst pattern detected');
+        //   return NextResponse.json(
+        //     { error: 'Automated typing pattern detected' },
+        //     { status: 400 }
+        //   );
+        // }
+      }
+    } else {
+      console.log('[Validation] Too few keystrokes to validate patterns - skipping');
     }
 
-    // Allow up to 3 long pauses (10+ seconds) for natural thinking breaks
-    if (suspiciouslyLongPauses > 3) {
-      console.error('[Keystroke] Too many long pauses:', suspiciouslyLongPauses);
-      return NextResponse.json(
-        { error: 'Test contains too many long pauses - please maintain consistent typing' },
-        { status: 400 }
-      );
-    }
-
-    if (keystrokeGaps.length > 0) {
-      const avgGap = keystrokeGaps.reduce((a, b) => a + b, 0) / keystrokeGaps.length;
-      
-      // Very lenient average gap check - only catch extreme outliers
-      // Allows: slow typists (up to 3 second average), fast typists (down to 10ms average)
-      if (avgGap < 10 || avgGap > 3000) {
-        console.error('[Keystroke] Invalid average gap:', avgGap, 'ms');
-        return NextResponse.json(
-          { error: 'Invalid typing pattern detected - please type naturally' },
-          { status: 400 }
-        );
-      }
-
-      // Timing variance check (only catch robotic typing)
-      const timingVariance = calculateTimingVariance(sortedKeystrokes);
-      // Only flag if variance is extremely low (< 3ms = robotic/scripted)
-      if (timingVariance < 3) {
-        console.error('[Keystroke] Robotic timing variance:', timingVariance, 'ms');
-        return NextResponse.json(
-          { error: 'Please type naturally without automation tools' },
-          { status: 400 }
-        );
-      }
-
-      // Keystroke rate distribution check (very lenient)
-      const testDurationMs = lastKeystroke - firstKeystroke;
-      const keystrokesPerSecond = keystrokes.length / (testDurationMs / 1000);
-      
-      // Allow: slow hunt-and-peck (0.5/sec) to superhuman bursts (40/sec = 480 WPM)
-      if (keystrokesPerSecond < 0.5 || keystrokesPerSecond > 40) {
-        console.error('[Keystroke] Invalid keystroke rate:', keystrokesPerSecond, '/sec');
-        return NextResponse.json(
-          { error: 'Invalid typing speed detected' },
-          { status: 400 }
-        );
-      }
-
-      // Burst detection (OPTIONAL - disabled by default for better UX)
-      // Uncomment if you need stricter validation
-      // const burstThreshold = 3; // Less than 3ms variance in a 10-keystroke window
-      // if (detectTypingBursts(keystrokeGaps, burstThreshold)) {
-      //   console.error('[Keystroke] Robotic burst pattern detected');
-      //   return NextResponse.json(
-      //     { error: 'Automated typing pattern detected' },
-      //     { status: 400 }
-      //   );
-      // }
-    }
-
-    if (actualDurationFromKeystrokes > expectedDurationMs + toleranceMs) {
+    //just keep some logs for this one
+    if (keystrokes.length > 0 && actualDurationFromKeystrokes > expectedDurationMs + toleranceMs + 5000) {
       console.warn(
-        `Timing mismatch: keystroke duration ${actualDurationFromKeystrokes}ms exceeds expected ${expectedDurationMs}ms`
+        `Timing mismatch: keystroke duration ${actualDurationFromKeystrokes}ms exceeds expected ${expectedDurationMs}ms by a lot`
       );
-      return NextResponse.json(
-        { error: 'Invalid timing - test duration mismatch' },
-        { status: 400 }
-      );
+      
     }
 
-    // 6. Server-side recalculation of stats
+    // Server-side recalculation of stats
     let correctChars = 0;
     let incorrectChars = 0;
     let totalWords = 0;
@@ -312,10 +298,8 @@ export async function POST(request: NextRequest) {
       totalWords++;
 
       if (typed === expected) {
-        // Correct word: count all chars + space
         correctChars += expected.length + 1;
       } else {
-        // Incorrect word: count matching chars as correct, rest as incorrect
         const minLength = Math.min(typed.length, expected.length);
         let matchingChars = 0;
         
@@ -330,13 +314,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. Calculate WPM and accuracy
+    // Calculate WPM and accuracy
     const timeInMinutes = duration / 60;
     const wpm = timeInMinutes > 0 ? Math.round((correctChars / 5) / timeInMinutes) : 0;
     const totalChars = correctChars + incorrectChars;
     const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
 
-    // 8. Validate results are humanly possible
+    //Validate results are humanly possible
     if (wpm > 300) {
       return NextResponse.json(
         { error: 'WPM exceeds human capability (max 300 WPM)' }, 
@@ -351,27 +335,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 9. Enhanced keystroke anti-cheat validation
+    // keystroke anti-cheat validation 
     const expectedKeystrokes = correctChars + incorrectChars;
-    const keystrokeRatio = keystrokes.length / (expectedKeystrokes || 1);
-    if (keystrokeRatio < 0.8 || keystrokeRatio > 3.0) {
+    const keystrokeRatio = keystrokes.length > 0 ? keystrokes.length / (expectedKeystrokes || 1) : 1;
+    if (keystrokes.length > 0 && (keystrokeRatio < 0.3 || keystrokeRatio > 10.0)) {
       return NextResponse.json(
         { error: 'Invalid keystroke-to-character ratio' },
         { status: 400 }
       );
     }
 
-    // Backspace pattern check
     const backspaceCount = keystrokes.filter(k => k.key === 'Backspace').length;
     const backspaceRatio = keystrokes.length > 0 ? backspaceCount / keystrokes.length : 0;
-    if (backspaceRatio > 0.5) {
+    if (keystrokes.length >= 20 && backspaceRatio > 0.8) {
       return NextResponse.json(
         { error: 'Suspicious typing pattern' },
         { status: 400 }
       );
     }
 
-    // 10. Insert validated result into database
+    //Insert validated result into database
     const { data, error } = await adminClient.rpc('insert_validated_typing_result', {
       p_user_id: user.id,
       p_wpm: wpm,
@@ -421,7 +404,7 @@ export async function POST(request: NextRequest) {
       duration
     });
 
-    // 11. Award WRCoins proportionally to performance and duration
+    //Award WRCoins proportionally to performance and duration
     const baseMultiplier = duration > 0 ? duration / 7 : 0; // Scale roughly with legacy rewards
     const coinsEarned = baseMultiplier > 0 ? Math.max(0, Math.round(wpm * baseMultiplier)) : 0;
 
@@ -498,7 +481,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 12. Update Redis leaderboard cache
+    //Update Redis leaderboard cache
     try {
       // Fetch username for cache
       const { data: profileData } = await adminClient
@@ -520,24 +503,21 @@ export async function POST(request: NextRequest) {
       });
     } catch (cacheError) {
       console.error('Error updating leaderboard cache:', cacheError);
-      // Don't fail the request if cache update fails
     }
 
-    // 13. Update user streak
+  
     let streak = null;
     try {
       streak = await updateUserStreak(user.id);
     } catch (streakError) {
       console.error('Error updating user streak:', streakError);
-      // Don't fail the request if streak update fails
     }
 
-    // 14. Return success with calculated stats and coins earned
     return NextResponse.json({ 
       success: true, 
       data: {
         ...data,
-        testId, // Return the test ID for debugging
+        testId, 
         wpm,
         accuracy,
         coinsEarned,
