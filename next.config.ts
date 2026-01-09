@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone', // Enable standalone output for Docker
   productionBrowserSourceMaps: false,
   async headers() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
