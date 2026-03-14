@@ -1,8 +1,45 @@
-it # Architecture: Live Leaderboard System
+# Architecture: Live Leaderboard System
 
 ## Overview
 
 The live leaderboard system uses a **hybrid architecture** combining Supabase Realtime for instant updates and Redis for high-performance caching.
+
+## Current Endpoint Map (Repository)
+
+API handlers currently implemented under `src/app/api/**/route.ts`:
+
+- `GET /api/me`
+- `POST /api/submit-result`
+- `GET /api/leaderboard`
+- `GET /api/word-pool`
+- `GET, POST /api/active-users`
+- `GET /api/user/streak`
+- `GET, POST, DELETE /api/chat`
+- `GET, POST /api/chat/cleanup`
+- `POST, DELETE /api/multiplayer/queue`
+- `POST /api/multiplayer/matches/[matchId]/start-countdown`
+- `POST /api/multiplayer/matches/[matchId]/start-game`
+- `POST /api/multiplayer/matches/[matchId]/finalize`
+- `GET /api/admin/stats`
+- `GET, PATCH, DELETE /api/admin/users`
+- `GET, DELETE /api/admin/results`
+- `GET /api/admin/logs`
+- `GET /api/redis-health`
+
+## Current Runtime Architecture Map
+
+```text
+Browser (Next.js App Router UI)
+   |
+   |---> Next.js Route Handlers (/api/*)
+               |
+               |---> Supabase Auth session checks
+               |---> Supabase PostgreSQL (profiles, results, chat, multiplayer)
+               |---> Supabase Realtime channels
+               |---> Upstash Redis (cache, rate limit, streak, active users, idempotency)
+               |
+               '---> RPC/functions (validated insert, elo finalize, audit, cleanup)
+```
 
 ## Architecture Decisions
 

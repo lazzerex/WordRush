@@ -111,7 +111,7 @@
 - **Admin System**: Comprehensive management tools with audit logging
 - **Live Chat**: Real-time messaging with guest support and automatic expiry
 
-**Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/REDIS.md`](docs/REDIS.md), [`docs/ADMIN_SYSTEM.md`](docs/ADMIN_SYSTEM.md), and [`docs/CHAT_SYSTEM.md`](docs/CHAT_SYSTEM.md) for in-depth technical details.
+**Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/REDIS.md`](docs/REDIS.md), and [`docs/ELO_SYSTEM.md`](docs/ELO_SYSTEM.md) for in-depth technical details.
 
 ## Quick Start
 
@@ -205,8 +205,6 @@ WordRush/
 │   ├── services/             # Business logic (leaderboardCacheService, multiplayerService, typingResultsService, wordPoolService)
 │   ├── types/                # TypeScript types
 │   └── utils/                # Utility functions
-├── database/
-│   └── migrations/           # SQL migrations (prod_db, test_db)
 ├── docs/                     # Documentation
 │   ├── ARCHITECTURE.md       # System architecture
 │   ├── ELO_SYSTEM.md         # ELO rating details
@@ -214,9 +212,53 @@ WordRush/
 ├── public/                   # Static assets (favicon, images)
 ├── scripts/                  # Utility scripts (cache-manager, test-security.js)
 ├── README.md                 # Project overview
-├── SECURITY_AUDIT_REPORT.md  # Security audit
-├── SECURITY_TESTING_GUIDE.md # Security testing guide
 └── ...
+```
+
+## Current API Endpoint Map
+
+This is the current API surface in this repository (`src/app/api/**/route.ts`):
+
+| Endpoint | Method(s) | Auth | Purpose |
+|----------|-----------|------|---------|
+| `/api/me` | `GET` | Optional | Returns current user summary, coins, and admin flag |
+| `/api/submit-result` | `POST` | Required | Validates typing payload, saves result, awards coins, updates streak/cache |
+| `/api/leaderboard` | `GET` | Public | Returns paginated leaderboard with cache-first strategy |
+| `/api/word-pool` | `GET` | Public | Returns word pool by language |
+| `/api/active-users` | `GET` | Public | Returns active users count |
+| `/api/active-users` | `POST` | Required | Marks current user as active |
+| `/api/user/streak` | `GET` | Required | Returns current streak data |
+| `/api/chat` | `GET` | Public | Returns chat messages |
+| `/api/chat` | `POST` | Guest/Auth | Sends chat message with moderation + rate limiting |
+| `/api/chat` | `DELETE` | Required | Deletes own authenticated message |
+| `/api/chat/cleanup` | `GET`, `POST` | Cron secret | Cleans expired chat messages |
+| `/api/multiplayer/queue` | `POST`, `DELETE` | Required | Queue/cancel ranked matchmaking |
+| `/api/multiplayer/matches/[matchId]/start-countdown` | `POST` | Required | Moves match to `countdown` when both players ready |
+| `/api/multiplayer/matches/[matchId]/start-game` | `POST` | Required | Moves match to `in-progress` |
+| `/api/multiplayer/matches/[matchId]/finalize` | `POST` | Required | Finalizes ranked match and applies rating updates |
+| `/api/admin/stats` | `GET` | Admin | Admin dashboard overview metrics |
+| `/api/admin/users` | `GET`, `PATCH`, `DELETE` | Admin | User list, admin/user updates, user deletion |
+| `/api/admin/results` | `GET`, `DELETE` | Admin | Typing result moderation |
+| `/api/admin/logs` | `GET` | Admin | Admin audit trail |
+| `/api/redis-health` | `GET` | Header secret | Redis diagnostics endpoint (`x-admin-secret`) |
+
+## Current Runtime Architecture Map
+
+```text
+Browser (Next.js App Router UI)
+   |
+   |---> Next.js Route Handlers (/api/*)
+               |
+               |---> Supabase Auth (session checks)
+               |---> Supabase Postgres (profiles, typing_results, chat, multiplayer)
+               |---> Supabase Realtime (leaderboard/chat/multiplayer live updates)
+               |---> Upstash Redis (rate limit, leaderboard cache, streaks, idempotency, active users)
+               |
+               '---> Admin RPCs + DB functions (audit logs, validated insert, elo finalization, cleanup)
+
+Deployment options:
+- Vercel (recommended)
+- Docker Compose: Next.js app + Nginx reverse proxy
 ```
 
 ## Security Features
@@ -367,9 +409,8 @@ You've exceeded the rate limit:
 <summary><b>Coins not awarded</b></summary>
 
 1. Verify you're logged in
-2. Check migrations were run (`gamification-system.sql`)
-3. Verify `add_coins` function exists in Supabase
-4. Check server logs for RPC errors
+2. Verify the `add_coins` RPC function exists in Supabase
+3. Check server logs for RPC errors
 </details>
 
 <details>
@@ -398,7 +439,6 @@ If issues persist:
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture, data flow, and design decisions |
 | [`docs/REDIS.md`](docs/REDIS.md) | Complete Redis features guide with examples |
 | [`docs/ELO_SYSTEM.md`](docs/ELO_SYSTEM.md) | ELO rating system implementation |
-| `database/migrations/` | SQL migration files for database setup |
 | `scripts/test-security.js` | Security validation test suite |
 
 ### External Resources
