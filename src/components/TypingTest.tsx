@@ -49,6 +49,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   const [isLoadingWords, setIsLoadingWords] = useState<boolean>(true);
   const [wordPoolError, setWordPoolError] = useState<string | null>(null);
   const [coinsEarned, setCoinsEarned] = useState<number | null>(null);
+  const [latestResultMeta, setLatestResultMeta] = useState<{
+    id: string;
+    userId: string;
+    createdAt: string;
+  } | null>(null);
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,6 +172,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setAccuracy(100);
     setOverlayVisible(true);
     setCoinsEarned(null);
+    setLatestResultMeta(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
     wordsTypedRef.current = [];
@@ -222,6 +228,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setAccuracy(100);
     setOverlayVisible(true);
     setCoinsEarned(null);
+    setLatestResultMeta(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
     wordsTypedRef.current = [];
@@ -277,6 +284,14 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
       const applyServerData = (data: any) => {
         if (!data) {
           return;
+        }
+
+        if (typeof data.id === 'string' && typeof data.user_id === 'string') {
+          setLatestResultMeta({
+            id: data.id,
+            userId: data.user_id,
+            createdAt: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString(),
+          });
         }
 
         if (typeof data.wpm === 'number') {
@@ -558,6 +573,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           incorrectChars={incorrectChars}
           duration={selectedDuration}
           coinsEarned={coinsEarned}
+          latestResultId={latestResultMeta?.id || null}
+          latestResultUserId={latestResultMeta?.userId || null}
+          latestResultCreatedAt={latestResultMeta?.createdAt || null}
           onReset={handleReset}
         />
       )}
