@@ -50,14 +50,15 @@
 
 ### Competitive Features
 - **Global Leaderboard** - Compete with players worldwide
-- **Live Updates** - Instant leaderboard refresh using Supabase Realtime
+- **Live Updates** - Supabase Realtime-driven updates (page 1 auto-refresh, manual refresh on other pages)
 - **Multiplayer Duels** - Real-time simultaneous 1v1 matches with ELO ratings
 - **Countdown System** - 3-second countdown when both players ready
 - **Statistics Dashboard** - Track your progress over time with charts
 - **Daily Streaks** - Maintain consecutive day activity tracking
+- **Results + Mini Leaderboard** - Post-test split view with a live top-6 preview and full leaderboard link
 
 ### Gamification System
-- **WRCoins** - Earn currency by completing tests (10 coins per second)
+- **WRCoins** - Earn currency based on WPM and duration (`coins ≈ round(wpm * duration / 7)`)
 - **Theme Shop** - Purchase beautiful themes with earned coins
 - **Customization** - 7+ themes including Cyberpunk, Sunset, and Light Mode
 - **Active Users Counter** - See how many players are online
@@ -89,7 +90,7 @@
 
 | Category | Technology |
 |----------|------------|
-| **Frontend** | Next.js 15 (App Router), React 19, TypeScript |
+| **Frontend** | Next.js 15.5.x (App Router), React 19, TypeScript |
 | **Styling** | Tailwind CSS 4.x |
 | **Database** | Supabase (PostgreSQL) |
 | **Authentication** | Supabase Auth (Email/Password, OAuth) |
@@ -107,9 +108,16 @@
 - **Advanced Anti-Cheat**: Multi-layer keystroke validation with lenient natural typing support
 - **Server-Side Validation**: Keystroke tracking and WPM recalculation prevent cheating
 - **Row Level Security**: Database-level policies enforce data access controls
-- **Cache Consistency**: Automatic detection and recovery from cache inconsistencies
+- **Cache Consistency Checks**: Cache-read integrity checks with DB fallback + refresh on cache misses
 - **Admin System**: Comprehensive management tools with audit logging
 - **Live Chat**: Real-time messaging with guest support and automatic expiry
+
+### Leaderboard Notes
+
+- Live leaderboard transport is **Supabase Realtime** (not Redis Pub/Sub).
+- Redis is used for cache/rate-limit/session/idempotency.
+- Current UI behavior: page 1 auto-refreshes on new inserts; other pages can be manually refreshed.
+- If Redis keys are manually edited/deleted, cache can become inconsistent; clear the duration key (for example `leaderboard:30`) to force DB repopulation.
 
 **Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/REDIS.md`](docs/REDIS.md), and [`docs/ELO_SYSTEM.md`](docs/ELO_SYSTEM.md) for in-depth technical details.
 
@@ -188,7 +196,6 @@ WordRush/
 │   │   ├── results/          # Test results
 │   │   ├── login/            # Login page
 │   │   ├── register/         # Registration page
-│   │   ├── home/             # Home page
 │   │   ├── layout.tsx        # App layout
 │   │   ├── globals.css       # Global styles
 │   │   └── page.tsx          # Main typing test
@@ -263,7 +270,7 @@ Deployment options:
 
 ## Security Features
 
-WordRush implements **enterprise-grade security** to ensure fair competition:
+WordRush implements layered security to ensure fair competition:
 
 ### Multi-Layer Protection
 
@@ -272,10 +279,10 @@ WordRush implements **enterprise-grade security** to ensure fair competition:
 3. **Lenient Timing Validation** - Server verifies test duration with generous tolerance for natural typing
 4. **Smart Pause Detection** - Allows thinking breaks (up to 10s, max 3 per test)
 5. **Server-Side Recalculation** - WPM/accuracy computed from raw keystrokes
-6. **Sanity Checks** - WPM ≤ 480, accuracy 0-100%, valid durations only
+6. **Sanity Checks** - WPM ≤ 300, accuracy 0-100%, valid durations only
 7. **Row Level Security** - PostgreSQL RLS blocks direct client inserts
 8. **Rate Limiting** - Sliding window algorithm prevents spam (20 submissions/min)
-9. **Flexible Validation** - Supports slow typists (0.5 keystrokes/sec) to fast typists (40 keystrokes/sec)
+9. **Flexible Validation** - Supports broad natural range (0.1 to 100 keystrokes/sec) with anti-abuse checks
 
 ### Data Flow
 
@@ -292,13 +299,13 @@ User Types → Keystrokes Tracked → API Validates → Server Recalculates → 
 - Console manipulation  
 - Direct database insertion  
 - Timing manipulation  
-- Impossible scores (>480 WPM)  
+- Impossible scores (>300 WPM)  
 - Fake keystroke data  
 - API spam/abuse  
 - Robotic typing patterns
 
 While maintaining natural typing experience with support for:
-- Thinking pauses and breaks
+- Thinking pauses and breaks (up to 3 long pauses >10s)
 - Varied typing speeds (slow to fast)
 - Natural rhythm variations
 - Correction delays  
@@ -403,6 +410,15 @@ You've exceeded the rate limit:
 2. Verify Realtime is enabled in Supabase
 3. Check browser console for WebSocket errors
 4. Ensure `typing_results` table has replication enabled
+5. Note: auto-refresh currently focuses on page 1; use manual refresh on other pages
+</details>
+
+<details>
+<summary><b>Leaderboard rank looks wrong after manual Redis key deletion</b></summary>
+
+1. Delete the duration sorted-set key (for example `leaderboard:30`), not only `entry:*` hashes
+2. Hit `/api/leaderboard?duration=30&page=1` once to repopulate from DB
+3. Repeat for other durations (`15`, `60`, `120`) if needed
 </details>
 
 <details>
@@ -524,6 +540,6 @@ Built with amazing open-source technologies:
 
 ---
 
-**Made with by [@lazzerex](https://github.com/lazzerex)**
+**Made by [@lazzerex](https://github.com/lazzerex)**
 
 *If you find this project helpful, consider giving it a star on GitHub!*
