@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RotateCcw, Coins, EyeOff, Eye, Trophy, ChevronRight } from 'lucide-react';
+import { RotateCcw, Coins, Eye, Trophy, ChevronRight, Globe } from 'lucide-react';
 import StatsChart from '../StatsChart';
 import AppLink from '../AppLink';
 import { getUserRank } from '@/lib/leaderboard';
@@ -153,9 +153,20 @@ export const TestResults: React.FC<TestResultsProps> = ({
           <button
             onClick={() => setShowLeaderboard((current) => !current)}
             className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-300 transition-smooth hover:border-zinc-500 hover:text-zinc-100"
+            aria-label={showLeaderboard ? 'Hide leaderboard' : 'Show leaderboard'}
+            title={showLeaderboard ? 'Hide leaderboard' : 'Show leaderboard'}
           >
-            {showLeaderboard ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            {showLeaderboard ? 'Hide leaderboard' : 'Show leaderboard'}
+            {showLeaderboard ? (
+              <>
+                <Globe className="w-3.5 h-3.5" />
+                <span className="sr-only">Hide leaderboard</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-3.5 h-3.5" />
+                Show leaderboard
+              </>
+            )}
           </button>
         </div>
 
