@@ -11,6 +11,7 @@ import { TestResults } from './TypingTest/TestResults';
 import { generateRandomWords, calculateStats } from './TypingTest/helpers';
 import type { DurationOption, WordStatus, KeystrokeData } from './TypingTest/types';
 import { broadcastCoinsEvent, broadcastLoadingEvent } from '@/lib/ui-events';
+import { generateRuntimeUuid } from '@/lib/uuid';
 import { useSupabase } from '@/components/SupabaseProvider';
 
 const WORDS_BUFFER_THRESHOLD = 50;
@@ -65,7 +66,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
 
   // Helper function to generate and store new test ID
   const generateNewTestId = (): string => {
-    const newTestId = crypto.randomUUID();
+    const newTestId = generateRuntimeUuid();
     testIdRef.current = newTestId;
     localStorage.setItem('currentTestId', newTestId);
     console.log('[TestID] Generated new test ID:', newTestId);
