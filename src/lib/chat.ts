@@ -3,6 +3,8 @@
 // =====================================================
 // Guest ID management, profanity filtering, and message validation
 
+import { generateRuntimeUuid } from '@/lib/uuid';
+
 // =====================================================
 // Guest ID Management (Native crypto, no dependencies)
 // =====================================================
@@ -17,11 +19,11 @@ export interface GuestData {
 
 /**
  * Generate guest data with unique ID and readable display name
- * Uses native crypto.randomUUID() - no dependencies needed
+ * Uses runtime-safe UUID generation with graceful fallback
  */
 function generateGuestData(): GuestData {
   // Permanent unique ID for internal use (UUID format)
-  const uniqueId = crypto.randomUUID();
+  const uniqueId = generateRuntimeUuid();
   
   // Human-readable display name using last 6 digits of timestamp
   const displayNumber = Date.now().toString().slice(-6);
@@ -41,7 +43,7 @@ function generateGuestData(): GuestData {
 export function getOrCreateGuestId(): GuestData {
   if (typeof window === 'undefined') {
     return {
-      id: crypto.randomUUID(),
+      id: generateRuntimeUuid(),
       displayName: `guest_${Date.now().toString().slice(-6)}`,
       createdAt: Date.now(),
     };
