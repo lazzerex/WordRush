@@ -43,14 +43,16 @@ const StatsChart: React.FC<StatsChartProps> = ({
 
       if (index === points - 1) {
         return {
-          time: index,
+          time: duration,
           wpm: wpm,
           raw: wpm,
         };
       }
 
+      const scaledTime = Math.round((index / (points - 1)) * duration);
+
       return {
-        time: index,
+        time: scaledTime,
         wpm: Math.round(Math.max(0, Math.min(value, wpm + amplitude))),
         raw: Math.round(Math.max(0, Math.min(value, wpm + amplitude))),
       };
@@ -86,7 +88,7 @@ const StatsChart: React.FC<StatsChartProps> = ({
         {/* Accuracy */}
         <div className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-700/50">
           <div className="text-zinc-400 text-xs uppercase tracking-wider mb-1">acc</div>
-          <div className="text-5xl font-bold text-green-500 leading-none mb-2">{accuracy}%</div>
+          <div className="text-4xl font-bold text-green-500 leading-none mb-2">{accuracy}%</div>
           <div className="text-zinc-500 text-xs">
             {accuracy >= 95 ? 'Excellent' : accuracy >= 90 ? 'Great' : accuracy >= 80 ? 'Good' : 'Fair'}
           </div>
@@ -167,6 +169,9 @@ const StatsChart: React.FC<StatsChartProps> = ({
                 tick={{ fill: '#71717a', fontSize: 12 }}
                 tickLine={false}
                 axisLine={{ stroke: '#3f3f46' }}
+                domain={[0, duration]}
+                type="number"
+                tickCount={Math.min(6, Math.max(3, Math.floor(duration / 3)))}
                 label={{ value: 'seconds', position: 'insideBottomRight', offset: -5, fill: '#52525b', fontSize: 11 }}
               />
               <YAxis 
