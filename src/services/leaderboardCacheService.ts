@@ -83,6 +83,7 @@ export async function getLeaderboardFromCache(
     const total = await redis.zcard(leaderboardKey);
     
     if (!total || total === 0) {
+      console.warn(`[leaderboard_cache][cache_miss] empty_zset duration=${duration} page=${page}`);
       return null;
     }
 
@@ -103,8 +104,8 @@ export async function getLeaderboardFromCache(
 
     // Parse members and batch fetch entry details using pipeline (more efficient)
     const entries: LeaderboardEntry[] = [];
+    const members: string[] = [];
     const pipeline = redis.pipeline();
-    const entryIds: string[] = [];
     
     // withScores returns alternating [member, score, member, score, ...]
     // So we iterate by 2 to get only the members (at even indices)
@@ -113,12 +114,15 @@ export async function getLeaderboardFromCache(
       if (!member) continue; // Skip if member is undefined
       
       const { entryId } = parseLeaderboardMember(member);
-      entryIds.push(entryId);
+      members.push(member);
       pipeline.hgetall(LEADERBOARD_KEYS.entry(entryId));
     }
     
     // Execute all fetches in one Redis call
     const results = await pipeline.exec();
+
+    const orphanMembers: string[] = [];
+    let rankCursor = startIndex + 1;
     
     // Process results
     if (results && Array.isArray(results)) {
@@ -133,17 +137,41 @@ export async function getLeaderboardFromCache(
             wpm: Number(entryData.wpm || 0),
             accuracy: Number(entryData.accuracy || 0),
             created_at: String(entryData.created_at || new Date().toISOString()),
-            rank: startIndex + index + 1,
+            rank: rankCursor,
           });
+          rankCursor += 1;
+        } else {
+          const missingMember = members[index];
+          if (missingMember) {
+            orphanMembers.push(missingMember);
+          }
         }
       });
     }
 
-    // If we have members but no/few entries, it means hashes are missing/expired
-    // Return null to trigger a cache refresh from database
+    // Bounded orphan cleanup: only remove missing members observed in this page window.
+    if (orphanMembers.length > 0) {
+      console.warn(
+        `[leaderboard_cache][hash_missing] duration=${duration} page=${page} orphan_count=${orphanMembers.length}`
+      );
+
+      try {
+        const cleanupPipeline = redis.pipeline();
+        for (const orphanMember of orphanMembers) {
+          cleanupPipeline.zrem(leaderboardKey, orphanMember);
+        }
+        await cleanupPipeline.exec();
+      } catch (cleanupError) {
+        console.error('[leaderboard_cache][hash_missing] orphan_cleanup_failed', cleanupError);
+      }
+    }
+
+    // Stricter page-level integrity check: any short page result triggers fallback.
     const expectedEntries = Math.min(pageSize, total - startIndex);
-    if (entries.length < expectedEntries * 0.5) {
-      console.warn(`⚠️ Cache inconsistency detected: expected ~${expectedEntries} entries, got ${entries.length}. Triggering refresh.`);
+    if (expectedEntries > 0 && entries.length < expectedEntries) {
+      console.warn(
+        `[leaderboard_cache][integrity_fail] duration=${duration} page=${page} expected=${expectedEntries} got=${entries.length} missing=${Math.max(expectedEntries - entries.length, 0)}`
+      );
       return null;
     }
 
