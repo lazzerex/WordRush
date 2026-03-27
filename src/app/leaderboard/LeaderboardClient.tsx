@@ -10,20 +10,110 @@ import { Medal, Award, RefreshCcw, ArrowRight, Crown } from 'lucide-react';
 import AppLink from '@/components/AppLink';
 
 type DurationOption = 15 | 30 | 60 | 120;
+type RowDeltaType = 'insert' | 'move' | 'steady';
+
+interface RowDelta {
+  type: RowDeltaType;
+  previousRank?: number;
+}
+
+interface LoadLeaderboardOptions {
+  showLoader?: boolean;
+  source?: 'manual' | 'realtime';
+}
 
 export default function LeaderboardClient() {
   const PAGE_SIZE = 10;
+  const REALTIME_COALESCE_MS = 5000;
+  const ROW_TRANSITION_MS = 180;
+
   const [selectedDuration, setSelectedDuration] = useState<DurationOption>(30);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [userRank, setUserRank] = useState<{ rank: number; total: number } | null>(null);
-  const [newEntryAnimation, setNewEntryAnimation] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
+  const [hasNewScores, setHasNewScores] = useState(false);
+  const [rowDeltas, setRowDeltas] = useState<Record<string, RowDelta>>({});
+  const [removedRowsCount, setRemovedRowsCount] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
   const pageRef = useRef(page);
+  const leaderboardRef = useRef<LeaderboardEntry[]>([]);
+  const lastLoadedContextRef = useRef<string | null>(null);
+  const realtimeTimerRef = useRef<number | null>(null);
+  const realtimeRefreshInFlightRef = useRef(false);
+  const realtimePendingRef = useRef(false);
+
   const { supabase, isInitialized } = useSupabase();
+
+  useEffect(() => {
+    leaderboardRef.current = leaderboard;
+  }, [leaderboard]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return;
+    }
+
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setPrefersReducedMotion(media.matches);
+    update();
+
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  const clearRealtimeTimer = useCallback(() => {
+    if (realtimeTimerRef.current !== null) {
+      window.clearTimeout(realtimeTimerRef.current);
+      realtimeTimerRef.current = null;
+    }
+  }, []);
+
+  const computeRowDeltas = useCallback((
+    previousRows: LeaderboardEntry[],
+    nextRows: LeaderboardEntry[]
+  ) => {
+    const previousById = new Map<string, number>();
+    const nextIds = new Set(nextRows.map((entry) => entry.id));
+    const deltas: Record<string, RowDelta> = {};
+
+    let removedCount = 0;
+
+    previousRows.forEach((entry, index) => {
+      previousById.set(entry.id, entry.rank ?? index + 1);
+      if (!nextIds.has(entry.id)) {
+        removedCount += 1;
+      }
+    });
+
+    nextRows.forEach((entry, index) => {
+      const previousRank = previousById.get(entry.id);
+      const nextRank = entry.rank ?? index + 1;
+
+      if (!previousRank) {
+        deltas[entry.id] = { type: 'insert' };
+        return;
+      }
+
+      if (previousRank !== nextRank) {
+        deltas[entry.id] = { type: 'move', previousRank };
+        return;
+      }
+
+      deltas[entry.id] = { type: 'steady', previousRank };
+    });
+
+    return {
+      deltas,
+      removedCount,
+      changed: Object.values(deltas).some((item) => item.type !== 'steady') || removedCount > 0,
+    };
+  }, []);
 
   useEffect(() => {
     // Get current user
@@ -34,9 +124,15 @@ export default function LeaderboardClient() {
   }, [supabase, isInitialized]);
 
   const loadLeaderboard = useCallback(
-    async (requestedPage: number = 1) => {
-      setLoading(true);
+    async (requestedPage: number = 1, options: LoadLeaderboardOptions = {}) => {
+      const { showLoader = true, source = 'manual' } = options;
       const safePage = Math.max(1, requestedPage);
+
+      if (showLoader) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
 
       try {
         const response = await fetch(
@@ -55,6 +151,7 @@ export default function LeaderboardClient() {
           console.log(`Loaded ${entries.length} entries from ${source}, total: ${total}`);
           
           const normalizedPage = Math.min(safePage, totalPages || 1);
+          const currentContextKey = `${selectedDuration}:${normalizedPage}`;
 
           if (normalizedPage !== safePage) {
             setPage(normalizedPage);
@@ -62,7 +159,24 @@ export default function LeaderboardClient() {
           }
 
           setLeaderboard(entries);
+
+          const isSameContext = lastLoadedContextRef.current === currentContextKey;
+          const shouldApplyDeltas = source === 'realtime' && isSameContext;
+
+          if (shouldApplyDeltas) {
+            const previousRows = leaderboardRef.current;
+            const deltaResult = computeRowDeltas(previousRows, entries);
+            setRowDeltas(deltaResult.deltas);
+            setRemovedRowsCount(deltaResult.removedCount);
+          } else {
+            setRowDeltas({});
+            setRemovedRowsCount(0);
+          }
+
           setTotalCount(total);
+          lastLoadedContextRef.current = currentContextKey;
+
+          setHasNewScores(false);
         } else {
           console.error('Leaderboard API returned error:', result.error);
         }
@@ -70,9 +184,10 @@ export default function LeaderboardClient() {
         console.error('Error loading leaderboard:', error);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     },
-    [selectedDuration]
+    [selectedDuration, computeRowDeltas]
   );
 
   useEffect(() => {
@@ -82,6 +197,54 @@ export default function LeaderboardClient() {
   useEffect(() => {
     pageRef.current = page;
   }, [page]);
+
+  useEffect(() => {
+    setHasNewScores(false);
+    setRowDeltas({});
+    setRemovedRowsCount(0);
+    realtimePendingRef.current = false;
+    clearRealtimeTimer();
+  }, [page, selectedDuration, clearRealtimeTimer]);
+
+  const runRealtimeRefresh = useCallback(async () => {
+    if (realtimeRefreshInFlightRef.current) {
+      realtimePendingRef.current = true;
+      return;
+    }
+
+    realtimeRefreshInFlightRef.current = true;
+
+    try {
+      await loadLeaderboard(pageRef.current, { showLoader: false, source: 'realtime' });
+    } finally {
+      realtimeRefreshInFlightRef.current = false;
+
+      if (realtimePendingRef.current) {
+        realtimePendingRef.current = false;
+
+        if (pageRef.current === 1) {
+          void runRealtimeRefresh();
+        } else if (realtimeTimerRef.current === null) {
+          setHasNewScores(true);
+          realtimeTimerRef.current = window.setTimeout(() => {
+            realtimeTimerRef.current = null;
+            void runRealtimeRefresh();
+          }, REALTIME_COALESCE_MS);
+        }
+      }
+    }
+  }, [REALTIME_COALESCE_MS, loadLeaderboard]);
+
+  const scheduleCoalescedRefresh = useCallback(() => {
+    if (realtimeTimerRef.current !== null) {
+      return;
+    }
+
+    realtimeTimerRef.current = window.setTimeout(() => {
+      realtimeTimerRef.current = null;
+      void runRealtimeRefresh();
+    }, REALTIME_COALESCE_MS);
+  }, [REALTIME_COALESCE_MS, runRealtimeRefresh]);
 
   const loadUserRank = useCallback(async () => {
     if (!user) {
@@ -110,11 +273,14 @@ export default function LeaderboardClient() {
         },
         (payload) => {
           console.log('🔥 New typing result detected, refreshing leaderboard...', payload);
-          // Refresh leaderboard when someone completes a test
-          // Only refresh if we're on the first page (most relevant for new entries)
+
           if (pageRef.current === 1) {
-            loadLeaderboard(pageRef.current);
+            void runRealtimeRefresh();
+            return;
           }
+
+          setHasNewScores(true);
+          scheduleCoalescedRefresh();
         }
       )
       .subscribe((status) => {
@@ -132,10 +298,18 @@ export default function LeaderboardClient() {
 
     return () => {
       console.log('🔌 Unsubscribing from leaderboard updates');
+      clearRealtimeTimer();
+      realtimePendingRef.current = false;
       supabase.removeChannel(channel);
       setLiveUpdatesEnabled(false);
     };
-  }, [selectedDuration, loadLeaderboard, supabase, isInitialized]);
+  }, [selectedDuration, scheduleCoalescedRefresh, runRealtimeRefresh, supabase, isInitialized, clearRealtimeTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearRealtimeTimer();
+    };
+  }, [clearRealtimeTimer]);
 
   useEffect(() => {
     loadUserRank();
@@ -271,19 +445,37 @@ export default function LeaderboardClient() {
                     <span className="text-[10px] uppercase tracking-wider text-green-400 font-semibold">Live</span>
                   </div>
                 )}
+                {hasNewScores && page > 1 && (
+                  <button
+                    onClick={() => void runRealtimeRefresh()}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-yellow-300 transition-smooth hover:bg-yellow-500/20"
+                    title="New scores detected"
+                  >
+                    <span className={prefersReducedMotion ? '' : 'animate-pulse'}>New scores</span>
+                  </button>
+                )}
+                {removedRowsCount > 0 && (
+                  <div className="rounded-full border border-zinc-700 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-400">
+                    {removedRowsCount} out
+                  </div>
+                )}
               </div>
               <h2 className="mt-2 text-2xl font-semibold text-zinc-50">{selectedDuration} second test</h2>
               <p className="text-sm text-zinc-500">
-                {liveUpdatesEnabled ? 'Auto-updating with new results' : 'Best verified runs from the community'}
+                {liveUpdatesEnabled
+                  ? page === 1
+                    ? 'Auto-updating instantly for new results'
+                    : 'New scores are detected instantly and reconciled every 5s'
+                  : 'Best verified runs from the community'}
               </p>
             </div>
             <button
-              onClick={() => loadLeaderboard(page)}
-              disabled={loading}
+              onClick={() => loadLeaderboard(page, { showLoader: false, source: 'manual' })}
+              disabled={loading || refreshing}
               className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Refreshing' : 'Refresh'}
+              <RefreshCcw className={`w-4 h-4 ${loading || refreshing ? 'animate-spin' : ''}`} />
+              {loading || refreshing ? 'Refreshing' : 'Refresh'}
             </button>
           </div>
 
@@ -322,12 +514,15 @@ export default function LeaderboardClient() {
                     <tr
                       key={entry.id}
                       className={`transition-smooth ${
-                        newEntryAnimation === entry.id
-                          ? 'bg-green-500/10'
+                        rowDeltas[entry.id]?.type === 'insert'
+                          ? 'bg-emerald-500/10'
+                          : rowDeltas[entry.id]?.type === 'move'
+                          ? 'bg-sky-500/10'
                           : isCurrentUser(entry.user_id)
                           ? 'bg-yellow-500/10'
                           : 'hover:bg-zinc-900/40'
                       }`}
+                      style={{ transitionDuration: prefersReducedMotion ? '0ms' : `${ROW_TRANSITION_MS}ms` }}
                     >
                       <td className="px-6 py-5 text-lg font-semibold">
                         <div className={`flex items-center gap-3 ${getRankColor(entry.rank || 0)}`}>
@@ -363,8 +558,11 @@ export default function LeaderboardClient() {
                       </td>
                       <td className="px-6 py-5 text-sm text-zinc-500">
                         {formatDate(entry.created_at)}
-                        {newEntryAnimation === entry.id && (
-                          <span className="ml-2 text-green-400 font-semibold">new</span>
+                        {rowDeltas[entry.id]?.type === 'insert' && (
+                          <span className="ml-2 text-emerald-400 font-semibold">new</span>
+                        )}
+                        {rowDeltas[entry.id]?.type === 'move' && (
+                          <span className="ml-2 text-sky-400 font-semibold">moved</span>
                         )}
                       </td>
                     </tr>
