@@ -44,22 +44,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Try to get from cache first
+    // Try to get from cache first.
+    // `null` means cache miss/integrity fallback. Empty entries can still be a valid page response.
     let result = await getLeaderboardFromCache(duration, page, pageSize);
     let source = 'cache';
 
-    // If cache miss or empty, fall back to database
-    if (!result || result.entries.length === 0) {
+    if (result === null) {
       source = 'database';
       const offset = (page - 1) * pageSize;
       result = await getLeaderboardPaginated(duration, pageSize, offset);
 
-      // Refresh cache in background (don't await) - only if we have entries
-      if (result.entries.length > 0) {
-        refreshLeaderboardCache(duration).catch((error) => {
-          console.error('Error refreshing cache:', error);
-        });
-      }
+      // Refresh cache in background (non-blocking), only on database fallback path.
+      refreshLeaderboardCache(duration).catch((error) => {
+        console.error('Error refreshing cache:', error);
+      });
     }
 
     return NextResponse.json({
