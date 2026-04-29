@@ -24,6 +24,10 @@ interface UseMultiplayerMatchResult {
   resetMatch: () => void;
 }
 
+function abandonMatch(matchId: string) {
+  fetch(`/api/multiplayer/matches/${matchId}/abandon`, { method: 'POST' }).catch(() => {});
+}
+
 export function useMultiplayerMatch(): UseMultiplayerMatchResult {
   const service = useMemo<SupabaseMultiplayerService>(() => createMultiplayerService(), []);
   const [phase, setPhase] = useState<QueuePhase>('idle');
@@ -38,7 +42,26 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
   const finalizeRequested = useRef(false);
   const playerNameMap = useRef<Map<string, string>>(new Map());
 
+  // Tracks the current match for refs that need it without closure staleness.
+  const matchRef = useRef<MultiplayerMatch | null>(null);
+  useEffect(() => {
+    matchRef.current = match;
+  }, [match]);
+
+  // Tracks the most recently abandoned match ID so we skip it immediately in
+  // findActiveAssignment results before the abandon API call completes.
+  const abandonedMatchRef = useRef<string | null>(null);
+
   const resetMatch = useCallback(() => {
+    const activeMatchId = matchRef.current?.id ?? null;
+    const activeMatchState = matchRef.current?.state ?? null;
+
+    // Mark match as completed in DB so it won't resurface on the next queue attempt.
+    if (activeMatchId && activeMatchState && activeMatchState !== 'completed') {
+      abandonedMatchRef.current = activeMatchId;
+      abandonMatch(activeMatchId);
+    }
+
     setMatch(null);
     setMe(null);
     setOpponent(null);
@@ -46,8 +69,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     setPhase('idle');
     setError(null);
     finalizeRequested.current = false;
-    
-    // Clean up all subscriptions
+
     if (assignmentCleanup.current) {
       assignmentCleanup.current();
       assignmentCleanup.current = null;
@@ -60,7 +82,7 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
       matchStateCleanup.current();
       matchStateCleanup.current = null;
     }
-    
+
     playerNameMap.current.clear();
   }, []);
 
@@ -152,7 +174,6 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
       }
     });
 
-    // Subscribe to match state changes (countdown, in-progress, etc.)
     matchStateCleanup.current = service.subscribeToMatchState(bundle.match.id, (updatedMatch) => {
       setMatch(updatedMatch);
     });
@@ -160,16 +181,16 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
 
   const startQueue = useCallback(async () => {
     setError(null);
-    
-    // Clean up any existing subscriptions first
+
     if (assignmentCleanup.current) {
       assignmentCleanup.current();
       assignmentCleanup.current = null;
     }
-    
+
     try {
       const existingMatchId = await service.findActiveAssignment();
-      if (existingMatchId) {
+      // Skip any match we've already locally abandoned (even if DB hasn't updated yet).
+      if (existingMatchId && existingMatchId !== abandonedMatchRef.current) {
         setPhase('matched');
         await hydrateMatch(existingMatchId);
         return;
@@ -181,7 +202,6 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     setPhase('queueing');
 
     try {
-      // Create fresh assignment subscription for new queue session
       assignmentCleanup.current = await service.subscribeToAssignments(async (payload) => {
         setPhase('matched');
         await hydrateMatch(payload.match_id);
@@ -200,7 +220,6 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
       console.error('Matchmaking failed', err);
       setError((err as Error).message ?? 'Unable to queue');
       setPhase('idle');
-      // Clean up on error
       if (assignmentCleanup.current) {
         assignmentCleanup.current();
         assignmentCleanup.current = null;
@@ -208,13 +227,39 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     }
   }, [service, hydrateMatch]);
 
+  // Polling fallback: catches missed Realtime INSERT events when the Supabase
+  // channel is not yet SUBSCRIBED at the moment the match is created.
+  useEffect(() => {
+    if (phase !== 'queued') return;
+
+    let cancelled = false;
+
+    const poll = setInterval(async () => {
+      try {
+        const matchId = await service.findActiveAssignment();
+        if (cancelled) return;
+        if (matchId && matchId !== abandonedMatchRef.current) {
+          clearInterval(poll);
+          setPhase('matched');
+          await hydrateMatch(matchId);
+        }
+      } catch (err) {
+        if (!cancelled) console.error('Assignment poll failed', err);
+      }
+    }, 2500);
+
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+    };
+  }, [phase, service, hydrateMatch]);
+
   const cancelQueue = useCallback(async () => {
     try {
       await service.cancelQueue();
     } catch (err) {
       console.error('Failed to cancel queue', err);
     } finally {
-      // Clean up assignment subscription to prevent ghost matches
       assignmentCleanup.current?.();
       assignmentCleanup.current = null;
       resetMatch();
@@ -250,11 +295,17 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     }
   }, [match, service]);
 
+  // Abandon any active match when the component unmounts (e.g. user navigates away).
   useEffect(() => {
     return () => {
       assignmentCleanup.current?.();
       matchCleanup.current?.();
       matchStateCleanup.current?.();
+
+      const activeMatch = matchRef.current;
+      if (activeMatch && activeMatch.state !== 'completed') {
+        abandonMatch(activeMatch.id);
+      }
     };
   }, []);
 
