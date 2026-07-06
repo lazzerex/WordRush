@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, getAdminStats, logAdminAction } from '@/lib/admin';
+import { checkRateLimit, getRateLimitIdentifier, adminLimiter } from '@/lib/ratelimit';
 
 export async function GET(request: NextRequest) {
   try {
     // Verify admin authentication
     const admin = await requireAdmin();
+
+    const rateLimitResult = await checkRateLimit(adminLimiter, getRateLimitIdentifier(request, admin.userId));
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: rateLimitResult.error || 'Rate limit exceeded' }, { status: 429 });
+    }
 
     // Get dashboard stats
     const stats = await getAdminStats();

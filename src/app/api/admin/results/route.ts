@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, logAdminAction } from '@/lib/admin';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkRateLimit, getRateLimitIdentifier, adminLimiter } from '@/lib/ratelimit';
 
 export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin();
+
+    const rateLimitResult = await checkRateLimit(adminLimiter, getRateLimitIdentifier(request, admin.userId));
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: rateLimitResult.error || 'Rate limit exceeded' }, { status: 429 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '50');
@@ -82,6 +89,12 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const admin = await requireAdmin();
+
+    const rateLimitResult = await checkRateLimit(adminLimiter, getRateLimitIdentifier(request, admin.userId));
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: rateLimitResult.error || 'Rate limit exceeded' }, { status: 429 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const resultId = searchParams.get('resultId');
 

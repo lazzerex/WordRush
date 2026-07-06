@@ -421,32 +421,18 @@ export async function POST(request: NextRequest) {
 
       if (coinsError) {
         console.error('Failed to award coins via RPC:', coinsError);
-        console.log('Attempting direct update instead...');
-        
-        // Fallback: Get current coins, then update
-        const { data: profileData, error: fetchError } = await adminClient
-          .from('profiles')
-          .select('coins')
-          .eq('id', user.id)
-          .single();
-        
-        if (fetchError) {
-          console.error('Failed to fetch profile for coin update:', fetchError);
+        console.log('Attempting atomic fallback increment...');
+
+        const { data: newBalance, error: incrementError } = await adminClient.rpc('increment_user_coins', {
+          p_user_id: user.id,
+          p_amount: coinsEarned,
+        });
+
+        if (incrementError) {
+          console.error('Failed to award coins via atomic fallback:', incrementError);
         } else {
-          const currentCoins = profileData?.coins || 0;
-          const newCoins = currentCoins + coinsEarned;
-          
-          const { error: updateError } = await adminClient
-            .from('profiles')
-            .update({ coins: newCoins })
-            .eq('id', user.id);
-          
-          if (updateError) {
-            console.error('Failed to award coins via direct update:', updateError);
-          } else {
-            console.log(`Successfully awarded ${coinsEarned} coins to user ${user.id} (${currentCoins} -> ${newCoins})`);
-            totalCoins = newCoins;
-          }
+          console.log(`Successfully awarded ${coinsEarned} coins via atomic fallback to user ${user.id} (new balance: ${newBalance})`);
+          totalCoins = newBalance ?? null;
         }
       } else {
         console.log(`Successfully awarded ${coinsEarned} coins via RPC to user ${user.id}`);
