@@ -107,6 +107,15 @@ export const chatLimiter = isRedisConfigured()
     })
   : null;
 
+export const adminLimiter = isRedisConfigured()
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(30, '60 s'),
+      analytics: true,
+      prefix: 'ratelimit:admin',
+    })
+  : null;
+
 /**
  * Helper to check rate limit and return standardized response
  */
@@ -137,8 +146,7 @@ export async function checkRateLimit(
       error: success ? undefined : 'Rate limit exceeded. Please try again later.',
     };
   } catch (error) {
-    console.error('Rate limit check error - FAILING CLOSED:', error);
-    // Fail closed: fallback to in-memory limiter
+    console.error('Rate limit check error - falling back to in-memory limiter (per-instance only, not distributed):', error);
     const allowed = fallbackRateLimit(identifier, fallbackLimit);
     if (!allowed) {
       return {
