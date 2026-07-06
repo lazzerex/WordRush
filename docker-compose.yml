@@ -13,7 +13,7 @@ services:
         - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
         - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
         - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
-        - ADMIN_SECRET=${ADMIN_SECRET}
+        - CRON_SECRET=${CRON_SECRET}
     container_name: wordrush_app
     restart: unless-stopped
     ports:
@@ -28,8 +28,7 @@ services:
       # Redis Configuration (uses Upstash Cloud by default)
       - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
       - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
-      # Admin Secret
-      - ADMIN_SECRET=${ADMIN_SECRET}
+      - CRON_SECRET=${CRON_SECRET}
     networks:
       - wordrush-network
     volumes:
