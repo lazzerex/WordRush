@@ -91,7 +91,7 @@ export async function logAdminAction(
       p_details: details || null,
     });
   } catch (error) {
-    console.error('Error logging admin action:', error);
+    console.error('[AUDIT_LOG_FAILURE] Admin action was not recorded:', { adminId, action, targetType, targetId, error });
   }
 }
 
