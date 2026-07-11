@@ -63,13 +63,27 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   const keystrokesRef = useRef<KeystrokeData[]>([]);
   const wordsTypedRef = useRef<string[]>([]);
   const testStartTimeRef = useRef<number>(0);
+  const wordsToTypeRef = useRef<string[]>([]);
+  const correctCharsRef = useRef<number>(0);
+  const incorrectCharsRef = useRef<number>(0);
+
+  useEffect(() => {
+    wordsToTypeRef.current = wordsToType;
+  }, [wordsToType]);
+
+  useEffect(() => {
+    correctCharsRef.current = correctChars;
+  }, [correctChars]);
+
+  useEffect(() => {
+    incorrectCharsRef.current = incorrectChars;
+  }, [incorrectChars]);
 
   // Helper function to generate and store new test ID
   const generateNewTestId = (): string => {
     const newTestId = generateRuntimeUuid();
     testIdRef.current = newTestId;
     localStorage.setItem('currentTestId', newTestId);
-    console.log('[TestID] Generated new test ID:', newTestId);
     return newTestId;
   };
 
@@ -77,12 +91,10 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   useEffect(() => {
     // Wait for Supabase to be initialized before fetching words
     if (!isInitialized) {
-      console.log('[TypingTest] Waiting for Supabase to initialize...');
       return;
     }
 
     const loadWordPool = async () => {
-      console.log('[TypingTest] Loading word pool...');
       setIsLoadingWords(true);
       setWordPoolError(null);
 
@@ -243,7 +255,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setTestActive(false);
     setTestComplete(true);
 
-    const stats = calculateStats(correctChars, incorrectChars, selectedDuration, timeLeft);
+    const stats = calculateStats(correctCharsRef.current, incorrectCharsRef.current, selectedDuration, 0);
     setWpm(stats.wpm);
     setAccuracy(stats.accuracy);
 
@@ -254,13 +266,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
       const testId = testIdRef.current;
       if (!testId) {
         console.error('[TestID] No test ID found - cannot submit results');
-        console.error('[TestID] This should never happen - test ID should be generated on mount');
-        // Don't attempt submission without valid test ID
         return;
       }
 
-      console.log('[TestID] Submitting results with test ID:', testId);
-      
       broadcastLoadingEvent({ active: true, message: 'Syncing your rewards…' });
       
       const response = await fetch('/api/submit-result', {
@@ -272,7 +280,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           testId,
           keystrokes: keystrokesRef.current,
           wordsTyped: wordsTypedRef.current,
-          expectedWords: wordsToType,
+          expectedWords: wordsToTypeRef.current,
           duration: selectedDuration,
           startTime: testStartTimeRef.current,
           theme: 'monkeytype-inspired',
@@ -315,22 +323,16 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
       if (!response.ok) {
         // Handle unauthorized (not logged in) silently - this is expected behavior
         if (response.status === 401) {
-          console.log('[TestID] User not logged in - results not saved');
           return;
         }
-        
-        // Handle duplicate submission
+
         if (response.status === 400 && result.error?.includes('already submitted')) {
           console.warn('[TestID] Duplicate submission detected:', testId);
-          console.warn('[TestID] This test was already submitted');
         }
-        
-        // For other errors, log but don't break the UX
+
         console.warn('Could not save result:', result.error);
         applyServerData(result.data);
       } else {
-        // Successfully saved - update with server-validated stats if available
-        console.log('[TestID] Results saved successfully:', testId);
         applyServerData(result.data);
         
         // Clear the test ID from localStorage after successful submission
