@@ -16,21 +16,13 @@ interface SupabaseContextType {
 const SupabaseContext = createContext<SupabaseContextType | null>(null);
 
 export function SupabaseProvider({ children }: { children: ReactNode }) {
-  const [supabase] = useState<SupabaseClient>(() => {
-    console.log('[SupabaseProvider] Creating client synchronously...');
-    return createClient();
-  });
+  const [supabase] = useState<SupabaseClient>(() => createClient());
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    console.log('[SupabaseProvider] Starting session load...');
-    
-    // Load session to ensure auth is ready
-    supabase.auth.getSession().then(({ data, error }) => {
+    supabase.auth.getSession().then(({ error }) => {
       if (error) {
         console.warn('[SupabaseProvider] Session load error:', error);
-      } else {
-        console.log('[SupabaseProvider] Session loaded:', { hasSession: !!data.session });
       }
       setIsInitialized(true);
     }).catch(err => {
@@ -38,8 +30,6 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       setIsInitialized(true);
     });
   }, [supabase]);
-
-  console.log('[SupabaseProvider] Render - isInitialized:', isInitialized);
 
   return (
     <SupabaseContext.Provider value={{ supabase, isInitialized }}>
