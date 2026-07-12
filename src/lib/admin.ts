@@ -151,31 +151,36 @@ export async function getAdminStats(): Promise<AdminStats> {
     .order('coins', { ascending: false })
     .limit(10);
 
-  const topPlayers = await Promise.all(
-    (topPlayersData || []).map(async (player) => {
-      const { count: totalTests } = await adminClient
-        .from('typing_results')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', player.id);
+  const playerIds = (topPlayersData || []).map((player) => player.id);
 
-      const { data: bestResult } = await adminClient
+  // Single round trip for all top players' results, aggregated in JS,
+  // instead of 2 queries per player (count + best wpm).
+  const { data: topPlayersResults } = playerIds.length
+    ? await adminClient
         .from('typing_results')
-        .select('wpm')
-        .eq('user_id', player.id)
-        .order('wpm', { ascending: false })
-        .limit(1)
-        .single();
+        .select('user_id, wpm')
+        .in('user_id', playerIds)
+    : { data: [] as { user_id: string; wpm: number }[] };
 
-      return {
-        id: player.id,
-        username: player.username || 'Unknown',
-        email: player.email || '',
-        totalTests: totalTests || 0,
-        bestWpm: bestResult?.wpm || 0,
-        coins: player.coins || 0,
-      };
-    })
-  );
+  const resultsByPlayer = new Map<string, { totalTests: number; bestWpm: number }>();
+  for (const result of topPlayersResults || []) {
+    const entry = resultsByPlayer.get(result.user_id) || { totalTests: 0, bestWpm: 0 };
+    entry.totalTests += 1;
+    entry.bestWpm = Math.max(entry.bestWpm, result.wpm);
+    resultsByPlayer.set(result.user_id, entry);
+  }
+
+  const topPlayers = (topPlayersData || []).map((player) => {
+    const stats = resultsByPlayer.get(player.id);
+    return {
+      id: player.id,
+      username: player.username || 'Unknown',
+      email: player.email || '',
+      totalTests: stats?.totalTests || 0,
+      bestWpm: stats?.bestWpm || 0,
+      coins: player.coins || 0,
+    };
+  });
 
   return {
     totalUsers: totalUsers || 0,
