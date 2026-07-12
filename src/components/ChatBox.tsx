@@ -23,6 +23,17 @@ import {
 } from 'lucide-react';
 
 const UNREAD_STORAGE_KEY = 'wordrush_chat_last_read';
+const AUTH_CALL_TIMEOUT_MS = 5000;
+
+// Auth calls (getSession/getUser) share a browser-wide lock across tabs and
+// can hang indefinitely if another tab stalls while holding it. Never let
+// that block the UI - fall back to null after a timeout.
+function withAuthTimeout<T>(promise: Promise<T>): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), AUTH_CALL_TIMEOUT_MS)),
+  ]);
+}
 
 export default function ChatBox() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -64,12 +75,12 @@ export default function ChatBox() {
       try {
         // Try session first (fast, local), then fall back to getUser (network) to avoid stale guest state.
         const client = getSupabaseClient();
-        const { data: sessionData } = await client.auth.getSession();
-        let currentUser = sessionData.session?.user ?? null;
+        const sessionResult = await withAuthTimeout(client.auth.getSession());
+        let currentUser = sessionResult?.data.session?.user ?? null;
 
         if (!currentUser) {
-          const { data: userData } = await client.auth.getUser();
-          currentUser = userData.user ?? null;
+          const userResult = await withAuthTimeout(client.auth.getUser());
+          currentUser = userResult?.data.user ?? null;
         }
 
         setUser(currentUser);
@@ -298,16 +309,14 @@ export default function ChatBox() {
     setError(null);
 
     try {
-      const client = getSupabaseClient();
-
-      // Re-fetch current user state to ensure we have the latest auth status (session first for speed)
-      const { data: sessionData } = await client.auth.getSession();
-      const sessionUser = sessionData.session?.user ?? null;
-      const currentUser = sessionUser ?? (await client.auth.getUser()).data.user ?? null;
+      // Use the user/guest state already tracked by the mount-time load and
+      // onAuthStateChange listener - re-fetching via getSession/getUser here
+      // would compete for the browser-wide auth lock and can hang the send
+      // indefinitely if another tab is stalled holding it.
+      const currentUser = user;
       const isGuest = !currentUser;
-      const guest = isGuest ? getOrCreateGuestId() : null;
+      const guest = isGuest ? (guestData || getOrCreateGuestId()) : null;
 
-      // Derive a fresh username to avoid empty payloads if state is stale
       const derivedUsername = username
         || currentUser?.user_metadata?.username
         || currentUser?.email?.split('@')[0]
