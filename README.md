@@ -11,6 +11,7 @@
   <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white"/>
   <img src="https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white"/>
   <img src="https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Husky-42B983?style=flat&logo=husky&logoColor=white"/>
 </p>
 <p align="center">
   <img src="https://img.shields.io/github/stars/lazzerex/WordRush?style=flat&logo=github"/>
