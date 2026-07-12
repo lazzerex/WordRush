@@ -141,7 +141,14 @@ export async function POST(request: NextRequest) {
 
     if (!wordsTyped || !expectedWords || !duration || !startTime) {
       return NextResponse.json(
-        { error: 'Missing required fields' }, 
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(wordsTyped) || !Array.isArray(expectedWords)) {
+      return NextResponse.json(
+        { error: 'Invalid word data' },
         { status: 400 }
       );
     }
