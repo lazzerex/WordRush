@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '@/components/SupabaseProvider';
 import { 
@@ -22,6 +22,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+const UNREAD_STORAGE_KEY = 'wordrush_chat_last_read';
+
 export default function ChatBox() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -34,6 +36,10 @@ export default function ChatBox() {
   const [guestData, setGuestData] = useState<GuestData | null>(null);
   const [userCount, setUserCount] = useState(0);
   const [authLoading, setAuthLoading] = useState(true);
+  const [lastReadAt, setLastReadAt] = useState<string>(() => {
+    if (typeof window === 'undefined') return new Date().toISOString();
+    return localStorage.getItem(UNREAD_STORAGE_KEY) || new Date().toISOString();
+  });
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -79,7 +85,6 @@ export default function ChatBox() {
           const loadedUsername = profile?.username || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User';
           setUsername(loadedUsername);
           setGuestData(null);
-          console.log('[ChatBox] Loaded user:', { userId: currentUser.id, username: loadedUsername });
         } else {
           // Initialize guest data
           const guest = getOrCreateGuestId();
@@ -123,21 +128,21 @@ export default function ChatBox() {
     };
   }, [supabase, isInitialized]);
 
-  // Load initial messages when chat opens
+  // Load message history once on mount (not gated on open) so unread count
+  // can be computed even before the chat is first opened
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      loadMessages();
-    }
-  }, [isOpen]);
+    loadMessages();
+  }, []);
 
-  // Setup realtime subscription
+  // Message stream: stays subscribed regardless of open state so unread
+  // messages are tracked while the widget is closed
   useEffect(() => {
-    if (!isOpen || !isInitialized) return;
+    if (!isInitialized) return;
 
     const client = getSupabaseClient();
 
     const channel = client
-      .channel('chat_messages')
+      .channel('chat_messages_stream')
       .on(
         'postgres_changes',
         {
@@ -148,7 +153,6 @@ export default function ChatBox() {
         (payload) => {
           const newMessage = payload.new as ChatMessage;
           setMessages((prev) => {
-            // Avoid duplicates
             if (prev.some(m => m.id === newMessage.id)) {
               return prev;
             }
@@ -168,11 +172,24 @@ export default function ChatBox() {
           setMessages((prev) => prev.filter(m => m.id !== payload.old.id));
         }
       )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [isInitialized, supabase]);
+
+  // Presence: only tracked while the widget is actually open
+  useEffect(() => {
+    if (!isOpen || !isInitialized) return;
+
+    const client = getSupabaseClient();
+
+    const channel = client
+      .channel('chat_presence')
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        const count = Object.keys(state).length;
-        console.log('[ChatBox] Presence sync:', { count, state });
-        setUserCount(count);
+        setUserCount(Object.keys(state).length);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         // Handle user join
@@ -181,7 +198,6 @@ export default function ChatBox() {
         // Handle user leave
       })
       .subscribe(async (status) => {
-        console.log('[ChatBox] Channel subscription status:', status);
         if (status === 'SUBSCRIBED') {
           const guest = !user ? getOrCreateGuestId() : null;
           const presenceData = {
@@ -190,7 +206,6 @@ export default function ChatBox() {
             username: username || user?.user_metadata?.username || guest?.displayName || 'Guest',
             online_at: new Date().toISOString(),
           };
-          console.log('[ChatBox] Tracking presence:', presenceData);
           await channel.track(presenceData);
         }
       });
@@ -201,6 +216,18 @@ export default function ChatBox() {
       channel.unsubscribe();
     };
   }, [isOpen, user, supabase, isInitialized]);
+
+  // Mark messages as read when the widget closes (or unmounts while open)
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => {
+      const now = new Date().toISOString();
+      setLastReadAt(now);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(UNREAD_STORAGE_KEY, now);
+      }
+    };
+  }, [isOpen]);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -215,28 +242,29 @@ export default function ChatBox() {
   const isMyMessage = (msg: ChatMessage) => {
     // For authenticated users, match by user_id
     if (user?.id && msg.user_id) {
-      const isMatch = msg.user_id === user.id;
-      console.log('[ChatBox] isMyMessage auth check:', { msgUserId: msg.user_id, myUserId: user.id, isMatch, msgUsername: msg.username });
-      return isMatch;
+      return msg.user_id === user.id;
     }
-    
+
     // For guests, match by guest_id
     if (!user && msg.is_guest && msg.guest_id && guestData?.id) {
-      const isMatch = msg.guest_id === guestData.id;
-      console.log('[ChatBox] isMyMessage guest check:', { msgGuestId: msg.guest_id, myGuestId: guestData.id, isMatch, msgUsername: msg.username });
-      return isMatch;
+      return msg.guest_id === guestData.id;
     }
 
     // Fallback: match username case-insensitively
     const viewerName = (username || user?.user_metadata?.username || user?.email?.split('@')[0] || guestData?.displayName || '').toLowerCase();
     if (viewerName && msg.username) {
       const isMatch = msg.username.toLowerCase() === viewerName;
-      console.log('[ChatBox] isMyMessage username check:', { msgUsername: msg.username, myUsername: viewerName, isMatch });
       return isMatch;
     }
 
     return false;
   };
+
+  const unreadCount = useMemo(() => {
+    if (isOpen) return 0;
+    const lastReadTime = new Date(lastReadAt).getTime();
+    return messages.filter((m) => new Date(m.created_at).getTime() > lastReadTime && !isMyMessage(m)).length;
+  }, [messages, lastReadAt, isOpen, user, guestData, username]);
 
   const loadMessages = async () => {
     setLoading(true);
@@ -355,9 +383,11 @@ export default function ChatBox() {
         title="Open chat"
       >
         <MessageCircle className="w-6 h-6 text-zinc-900" />
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
-          {userCount || ''}
-        </span>
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
     );
   }
