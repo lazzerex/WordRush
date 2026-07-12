@@ -20,15 +20,32 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    let settled = false;
+    const markInitialized = () => {
+      if (settled) return;
+      settled = true;
+      setIsInitialized(true);
+    };
+
+    // getSession() can hang indefinitely if another tab holds the browser-wide
+    // auth lock (navigator.locks) and stalls (e.g. backgrounded tab, network
+    // hiccup). Don't let that block this tab's initialization forever.
+    const timeout = setTimeout(() => {
+      console.warn('[SupabaseProvider] Session load timed out, proceeding uninitialized');
+      markInitialized();
+    }, 5000);
+
     supabase.auth.getSession().then(({ error }) => {
       if (error) {
         console.warn('[SupabaseProvider] Session load error:', error);
       }
-      setIsInitialized(true);
+      markInitialized();
     }).catch(err => {
       console.error('[SupabaseProvider] Session load exception:', err);
-      setIsInitialized(true);
-    });
+      markInitialized();
+    }).finally(() => clearTimeout(timeout));
+
+    return () => clearTimeout(timeout);
   }, [supabase]);
 
   return (
