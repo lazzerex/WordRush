@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveUsersCount, markUserActive } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit, generalLimiter, getRateLimitIdentifier } from '@/lib/ratelimit';
 
 export async function GET() {
   try {
@@ -24,17 +25,40 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let identity: string;
+
+    if (user) {
+      identity = user.id;
+    } else {
+      // Guests also count toward "players online" - same guest identity
+      // pattern used by chat (sessionStorage UUID from getOrCreateGuestId()).
+      const body = await request.json().catch(() => ({}));
+      const guestId = body?.guestId;
+
+      if (!guestId || typeof guestId !== 'string' || guestId.length > 100) {
+        return NextResponse.json(
+          { error: 'Guest ID required' },
+          { status: 400 }
+        );
+      }
+
+      // Rate-limit guest pings by IP - authenticated calls are already
+      // implicitly bounded by real accounts, guests aren't.
+      const identifier = getRateLimitIdentifier(request);
+      const rateLimitResult = await checkRateLimit(generalLimiter, identifier, 60);
+      if (!rateLimitResult.success) {
+        return NextResponse.json(
+          { error: 'Too many requests' },
+          { status: 429 }
+        );
+      }
+
+      identity = `guest:${guestId}`;
     }
 
-    await markUserActive(user.id);
+    await markUserActive(identity);
 
     return NextResponse.json({
       success: true,
