@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Users } from 'lucide-react';
+import { getOrCreateGuestId } from '@/lib/chat';
 
 export default function OnlinePlayersCounter() {
   const [onlineCount, setOnlineCount] = useState(0);
@@ -24,10 +25,16 @@ export default function OnlinePlayersCounter() {
       }
     }
 
-    // Mark current user as active
+    // Mark current user as active (guestId is ignored server-side if the
+    // caller turns out to be authenticated)
     async function markActive() {
       try {
-        await fetch('/api/active-users', { method: 'POST' });
+        const { id: guestId } = getOrCreateGuestId();
+        await fetch('/api/active-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guestId }),
+        });
       } catch (error) {
         console.error('Error marking user active:', error);
       }
