@@ -1,9 +1,39 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
+
+function buildCsp(nonce: string) {
+  return `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: blob: https:;
+    font-src 'self' data:;
+    connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL || ''} ${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', 'wss://')} ${process.env.UPSTASH_REDIS_REST_URL || ''};
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function withCsp(response: NextResponse, nonce: string) {
+  response.headers.set('Content-Security-Policy', buildCsp(nonce));
+  return response;
+}
 
 export async function middleware(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: {
+      headers: requestHeaders,
+    },
   });
 
   const supabase = createServerClient(
@@ -17,7 +47,9 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
-            request,
+            request: {
+              headers: requestHeaders,
+            },
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -35,7 +67,9 @@ export async function middleware(request: NextRequest) {
     // If there's a refresh token error, clear the auth cookies
     if (error && error.message.includes('refresh_token_not_found')) {
       const response = NextResponse.next({
-        request,
+        request: {
+          headers: requestHeaders,
+        },
       });
 
       // Clear all Supabase auth cookies
@@ -49,16 +83,16 @@ export async function middleware(request: NextRequest) {
 
       // Redirect to login if trying to access protected routes
       if (request.nextUrl.pathname.startsWith('/account')) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        return withCsp(NextResponse.redirect(new URL('/login', request.url)), nonce);
       }
 
-      return response;
+      return withCsp(response, nonce);
     }
 
     user = data.user;
   } catch (error) {
     // Handle any other auth errors gracefully
-    console.error('Auth error in middleware:', error);
+    logger.error('Auth error in middleware:', error);
   }
 
   // Protect authenticated routes - redirect to login if not authenticated
@@ -70,13 +104,13 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute && !user) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('returnTo', request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
+    return withCsp(NextResponse.redirect(redirectUrl), nonce);
   }
 
   // Protect admin routes - check if user is admin
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      return withCsp(NextResponse.redirect(new URL('/login', request.url)), nonce);
     }
 
     // Check admin status
@@ -87,7 +121,7 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return withCsp(NextResponse.redirect(new URL('/', request.url)), nonce);
     }
   }
 
@@ -97,10 +131,10 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/register')) &&
     user
   ) {
-    return NextResponse.redirect(new URL('/account', request.url));
+    return withCsp(NextResponse.redirect(new URL('/account', request.url)), nonce);
   }
 
-  return supabaseResponse;
+  return withCsp(supabaseResponse, nonce);
 }
 
 export const config = {
