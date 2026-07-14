@@ -69,7 +69,7 @@ async function fetchLeaderboardBatch(
   };
 }
 
-function mapLeaderboardEntries(
+export function mapLeaderboardEntries(
   rawEntries: any[],
   offset: number,
   profileMap: Record<string, { username?: string; email?: string }>
