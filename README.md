@@ -13,6 +13,7 @@
   <img src="https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white"/>
   <img src="https://img.shields.io/badge/Vitest-6E9F18?style=flat&logo=vitest&logoColor=white"/>
   <img src="https://img.shields.io/badge/Biome-60A5FA?style=flat&logo=biome&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Sentry-362D59?style=flat&logo=sentry&logoColor=white"/>
   <img src="https://img.shields.io/badge/Husky-42B983?style=flat&logo=husky&logoColor=white"/>
 </p>
 <p align="center">
@@ -104,6 +105,7 @@
 | **Testing** | Vitest (pure-function unit tests) |
 | **Formatting** | Biome |
 | **Linting** | ESLint (`eslint-config-next`) |
+| **Error Tracking** | Sentry (`@sentry/nextjs`) |
 | **Deployment** | Vercel |
 
 ### Architecture Highlights
@@ -129,10 +131,19 @@
 
 ### Code Quality & CI
 
-- **Unit Tests** - Vitest suite covering pure logic (WPM/accuracy calculation, word generation, leaderboard rank mapping, rating thresholds)
+- **Unit Tests** - Vitest suite covering pure logic (WPM/accuracy calculation, ELO rating math, word generation, leaderboard rank mapping, rating thresholds)
 - **Formatting** - Biome enforces consistent style (`npm run format:check`); linting stays on ESLint (`eslint-config-next`) for Next.js/React-specific rules
 - **Pre-push Gate** - Husky runs format check, lint, typecheck, and tests before every push
 - **CI Pipeline** - GitHub Actions runs format check, lint, typecheck, tests, build, and `npm audit` on every push/PR to `main`
+
+### Error Tracking (Sentry)
+
+- **Full-stack coverage** - `src/instrumentation.ts` initializes Sentry for the Node.js and edge runtimes (API routes, middleware); `src/instrumentation-client.ts` initializes it in the browser.
+- **Error Boundaries** - `src/app/error.tsx` and `src/app/global-error.tsx` catch unhandled render errors, show a fallback UI, and report to Sentry via `Sentry.captureException`.
+- **Leveled Logging Integration** - server-side errors also go through the structured `logger` (see below), so they land in both Sentry and console/log-aggregator output.
+- **CSP-aware** - the Sentry ingest origin is parsed from the DSN and allow-listed in the per-request CSP `connect-src` (`src/middleware.ts`), so browser error reporting isn't blocked.
+- **Admin Test Trigger** - admins see a "Sentry Test" button in the nav that hits `/api/admin/sentry-test` (auth-gated, deliberately throws) to verify delivery end-to-end.
+- **Optional** - the app runs fine with no DSN configured; Sentry simply stays disabled. Source map upload at build time also requires `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`, otherwise builds still succeed with unminified-but-unmapped stack traces.
 
 ## Quick Start
 
@@ -171,6 +182,9 @@
    # Optional (for caching, rate limiting, streaks)
    UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
    UPSTASH_REDIS_REST_TOKEN=your-redis-token
+
+   # Optional (for error tracking - see Error Tracking section below)
+   NEXT_PUBLIC_SENTRY_DSN=your-sentry-dsn
    ```
 
 4. **Start development server:**
@@ -189,10 +203,10 @@ For enhanced performance and features:
 3. Restart dev server
 
 **Without Redis:**
-- ✅ Leaderboard works (slower, direct DB queries)
-- ❌ No rate limiting
-- ❌ No active users counter
-- ❌ No daily streaks
+- Leaderboard works (slower, direct DB queries)
+- No rate limiting
+- No active users counter
+- No daily streaks
 
 ## Project Structure
 
