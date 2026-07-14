@@ -11,6 +11,8 @@
   <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white"/>
   <img src="https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white"/>
   <img src="https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Vitest-6E9F18?style=flat&logo=vitest&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Biome-60A5FA?style=flat&logo=biome&logoColor=white"/>
   <img src="https://img.shields.io/badge/Husky-42B983?style=flat&logo=husky&logoColor=white"/>
 </p>
 <p align="center">
@@ -99,6 +101,9 @@
 | **Caching** | Upstash Redis (sorted sets, hashes, rate limiting) |
 | **Charts** | Recharts |
 | **Icons** | Lucide React |
+| **Testing** | Vitest (pure-function unit tests) |
+| **Formatting** | Biome |
+| **Linting** | ESLint (`eslint-config-next`) |
 | **Deployment** | Vercel |
 
 ### Architecture Highlights
@@ -121,6 +126,13 @@
 - If Redis keys are manually edited/deleted, cache can become inconsistent; clear the duration key (for example `leaderboard:30`) to force DB repopulation.
 
 **Detailed Documentation:** See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/REDIS.md`](docs/REDIS.md), and [`docs/ELO_SYSTEM.md`](docs/ELO_SYSTEM.md) for in-depth technical details.
+
+### Code Quality & CI
+
+- **Unit Tests** - Vitest suite covering pure logic (WPM/accuracy calculation, word generation, leaderboard rank mapping, rating thresholds)
+- **Formatting** - Biome enforces consistent style (`npm run format:check`); linting stays on ESLint (`eslint-config-next`) for Next.js/React-specific rules
+- **Pre-push Gate** - Husky runs format check, lint, typecheck, and tests before every push
+- **CI Pipeline** - GitHub Actions runs format check, lint, typecheck, tests, build, and `npm audit` on every push/PR to `main`
 
 ## Quick Start
 
@@ -371,6 +383,11 @@ Compatible with any Next.js 15 hosting:
 | `npm run build` | Build for production |
 | `npm start` | Start production server |
 | `npm run lint` | Run ESLint checks |
+| `npm run typecheck` | Run TypeScript type checking |
+| `npm test` | Run Vitest unit test suite |
+| `npm run test:watch` | Run Vitest in watch mode |
+| `npm run format` | Format codebase with Biome |
+| `npm run format:check` | Check formatting without writing |
 | `node scripts/test-security.js` | Test security measures |
 
 ## Troubleshooting
