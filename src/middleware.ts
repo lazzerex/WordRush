@@ -2,6 +2,16 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 
+function sentryIngestOrigin(): string {
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (!dsn) return '';
+  try {
+    return new URL(dsn).origin;
+  } catch {
+    return '';
+  }
+}
+
 function buildCsp(nonce: string) {
   return `
     default-src 'self';
@@ -9,7 +19,7 @@ function buildCsp(nonce: string) {
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob: https:;
     font-src 'self' data:;
-    connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL || ''} ${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', 'wss://')} ${process.env.UPSTASH_REDIS_REST_URL || ''};
+    connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL || ''} ${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace('https://', 'wss://')} ${process.env.UPSTASH_REDIS_REST_URL || ''} ${sentryIngestOrigin()};
     object-src 'none';
     base-uri 'self';
     form-action 'self';
