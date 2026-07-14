@@ -26,7 +26,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
   duration = 400,
   easing = 'ease-out',
   extraScale = 1.0,
-  children
+  children,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sparksRef = useRef<Spark[]>([]);
@@ -132,7 +132,6 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     };
   }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale]);
 
-
   // Listen for global clicks
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -147,7 +146,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         x,
         y,
         angle: (2 * Math.PI * i) / sparkCount,
-        startTime: now
+        startTime: now,
       }));
 
       sparksRef.current.push(...newSparks);
@@ -166,7 +165,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         position: 'fixed',
         inset: 0,
         pointerEvents: 'none',
-        zIndex: 9999
+        zIndex: 9999,
       }}
     >
       <canvas
@@ -174,7 +173,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
         }}
       />
       {children}

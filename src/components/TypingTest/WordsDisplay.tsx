@@ -65,21 +65,16 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
     }
 
     const baseTop = firstWord.offsetTop;
-    const nextMap = wordRefs.current
-      .slice(0, wordsToType.length)
-      .map((word) => {
-        if (!word) {
-          return 0;
-        }
-        const relativeTop = word.offsetTop - baseTop;
-        return Math.round(relativeTop / resolvedLineHeight);
-      });
+    const nextMap = wordRefs.current.slice(0, wordsToType.length).map((word) => {
+      if (!word) {
+        return 0;
+      }
+      const relativeTop = word.offsetTop - baseTop;
+      return Math.round(relativeTop / resolvedLineHeight);
+    });
 
     setWordLineMap((prev) => {
-      if (
-        prev.length === nextMap.length &&
-        prev.every((value, idx) => value === nextMap[idx])
-      ) {
+      if (prev.length === nextMap.length && prev.every((value, idx) => value === nextMap[idx])) {
         return prev;
       }
       return nextMap;
@@ -104,9 +99,8 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
     return () => observer.disconnect();
   }, [measureLines]);
 
-  const fallbackLineIndex = wordLineMap.length > 0
-    ? wordLineMap[Math.min(currentWordIndex, wordLineMap.length - 1)]
-    : 0;
+  const fallbackLineIndex =
+    wordLineMap.length > 0 ? wordLineMap[Math.min(currentWordIndex, wordLineMap.length - 1)] : 0;
   const currentLineIndex = wordLineMap[currentWordIndex] ?? fallbackLineIndex;
   const hiddenLineCount = Math.max(0, currentLineIndex - 1);
   const translateY = hiddenLineCount * lineHeightPx;
@@ -116,8 +110,8 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
       <div
         ref={containerRef}
         className={`bg-zinc-800/30 rounded-2xl p-12 min-h-[280px] focus:outline-none cursor-text transition-smooth ${
-          !testActive 
-            ? 'ring-2 ring-yellow-500/30 hover:ring-yellow-500/50' 
+          !testActive
+            ? 'ring-2 ring-yellow-500/30 hover:ring-yellow-500/50'
             : 'ring-2 ring-yellow-500/60'
         }`}
         onClick={onContainerClick}
@@ -164,7 +158,7 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
             </div>
           )}
         </div>
-        
+
         {/* Click to focus overlay */}
         {!testActive && overlayVisible && !isLoadingWords && !wordPoolError && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-fadeIn">
@@ -180,4 +174,3 @@ export const WordsDisplay: React.FC<WordsDisplayProps> = ({
     </div>
   );
 };
-

@@ -30,11 +30,7 @@ export async function createTypingSession(
   }
 
   try {
-    await redis.setex(
-      `${SESSION_PREFIX}:${sessionId}`,
-      SESSION_TTL,
-      JSON.stringify(data)
-    );
+    await redis.setex(`${SESSION_PREFIX}:${sessionId}`, SESSION_TTL, JSON.stringify(data));
     console.log(`✅ Created typing session: ${sessionId}`);
     return true;
   } catch (error) {
@@ -46,16 +42,14 @@ export async function createTypingSession(
 /**
  * Get typing test session
  */
-export async function getTypingSession(
-  sessionId: string
-): Promise<TypingSession | null> {
+export async function getTypingSession(sessionId: string): Promise<TypingSession | null> {
   if (!isRedisConfigured()) {
     return null;
   }
 
   try {
     const data = await redis.get<string>(`${SESSION_PREFIX}:${sessionId}`);
-    
+
     if (!data) {
       return null;
     }
@@ -128,7 +122,7 @@ export async function updateUserStreak(userId: string): Promise<UserStreak | nul
   try {
     const key = `${STREAK_PREFIX}:${userId}`;
     const data = await redis.get<UserStreak>(key);
-    
+
     const today = new Date().toISOString().split('T')[0];
     let streak: UserStreak;
 
@@ -186,7 +180,7 @@ export async function getUserStreak(userId: string): Promise<UserStreak | null> 
 
   try {
     const data = await redis.get<string>(`${STREAK_PREFIX}:${userId}`);
-    
+
     if (!data) {
       return null;
     }

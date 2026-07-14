@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * Cleanup expired chat messages
  * - Guest messages older than 1 hour
  * - Authenticated messages older than 24 hours
- * 
+ *
  * This endpoint should be called by Vercel Cron Jobs
  * Configure in vercel.json
  */
@@ -16,10 +16,7 @@ export async function GET(request: NextRequest) {
     const cronSecret = process.env.CRON_SECRET;
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const adminClient = createAdminClient();
@@ -30,10 +27,10 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error running cleanup function:', error);
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: error.message,
-          details: 'Failed to execute cleanup function'
+          details: 'Failed to execute cleanup function',
         },
         { status: 500 }
       );
@@ -49,14 +46,13 @@ export async function GET(request: NextRequest) {
       deletedCount,
       timestamp: new Date().toISOString(),
     });
-
   } catch (error: any) {
     console.error('Chat cleanup cron error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Internal server error',
-        details: error.message 
+        details: error.message,
       },
       { status: 500 }
     );

@@ -24,8 +24,11 @@ export interface AdminStats {
 export async function isAdmin(): Promise<boolean> {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return false;
     }
@@ -52,8 +55,11 @@ export async function isAdmin(): Promise<boolean> {
  */
 export async function requireAdmin(): Promise<{ userId: string; email: string }> {
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
   if (authError || !user) {
     throw new Error('Unauthorized - Please log in');
   }
@@ -91,7 +97,13 @@ export async function logAdminAction(
       p_details: details || null,
     });
   } catch (error) {
-    console.error('[AUDIT_LOG_FAILURE] Admin action was not recorded:', { adminId, action, targetType, targetId, error });
+    console.error('[AUDIT_LOG_FAILURE] Admin action was not recorded:', {
+      adminId,
+      action,
+      targetType,
+      targetId,
+      error,
+    });
   }
 }
 
@@ -112,16 +124,14 @@ export async function getAdminStats(): Promise<AdminStats> {
     .select('*', { count: 'exact', head: true });
 
   // Get total coins distributed
-  const { data: coinsData } = await adminClient
-    .from('profiles')
-    .select('coins');
-  
+  const { data: coinsData } = await adminClient.from('profiles').select('coins');
+
   const totalCoinsDistributed = coinsData?.reduce((sum, p) => sum + (p.coins || 0), 0) || 0;
 
   // Get tests today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const { count: testsToday } = await adminClient
     .from('typing_results')
     .select('*', { count: 'exact', head: true })
@@ -132,16 +142,14 @@ export async function getAdminStats(): Promise<AdminStats> {
     .from('typing_results')
     .select('user_id')
     .gte('created_at', today.toISOString());
-  
-  const activeUsersToday = new Set(activeUsersData?.map(r => r.user_id)).size;
+
+  const activeUsersToday = new Set(activeUsersData?.map((r) => r.user_id)).size;
 
   // Get average WPM
-  const { data: wpmData } = await adminClient
-    .from('typing_results')
-    .select('wpm');
-  
-  const averageWpm = wpmData?.length 
-    ? wpmData.reduce((sum, r) => sum + r.wpm, 0) / wpmData.length 
+  const { data: wpmData } = await adminClient.from('typing_results').select('wpm');
+
+  const averageWpm = wpmData?.length
+    ? wpmData.reduce((sum, r) => sum + r.wpm, 0) / wpmData.length
     : 0;
 
   // Get top players
@@ -156,10 +164,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   // Single round trip for all top players' results, aggregated in JS,
   // instead of 2 queries per player (count + best wpm).
   const { data: topPlayersResults } = playerIds.length
-    ? await adminClient
-        .from('typing_results')
-        .select('user_id, wpm')
-        .in('user_id', playerIds)
+    ? await adminClient.from('typing_results').select('user_id, wpm').in('user_id', playerIds)
     : { data: [] as { user_id: string; wpm: number }[] };
 
   const resultsByPlayer = new Map<string, { totalTests: number; bestWpm: number }>();

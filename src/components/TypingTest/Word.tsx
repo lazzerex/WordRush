@@ -32,7 +32,7 @@ export const Word: React.FC<WordProps> = ({
   const cursorPositionCh = isCurrentWord ? Math.min(currentInput.length, displayWidthCh) : 0;
 
   return (
-    <span 
+    <span
       className={`relative inline-block whitespace-nowrap align-top transition-smooth ${
         isPastWord ? 'opacity-60' : 'opacity-100'
       } font-mono roboto-mono font-medium`}
@@ -44,7 +44,7 @@ export const Word: React.FC<WordProps> = ({
       {isCurrentWord ? (
         <>
           {/* Current word - character by character */}
-            {word.split('').map((char, charIndex) => {
+          {word.split('').map((char, charIndex) => {
             const typedChar = currentInput[charIndex];
             let className = 'text-zinc-500 transition-colors duration-150';
             let highlightClass = '';
@@ -61,14 +61,12 @@ export const Word: React.FC<WordProps> = ({
               </span>
             );
           })}
-          
+
           {/* Extra characters typed */}
           {currentInput.length > word.length && (
-            <span className="text-red-400 animate-shake">
-              {currentInput.slice(word.length)}
-            </span>
+            <span className="text-red-400 animate-shake">{currentInput.slice(word.length)}</span>
           )}
-          
+
           {/* Cursor */}
           <span
             className="pointer-events-none absolute w-[1.5px] h-[1.35em] bg-yellow-400 rounded animate-caret"
@@ -81,14 +79,14 @@ export const Word: React.FC<WordProps> = ({
         </>
       ) : isPastWord ? (
         /* Past words */
-        <span className={`transition-smooth ${wordStatus === 'correct' ? 'text-green-400' : 'text-red-400'} font-medium`}>
+        <span
+          className={`transition-smooth ${wordStatus === 'correct' ? 'text-green-400' : 'text-red-400'} font-medium`}
+        >
           {word}
         </span>
       ) : (
         /* Future words */
-        <span className="text-zinc-500 transition-smooth font-medium">
-          {word}
-        </span>
+        <span className="text-zinc-500 transition-smooth font-medium">{word}</span>
       )}
     </span>
   );

@@ -8,23 +8,20 @@ export const redis = new Redis({
 
 // Helper to check if Redis is properly configured
 export function isRedisConfigured(): boolean {
-  return !!(
-    process.env.UPSTASH_REDIS_REST_URL &&
-    process.env.UPSTASH_REDIS_REST_TOKEN
-  );
+  return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
 // Leaderboard key generators
 export const LEADERBOARD_KEYS = {
   // Sorted set for each duration (stores user_id as member, score as composite of wpm/accuracy)
   leaderboard: (duration: number) => `leaderboard:${duration}`,
-  
+
   // Hash to store full entry details
   entry: (entryId: string) => `entry:${entryId}`,
-  
+
   // Channel for real-time updates
   updates: (duration: number) => `leaderboard-updates:${duration}`,
-  
+
   // Cache for user rank
   userRank: (userId: string, duration: number) => `rank:${userId}:${duration}`,
 };
@@ -41,9 +38,9 @@ export function calculateLeaderboardScore(
   // Invert timestamp so earlier times have higher scores (max timestamp - current)
   const maxTimestamp = 8640000000000000; // Max JS timestamp
   const invertedTime = maxTimestamp - timestamp;
-  
+
   // Composite score: WPM (primary), Accuracy (secondary), Time (tertiary)
-  return wpm * 1000000 + accuracy * 1000 + (invertedTime / 1000000000);
+  return wpm * 1000000 + accuracy * 1000 + invertedTime / 1000000000;
 }
 
 // Parse member from leaderboard entry

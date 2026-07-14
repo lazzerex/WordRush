@@ -1,8 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import type {
-  MultiplayerMatch,
-  MultiplayerMatchPlayer,
-} from '@/types/database';
+import type { MultiplayerMatch, MultiplayerMatchPlayer } from '@/types/database';
 
 export type QueueStatus =
   | { status: 'queued' }
@@ -69,18 +66,15 @@ export class SupabaseMultiplayerService {
   }
 
   async fetchMatch(matchId: string): Promise<MatchBundle | null> {
-    const [{ data: match, error: matchError }, { data: players, error: playerError }] = await Promise.all([
-      this.supabase
-        .from('multiplayer_matches')
-        .select('*')
-        .eq('id', matchId)
-        .single(),
-      this.supabase
-        .from('multiplayer_match_players')
-        .select('*, profiles:profiles(username)')
-        .eq('match_id', matchId)
-        .order('created_at', { ascending: true }),
-    ]);
+    const [{ data: match, error: matchError }, { data: players, error: playerError }] =
+      await Promise.all([
+        this.supabase.from('multiplayer_matches').select('*').eq('id', matchId).single(),
+        this.supabase
+          .from('multiplayer_match_players')
+          .select('*, profiles:profiles(username)')
+          .eq('match_id', matchId)
+          .order('created_at', { ascending: true }),
+      ]);
 
     console.log('fetchMatch debug:', { matchId, match, matchError, players, playerError });
 
@@ -170,14 +164,18 @@ export class SupabaseMultiplayerService {
 
     const channel = this.supabase
       .channel(`match-assignments-${user.id}`)
-      .on('postgres_changes', {
-        schema: 'public',
-        table: 'multiplayer_match_players',
-        event: 'INSERT',
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        callback(payload.new as MultiplayerMatchPlayer);
-      })
+      .on(
+        'postgres_changes',
+        {
+          schema: 'public',
+          table: 'multiplayer_match_players',
+          event: 'INSERT',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          callback(payload.new as MultiplayerMatchPlayer);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -226,20 +224,21 @@ export class SupabaseMultiplayerService {
     return data.match_id;
   }
 
-  subscribeToMatch(
-    matchId: string,
-    onUpdate: MatchUpdateCallback
-  ): Cleanup {
+  subscribeToMatch(matchId: string, onUpdate: MatchUpdateCallback): Cleanup {
     const channel = this.supabase
       .channel(`match-${matchId}`)
-      .on('postgres_changes', {
-        schema: 'public',
-        table: 'multiplayer_match_players',
-        event: 'UPDATE',
-        filter: `match_id=eq.${matchId}`,
-      }, (payload) => {
-        onUpdate(payload.new as MultiplayerMatchPlayer);
-      })
+      .on(
+        'postgres_changes',
+        {
+          schema: 'public',
+          table: 'multiplayer_match_players',
+          event: 'UPDATE',
+          filter: `match_id=eq.${matchId}`,
+        },
+        (payload) => {
+          onUpdate(payload.new as MultiplayerMatchPlayer);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -253,14 +252,18 @@ export class SupabaseMultiplayerService {
   ): Cleanup {
     const channel = this.supabase
       .channel(`match-state-${matchId}`)
-      .on('postgres_changes', {
-        schema: 'public',
-        table: 'multiplayer_matches',
-        event: 'UPDATE',
-        filter: `id=eq.${matchId}`,
-      }, (payload) => {
-        onMatchUpdate(payload.new as MultiplayerMatch);
-      })
+      .on(
+        'postgres_changes',
+        {
+          schema: 'public',
+          table: 'multiplayer_matches',
+          event: 'UPDATE',
+          filter: `id=eq.${matchId}`,
+        },
+        (payload) => {
+          onMatchUpdate(payload.new as MultiplayerMatch);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -270,7 +273,7 @@ export class SupabaseMultiplayerService {
 
   async updateMatchState(matchId: string, state: MultiplayerMatch['state']): Promise<void> {
     const updates: Partial<MultiplayerMatch> = { state };
-    
+
     if (state === 'countdown') {
       updates.countdown_started_at = new Date().toISOString();
     } else if (state === 'in-progress') {

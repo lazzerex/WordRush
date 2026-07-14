@@ -23,9 +23,11 @@ export const broadcastCoinsEvent = (coins: number) => {
   }
 
   const emit = () => {
-    window.dispatchEvent(new CustomEvent<CoinsEventDetail>(COINS_EVENT, {
-      detail: { coins },
-    }));
+    window.dispatchEvent(
+      new CustomEvent<CoinsEventDetail>(COINS_EVENT, {
+        detail: { coins },
+      })
+    );
   };
 
   if (typeof queueMicrotask === 'function') {
@@ -41,9 +43,11 @@ export const broadcastThemeEvent = (detail: ThemeEventDetail) => {
   }
 
   const emit = () => {
-    window.dispatchEvent(new CustomEvent<ThemeEventDetail>(THEME_EVENT, {
-      detail,
-    }));
+    window.dispatchEvent(
+      new CustomEvent<ThemeEventDetail>(THEME_EVENT, {
+        detail,
+      })
+    );
   };
 
   if (typeof queueMicrotask === 'function') {
@@ -59,9 +63,11 @@ export const broadcastLoadingEvent = (detail: LoadingEventDetail) => {
   }
 
   const emit = () => {
-    window.dispatchEvent(new CustomEvent<LoadingEventDetail>(LOADING_EVENT, {
-      detail,
-    }));
+    window.dispatchEvent(
+      new CustomEvent<LoadingEventDetail>(LOADING_EVENT, {
+        detail,
+      })
+    );
   };
 
   if (typeof queueMicrotask === 'function') {

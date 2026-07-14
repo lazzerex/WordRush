@@ -28,10 +28,7 @@ export async function GET() {
     }
 
     const displayName =
-      profile?.username ||
-      user.user_metadata?.username ||
-      user.email?.split('@')[0] ||
-      'User';
+      profile?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'User';
 
     return NextResponse.json({
       user: {
@@ -44,9 +41,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[api/me] Unexpected error', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

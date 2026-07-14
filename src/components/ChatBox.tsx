@@ -3,24 +3,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '@/components/SupabaseProvider';
-import { 
-  getOrCreateGuestId, 
+import {
+  getOrCreateGuestId,
   formatRelativeTime,
   validateMessage,
   type ChatMessage,
-  type GuestData
+  type GuestData,
 } from '@/lib/chat';
 import { createClient as createBrowserSupabase } from '@/lib/supabase/client';
-import { 
-  MessageCircle, 
-  Send, 
-  Users, 
-  Info, 
-  X,
-  Clock,
-  Shield,
-  AlertCircle
-} from 'lucide-react';
+import { MessageCircle, Send, Users, Info, X, Clock, Shield, AlertCircle } from 'lucide-react';
 
 const UNREAD_STORAGE_KEY = 'wordrush_chat_last_read';
 const AUTH_CALL_TIMEOUT_MS = 5000;
@@ -51,7 +42,7 @@ export default function ChatBox() {
     if (typeof window === 'undefined') return new Date().toISOString();
     return localStorage.getItem(UNREAD_STORAGE_KEY) || new Date().toISOString();
   });
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const fallbackClientRef = useRef<SupabaseClient | null>(null);
@@ -84,7 +75,7 @@ export default function ChatBox() {
         }
 
         setUser(currentUser);
-        
+
         if (currentUser) {
           // Load username from profiles table
           const { data: profile } = await client
@@ -92,8 +83,12 @@ export default function ChatBox() {
             .select('username')
             .eq('id', currentUser.id)
             .single();
-          
-          const loadedUsername = profile?.username || currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User';
+
+          const loadedUsername =
+            profile?.username ||
+            currentUser.user_metadata?.username ||
+            currentUser.email?.split('@')[0] ||
+            'User';
           setUsername(loadedUsername);
           setGuestData(null);
         } else {
@@ -111,19 +106,26 @@ export default function ChatBox() {
 
     // Listen for auth state changes
     const client = getSupabaseClient();
-    const { data: { subscription } } = client.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange(async (event, session) => {
       setAuthLoading(true);
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
-        
+
         // Load username from profiles
         const { data: profile } = await client
           .from('profiles')
           .select('username')
           .eq('id', session.user.id)
           .single();
-        
-        setUsername(profile?.username || session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'User');
+
+        setUsername(
+          profile?.username ||
+            session.user.user_metadata?.username ||
+            session.user.email?.split('@')[0] ||
+            'User'
+        );
         setGuestData(null);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -164,7 +166,7 @@ export default function ChatBox() {
         (payload) => {
           const newMessage = payload.new as ChatMessage;
           setMessages((prev) => {
-            if (prev.some(m => m.id === newMessage.id)) {
+            if (prev.some((m) => m.id === newMessage.id)) {
               return prev;
             }
             return [...prev, newMessage];
@@ -180,7 +182,7 @@ export default function ChatBox() {
           table: 'chat_messages',
         },
         (payload) => {
-          setMessages((prev) => prev.filter(m => m.id !== payload.old.id));
+          setMessages((prev) => prev.filter((m) => m.id !== payload.old.id));
         }
       )
       .subscribe();
@@ -262,7 +264,13 @@ export default function ChatBox() {
     }
 
     // Fallback: match username case-insensitively
-    const viewerName = (username || user?.user_metadata?.username || user?.email?.split('@')[0] || guestData?.displayName || '').toLowerCase();
+    const viewerName = (
+      username ||
+      user?.user_metadata?.username ||
+      user?.email?.split('@')[0] ||
+      guestData?.displayName ||
+      ''
+    ).toLowerCase();
     if (viewerName && msg.username) {
       const isMatch = msg.username.toLowerCase() === viewerName;
       return isMatch;
@@ -274,7 +282,9 @@ export default function ChatBox() {
   const unreadCount = useMemo(() => {
     if (isOpen) return 0;
     const lastReadTime = new Date(lastReadAt).getTime();
-    return messages.filter((m) => new Date(m.created_at).getTime() > lastReadTime && !isMyMessage(m)).length;
+    return messages.filter(
+      (m) => new Date(m.created_at).getTime() > lastReadTime && !isMyMessage(m)
+    ).length;
   }, [messages, lastReadAt, isOpen, user, guestData, username]);
 
   const loadMessages = async () => {
@@ -282,7 +292,7 @@ export default function ChatBox() {
     try {
       const response = await fetch('/api/chat?limit=50');
       const data = await response.json();
-      
+
       if (data.success) {
         setMessages(data.messages);
       }
@@ -315,13 +325,14 @@ export default function ChatBox() {
       // indefinitely if another tab is stalled holding it.
       const currentUser = user;
       const isGuest = !currentUser;
-      const guest = isGuest ? (guestData || getOrCreateGuestId()) : null;
+      const guest = isGuest ? guestData || getOrCreateGuestId() : null;
 
-      const derivedUsername = username
-        || currentUser?.user_metadata?.username
-        || currentUser?.email?.split('@')[0]
-        || guest?.displayName
-        || 'User';
+      const derivedUsername =
+        username ||
+        currentUser?.user_metadata?.username ||
+        currentUser?.email?.split('@')[0] ||
+        guest?.displayName ||
+        'User';
 
       if (!derivedUsername) {
         setError('Username not available. Please refresh the page.');
@@ -367,7 +378,6 @@ export default function ChatBox() {
 
       // Sync with server to ensure we have authoritative data (helps when realtime lags)
       loadMessages();
-      
     } catch (err: any) {
       console.error('Error sending message:', err);
       setError(err.message || 'Failed to send message');
@@ -402,9 +412,7 @@ export default function ChatBox() {
   }
 
   return (
-    <div 
-      className="fixed bottom-6 right-6 z-20 w-96 h-[600px] bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl flex flex-col"
-    >
+    <div className="fixed bottom-6 right-6 z-20 w-96 h-[600px] bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-zinc-700 bg-zinc-800/50">
         <div className="flex items-center gap-3">
@@ -430,7 +438,8 @@ export default function ChatBox() {
         <div className="p-3 bg-yellow-500/10 border-b border-yellow-500/20 text-xs text-yellow-400 flex items-start gap-2">
           <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <p>
-            <strong>Sign up</strong> to keep your messages for 24 hours! Guest messages expire in 1 hour.
+            <strong>Sign up</strong> to keep your messages for 24 hours! Guest messages expire in 1
+            hour.
           </p>
         </div>
       )}
@@ -456,14 +465,12 @@ export default function ChatBox() {
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex flex-col gap-1 ${
-                isMyMessage(msg) ? 'items-end' : 'items-start'
-              }`}
+              className={`flex flex-col gap-1 ${isMyMessage(msg) ? 'items-end' : 'items-start'}`}
             >
               <div className="flex items-center gap-2 text-xs">
-                <span className={`font-medium ${
-                  msg.is_guest ? 'text-zinc-500' : 'text-yellow-500'
-                }`}>
+                <span
+                  className={`font-medium ${msg.is_guest ? 'text-zinc-500' : 'text-yellow-500'}`}
+                >
                   {msg.is_guest && <Shield className="w-3 h-3 inline mr-1" />}
                   {msg.username}
                 </span>
@@ -477,8 +484,8 @@ export default function ChatBox() {
                   isMyMessage(msg)
                     ? 'bg-yellow-500/20 border border-yellow-500/30 text-zinc-100'
                     : msg.is_guest
-                    ? 'bg-zinc-800 border border-zinc-700 text-zinc-300'
-                    : 'bg-zinc-800 border border-zinc-600 text-zinc-200'
+                      ? 'bg-zinc-800 border border-zinc-700 text-zinc-300'
+                      : 'bg-zinc-800 border border-zinc-600 text-zinc-200'
                 }`}
               >
                 <p className="text-sm break-words whitespace-pre-wrap">{msg.message}</p>
@@ -524,9 +531,7 @@ export default function ChatBox() {
             )}
           </button>
         </div>
-        <p className="text-xs text-zinc-500 mt-2">
-          {inputMessage.length}/500 characters
-        </p>
+        <p className="text-xs text-zinc-500 mt-2">{inputMessage.length}/500 characters</p>
       </div>
     </div>
   );

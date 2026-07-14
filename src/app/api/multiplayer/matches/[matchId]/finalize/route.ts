@@ -5,10 +5,7 @@ interface FinalizeParams {
   matchId: string;
 }
 
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<FinalizeParams> }
-) {
+export async function POST(_request: Request, { params }: { params: Promise<FinalizeParams> }) {
   const supabase = await createClient();
   const {
     data: { user },

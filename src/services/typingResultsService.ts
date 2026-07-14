@@ -17,7 +17,10 @@ export interface SaveResultParams {
 export interface ITypingResultsService {
   saveResult(params: SaveResultParams): Promise<TypingResult | null>;
   getUserResults(limit?: number, offset?: number): Promise<TypingResult[]>;
-  getUserResultsPaginated(limit?: number, offset?: number): Promise<{ results: TypingResult[]; total: number }>;
+  getUserResultsPaginated(
+    limit?: number,
+    offset?: number
+  ): Promise<{ results: TypingResult[]; total: number }>;
   getUserStats(): Promise<UserStats | null>;
   deleteResult(resultId: string): Promise<boolean>;
 }
@@ -31,7 +34,9 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
   private supabase = createClient();
 
   async saveResult(params: SaveResultParams): Promise<TypingResult | null> {
-    const { data: { user } } = await this.supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await this.supabase.auth.getUser();
 
     if (!user) {
       console.log('User not authenticated, result not saved');
@@ -71,7 +76,9 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
     limit: number = 10,
     offset: number = 0
   ): Promise<{ results: TypingResult[]; total: number }> {
-    const { data: { user } } = await this.supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await this.supabase.auth.getUser();
 
     if (!user) {
       return { results: [], total: 0 };
@@ -99,7 +106,9 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
   }
 
   async getUserStats(): Promise<UserStats | null> {
-    const { data: { user } } = await this.supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await this.supabase.auth.getUser();
 
     if (!user) {
       return null;
@@ -128,9 +137,7 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
     }
 
     const totalTests = data.length;
-    const averageWpm = Math.round(
-      data.reduce((sum, result) => sum + result.wpm, 0) / totalTests
-    );
+    const averageWpm = Math.round(data.reduce((sum, result) => sum + result.wpm, 0) / totalTests);
     const averageAccuracy = Math.round(
       data.reduce((sum, result) => sum + result.accuracy, 0) / totalTests
     );
@@ -148,10 +155,7 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
   }
 
   async deleteResult(resultId: string): Promise<boolean> {
-    const { error } = await this.supabase
-      .from('typing_results')
-      .delete()
-      .eq('id', resultId);
+    const { error } = await this.supabase.from('typing_results').delete().eq('id', resultId);
 
     if (error) {
       console.error('Error deleting result:', error);

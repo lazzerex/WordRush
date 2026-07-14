@@ -49,13 +49,13 @@ export default function ResultsClient({ user }: ResultsClientProps) {
   const handleDelete = async (resultId: string) => {
     setDeleting(resultId);
     const success = await deleteResult(resultId);
-    
+
     if (success) {
       await loadResults(page);
     } else {
       alert('Failed to delete result');
     }
-    
+
     setDeleting(null);
     setConfirmDelete(null);
   };
@@ -109,7 +109,9 @@ export default function ResultsClient({ user }: ResultsClientProps) {
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">History</p>
               <h1 className="mt-2 text-3xl font-bold text-zinc-50">Test results</h1>
-              <p className="mt-2 text-sm text-zinc-400">Review your recent sessions and track progress.</p>
+              <p className="mt-2 text-sm text-zinc-400">
+                Review your recent sessions and track progress.
+              </p>
             </div>
             <AppLink
               href="/?mode=singleplayer"
@@ -165,13 +167,13 @@ export default function ResultsClient({ user }: ResultsClientProps) {
                         </span>
                       </td>
                       <td className="px-6 py-5">
-                        <span className={`text-lg font-semibold ${getAccuracyColor(result.accuracy)}`}>
+                        <span
+                          className={`text-lg font-semibold ${getAccuracyColor(result.accuracy)}`}
+                        >
                           {result.accuracy}%
                         </span>
                       </td>
-                      <td className="px-6 py-5 text-sm text-zinc-300">
-                        {result.duration}s
-                      </td>
+                      <td className="px-6 py-5 text-sm text-zinc-300">{result.duration}s</td>
                       <td className="px-6 py-5">
                         <span
                           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] ${getThemeColor(
@@ -260,7 +262,9 @@ export default function ResultsClient({ user }: ResultsClientProps) {
                   </p>
                 </div>
                 <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Total characters</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+                    Total characters
+                  </p>
                   <p className="mt-3 text-2xl font-semibold text-zinc-100">
                     {results.reduce((sum, r) => sum + r.correct_chars + r.incorrect_chars, 0)}
                   </p>

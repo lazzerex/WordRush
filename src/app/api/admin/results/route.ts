@@ -7,9 +7,15 @@ export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin();
 
-    const rateLimitResult = await checkRateLimit(adminLimiter, getRateLimitIdentifier(request, admin.userId));
+    const rateLimitResult = await checkRateLimit(
+      adminLimiter,
+      getRateLimitIdentifier(request, admin.userId)
+    );
     if (!rateLimitResult.success) {
-      return NextResponse.json({ error: rateLimitResult.error || 'Rate limit exceeded' }, { status: 429 });
+      return NextResponse.json(
+        { error: rateLimitResult.error || 'Rate limit exceeded' },
+        { status: 429 }
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -18,17 +24,20 @@ export async function GET(request: NextRequest) {
     const duration = searchParams.get('duration');
 
     const adminClient = createAdminClient();
-    
+
     let query = adminClient
       .from('typing_results')
-      .select(`
+      .select(
+        `
         id,
         user_id,
         wpm,
         accuracy,
         duration,
         created_at
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .order('created_at', { ascending: false });
 
     if (duration) {
@@ -44,16 +53,16 @@ export async function GET(request: NextRequest) {
 
     // Fetch profile data separately for each result
     if (results && results.length > 0) {
-      const userIds = Array.from(new Set(results.map(r => r.user_id)));
-      
+      const userIds = Array.from(new Set(results.map((r) => r.user_id)));
+
       const { data: profiles } = await adminClient
         .from('profiles')
         .select('id, username, email')
         .in('id', userIds);
 
       // Map profiles to results
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      
+      const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+
       results.forEach((result: any) => {
         const profile = profileMap.get(result.user_id);
         result.profiles = {
@@ -77,7 +86,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error fetching results:', error);
-    
+
     if (error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
@@ -90,9 +99,15 @@ export async function DELETE(request: NextRequest) {
   try {
     const admin = await requireAdmin();
 
-    const rateLimitResult = await checkRateLimit(adminLimiter, getRateLimitIdentifier(request, admin.userId));
+    const rateLimitResult = await checkRateLimit(
+      adminLimiter,
+      getRateLimitIdentifier(request, admin.userId)
+    );
     if (!rateLimitResult.success) {
-      return NextResponse.json({ error: rateLimitResult.error || 'Rate limit exceeded' }, { status: 429 });
+      return NextResponse.json(
+        { error: rateLimitResult.error || 'Rate limit exceeded' },
+        { status: 429 }
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -105,10 +120,7 @@ export async function DELETE(request: NextRequest) {
     const adminClient = createAdminClient();
 
     // Delete result
-    const { error } = await adminClient
-      .from('typing_results')
-      .delete()
-      .eq('id', resultId);
+    const { error } = await adminClient.from('typing_results').delete().eq('id', resultId);
 
     if (error) throw error;
 
@@ -120,7 +132,7 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error deleting result:', error);
-    
+
     if (error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

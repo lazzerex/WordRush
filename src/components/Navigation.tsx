@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Trophy, User as UserIcon, LogIn, UserPlus, LogOut, Keyboard, Coins, Shield } from 'lucide-react';
+import {
+  Trophy,
+  User as UserIcon,
+  LogIn,
+  UserPlus,
+  LogOut,
+  Keyboard,
+  Coins,
+  Shield,
+} from 'lucide-react';
 import { COINS_EVENT, CoinsEventDetail } from '@/lib/ui-events';
 import AppLink from '@/components/AppLink';
 import OnlinePlayersCounter from '@/components/OnlinePlayersCounter';
@@ -107,7 +116,7 @@ export default function Navigation() {
               href="/"
               loadingMessage="Loading typing test…"
               className="flex items-center gap-2 group"
-              onClick={e => {
+              onClick={(e) => {
                 // If in singleplayer, trigger menu open event
                 if (typeof window !== 'undefined' && window.dispatchEvent) {
                   window.dispatchEvent(new CustomEvent('wordrush:openMenu'));
@@ -121,7 +130,7 @@ export default function Navigation() {
             </AppLink>
             <OnlinePlayersCounter />
           </div>
-          
+
           {/* Navigation Links */}
           <div className="flex items-center gap-2">
             {user && (
@@ -130,7 +139,7 @@ export default function Navigation() {
                 <span className="text-sm font-bold text-yellow-500">{coins}</span>
               </div>
             )}
-            
+
             <AppLink
               href="/leaderboard"
               loadingMessage="Fetching leaderboard…"
@@ -139,7 +148,7 @@ export default function Navigation() {
               <Trophy className="w-4 h-4" />
               <span className="hidden sm:inline">Leaderboard</span>
             </AppLink>
-            
+
             {user ? (
               <>
                 {isAdmin && (

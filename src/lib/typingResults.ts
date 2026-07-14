@@ -26,7 +26,10 @@ export async function saveTypingResult(params: SaveResultParams): Promise<Typing
 /**
  * @deprecated Use createTypingResultsService().getUserResults() instead
  */
-export async function getUserResults(limit: number = 10, offset: number = 0): Promise<TypingResult[]> {
+export async function getUserResults(
+  limit: number = 10,
+  offset: number = 0
+): Promise<TypingResult[]> {
   const service = createTypingResultsService();
   return service.getUserResults(limit, offset);
 }

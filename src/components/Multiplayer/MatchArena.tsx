@@ -1,11 +1,7 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Trophy, TrendingDown, Handshake } from 'lucide-react';
 
-import type {
-  MultiplayerMatch,
-  MultiplayerMatchPlayer,
-} from '@/types/database';
+import type { MultiplayerMatch, MultiplayerMatchPlayer } from '@/types/database';
 import type { QueuePhase } from '@/hooks/useMultiplayerMatch';
 import { calculateStats } from '@/components/TypingTest/helpers';
 import type { PlayerUpdatePayload } from '@/services/multiplayerService';
@@ -74,7 +70,11 @@ export function MatchArena({
     setIsActive(false);
     setHasFinished(me.is_finished);
     setExtendedWords(words);
-    latestStatsRef.current = { wpm: me.wpm ?? 0, accuracy: me.accuracy ?? 100, progress: me.progress ?? 0 };
+    latestStatsRef.current = {
+      wpm: me.wpm ?? 0,
+      accuracy: me.accuracy ?? 100,
+      progress: me.progress ?? 0,
+    };
   }, [match.id, duration, words]);
 
   useEffect(() => {
@@ -153,7 +153,7 @@ export function MatchArena({
   // Extend word pool dynamically to prevent running out
   useEffect(() => {
     if (currentWordIndex + 50 >= extendedWords.length && words.length > 0) {
-      setExtendedWords(prev => {
+      setExtendedWords((prev) => {
         const newWords = [...prev];
         // Add more words by cycling through the original word list
         for (let i = 0; i < 100; i++) {
@@ -172,7 +172,7 @@ export function MatchArena({
     // Show current word + next 100 words for a stable display
     return extendedWords.slice(currentWordIndex, currentWordIndex + 100);
   }, [extendedWords, currentWordIndex]);
-  
+
   const previewWords = wordsForDisplay;
 
   const progress = totalWords > 0 ? Math.min(currentWordIndex / totalWords, 1) : 0;
@@ -270,7 +270,16 @@ export function MatchArena({
     if (!opponent || opponent?.is_finished) {
       await onFinishedLocally();
     }
-  }, [hasFinished, correctChars, incorrectChars, duration, onUpdate, onFinishedLocally, opponent, totalWords]);
+  }, [
+    hasFinished,
+    correctChars,
+    incorrectChars,
+    duration,
+    onUpdate,
+    onFinishedLocally,
+    opponent,
+    totalWords,
+  ]);
 
   // Main game timer
   useEffect(() => {
@@ -323,10 +332,12 @@ export function MatchArena({
   // Current word is always at index 0 since we're showing from currentWordIndex
   const myPreviewCurrentIndex = 0;
   const myCompletedWords = 0; // No completed words shown (they're already typed)
-  const opponentProgress = Math.floor(((opponentStats.progress ?? 0) * totalWords) + 1e-6);
+  const opponentProgress = Math.floor((opponentStats.progress ?? 0) * totalWords + 1e-6);
   const opponentCompletedWords = Math.max(0, opponentProgress - currentWordIndex);
   const myDisplayName = me.display_name ?? 'You';
-  const opponentDisplayName = opponent?.display_name ?? (opponent ? `Player ${opponent.user_id.slice(0, 8)}` : 'Waiting for opponent');
+  const opponentDisplayName =
+    opponent?.display_name ??
+    (opponent ? `Player ${opponent.user_id.slice(0, 8)}` : 'Waiting for opponent');
   const opponentCopyName = opponent?.display_name ?? 'your opponent';
 
   let myStatus: { label: string; variant: keyof typeof BADGE_STYLES };
@@ -355,21 +366,24 @@ export function MatchArena({
 
   const showCountdown = countdown !== null && countdown >= 0;
   const inputDisabled = !canType;
-  const inputPlaceholder = hasFinished || phase === 'completed'
-    ? 'Run complete'
-    : !isReady
-      ? 'Click Ready to begin'
-      : !bothReady
-        ? 'Waiting for opponent...'
-        : !isActive
-          ? 'Countdown in progress...'
-          : 'Type here...';
+  const inputPlaceholder =
+    hasFinished || phase === 'completed'
+      ? 'Run complete'
+      : !isReady
+        ? 'Click Ready to begin'
+        : !bothReady
+          ? 'Waiting for opponent...'
+          : !isActive
+            ? 'Countdown in progress...'
+            : 'Type here...';
   const turnHint = (() => {
     if (phase === 'completed') {
       return null;
     }
     if (hasFinished) {
-      return opponent?.is_finished ? 'Match complete. Awaiting results.' : `Waiting for ${opponentCopyName} to finish.`;
+      return opponent?.is_finished
+        ? 'Match complete. Awaiting results.'
+        : `Waiting for ${opponentCopyName} to finish.`;
     }
     if (!isReady) {
       return 'Click Ready when you are prepared to start.';
@@ -383,13 +397,14 @@ export function MatchArena({
     return null;
   })();
 
-  const headerHint = phase === 'completed'
-    ? 'Match complete. Review the results below.'
-    : bothReady && isActive
-      ? 'Type as fast and accurately as you can!'
-      : bothReady
-        ? 'Both players ready. Countdown starting...'
-        : 'Waiting for both players to click ready.';
+  const headerHint =
+    phase === 'completed'
+      ? 'Match complete. Review the results below.'
+      : bothReady && isActive
+        ? 'Type as fast and accurately as you can!'
+        : bothReady
+          ? 'Both players ready. Countdown starting...'
+          : 'Waiting for both players to click ready.';
 
   return (
     <div className="pt-24 pb-12 px-4">
@@ -398,7 +413,9 @@ export function MatchArena({
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white">Ranked Match</h1>
-            <p className="text-sm text-zinc-400">Duration: {duration}s • Match ID: {match.id.slice(0, 8)}</p>
+            <p className="text-sm text-zinc-400">
+              Duration: {duration}s • Match ID: {match.id.slice(0, 8)}
+            </p>
             <p className="text-sm text-zinc-300 mt-1">You vs. {opponentDisplayName}</p>
             <p className="text-xs text-zinc-500 mt-1">{headerHint}</p>
           </div>
@@ -420,9 +437,7 @@ export function MatchArena({
         {showCountdown && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
             <div className="text-center">
-              <div className="text-9xl font-bold text-yellow-500 animate-pulse">
-                {countdown}
-              </div>
+              <div className="text-9xl font-bold text-yellow-500 animate-pulse">{countdown}</div>
               <p className="text-xl text-zinc-300 mt-4">Get ready to type!</p>
             </div>
           </div>
@@ -436,19 +451,22 @@ export function MatchArena({
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-bold text-white">{opponentDisplayName}</h2>
-                  {opponent && (
-                    <p className="text-xs text-zinc-500">Opponent</p>
-                  )}
+                  {opponent && <p className="text-xs text-zinc-500">Opponent</p>}
                 </div>
-                <span className={BADGE_STYLES[opponentStatus.variant]}>
-                  {opponentStatus.label}
-                </span>
+                <span className={BADGE_STYLES[opponentStatus.variant]}>{opponentStatus.label}</span>
               </div>
-              <StatGrid wpm={opponentStats.wpm} accuracy={opponentStats.accuracy} progress={opponentStats.progress} result={opponentStats.result} />
+              <StatGrid
+                wpm={opponentStats.wpm}
+                accuracy={opponentStats.accuracy}
+                progress={opponentStats.progress}
+                result={opponentStats.result}
+              />
             </div>
 
             <div className="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-4 h-64 overflow-auto">
-              <h3 className="text-xs uppercase tracking-wide text-zinc-500 mb-3">Opponent Progress</h3>
+              <h3 className="text-xs uppercase tracking-wide text-zinc-500 mb-3">
+                Opponent Progress
+              </h3>
               <WordPreview
                 words={words.slice(0, 100)}
                 completedWordCount={opponentProgress}
@@ -478,7 +496,12 @@ export function MatchArena({
                   )}
                 </div>
               </div>
-              <StatGrid wpm={meStats.wpm} accuracy={meStats.accuracy} progress={meStats.progress} result={meStats.result} />
+              <StatGrid
+                wpm={meStats.wpm}
+                accuracy={meStats.accuracy}
+                progress={meStats.progress}
+                result={meStats.result}
+              />
             </div>
 
             <div className="bg-zinc-800/30 border border-zinc-700/40 rounded-xl p-4">
@@ -559,65 +582,87 @@ export function MatchArena({
               {/* ELO display removed: MultiplayerMatchPlayer does not have elo_rating */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* You */}
-                <div className={`p-8 rounded-2xl transition-all backdrop-blur-sm ${
-                  me.result === 'win' 
-                    ? 'bg-green-500/10 border-2 border-green-500/40 shadow-[0_15px_40px_-20px_rgba(34,197,94,0.4)]' 
-                    : me.result === 'loss' 
-                    ? 'bg-red-500/5 border border-red-500/30' 
-                    : 'bg-yellow-500/10 border border-yellow-500/30'
-                }`}>
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">You ({myDisplayName})</p>
+                <div
+                  className={`p-8 rounded-2xl transition-all backdrop-blur-sm ${
+                    me.result === 'win'
+                      ? 'bg-green-500/10 border-2 border-green-500/40 shadow-[0_15px_40px_-20px_rgba(34,197,94,0.4)]'
+                      : me.result === 'loss'
+                        ? 'bg-red-500/5 border border-red-500/30'
+                        : 'bg-yellow-500/10 border border-yellow-500/30'
+                  }`}
+                >
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">
+                    You ({myDisplayName})
+                  </p>
                   <p className="text-6xl font-bold text-zinc-50 mb-2">{Math.round(meStats.wpm)}</p>
                   <p className="text-sm text-zinc-400 mb-6">WPM</p>
                   <div className="space-y-3 border-t border-zinc-700/50 pt-4">
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-400">Accuracy</span>
-                      <span className="text-zinc-50 font-semibold">{Math.round(meStats.accuracy)}%</span>
+                      <span className="text-zinc-50 font-semibold">
+                        {Math.round(meStats.accuracy)}%
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-400">Progress</span>
-                      <span className="text-zinc-50 font-semibold">{Math.round(meStats.progress * 100)}%</span>
+                      <span className="text-zinc-50 font-semibold">
+                        {Math.round(meStats.progress * 100)}%
+                      </span>
                     </div>
                   </div>
-                  <div className={`mt-6 px-4 py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-[0.3em] ${
-                    me.result === 'win' 
-                      ? 'bg-green-500/90 text-white' 
-                      : me.result === 'loss'
-                      ? 'bg-red-500/90 text-white'
-                      : 'bg-yellow-500/90 text-zinc-900'
-                  }`}>
+                  <div
+                    className={`mt-6 px-4 py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-[0.3em] ${
+                      me.result === 'win'
+                        ? 'bg-green-500/90 text-white'
+                        : me.result === 'loss'
+                          ? 'bg-red-500/90 text-white'
+                          : 'bg-yellow-500/90 text-zinc-900'
+                    }`}
+                  >
                     {me.result || 'pending'}
                   </div>
                 </div>
 
                 {/* Opponent */}
-                <div className={`p-8 rounded-2xl transition-all backdrop-blur-sm ${
-                  opponent?.result === 'win' 
-                    ? 'bg-green-500/10 border-2 border-green-500/40 shadow-[0_15px_40px_-20px_rgba(34,197,94,0.4)]' 
-                    : opponent?.result === 'loss' 
-                    ? 'bg-red-500/5 border border-red-500/30' 
-                    : 'bg-yellow-500/10 border border-yellow-500/30'
-                }`}>
-                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">{opponentDisplayName}</p>
-                  <p className="text-6xl font-bold text-zinc-50 mb-2">{Math.round(opponentStats.wpm)}</p>
+                <div
+                  className={`p-8 rounded-2xl transition-all backdrop-blur-sm ${
+                    opponent?.result === 'win'
+                      ? 'bg-green-500/10 border-2 border-green-500/40 shadow-[0_15px_40px_-20px_rgba(34,197,94,0.4)]'
+                      : opponent?.result === 'loss'
+                        ? 'bg-red-500/5 border border-red-500/30'
+                        : 'bg-yellow-500/10 border border-yellow-500/30'
+                  }`}
+                >
+                  <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">
+                    {opponentDisplayName}
+                  </p>
+                  <p className="text-6xl font-bold text-zinc-50 mb-2">
+                    {Math.round(opponentStats.wpm)}
+                  </p>
                   <p className="text-sm text-zinc-400 mb-6">WPM</p>
                   <div className="space-y-3 border-t border-zinc-700/50 pt-4">
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-400">Accuracy</span>
-                      <span className="text-zinc-50 font-semibold">{Math.round(opponentStats.accuracy)}%</span>
+                      <span className="text-zinc-50 font-semibold">
+                        {Math.round(opponentStats.accuracy)}%
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-zinc-400">Progress</span>
-                      <span className="text-zinc-50 font-semibold">{Math.round(opponentStats.progress * 100)}%</span>
+                      <span className="text-zinc-50 font-semibold">
+                        {Math.round(opponentStats.progress * 100)}%
+                      </span>
                     </div>
                   </div>
-                  <div className={`mt-6 px-4 py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-[0.3em] ${
-                    opponent?.result === 'win' 
-                      ? 'bg-green-500/90 text-white' 
-                      : opponent?.result === 'loss'
-                      ? 'bg-red-500/90 text-white'
-                      : 'bg-yellow-500/90 text-zinc-900'
-                  }`}>
+                  <div
+                    className={`mt-6 px-4 py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-[0.3em] ${
+                      opponent?.result === 'win'
+                        ? 'bg-green-500/90 text-white'
+                        : opponent?.result === 'loss'
+                          ? 'bg-red-500/90 text-white'
+                          : 'bg-yellow-500/90 text-zinc-900'
+                    }`}
+                  >
                     {opponent?.result || 'pending'}
                   </div>
                 </div>
@@ -659,12 +704,8 @@ function ResultBanner({ tone, title, icon }: ResultBannerProps) {
 
   return (
     <div className={`flex flex-col items-center gap-4 ${toneColors[tone]}`}>
-      <div className="drop-shadow-lg">
-        {icon}
-      </div>
-      <p className="text-2xl font-semibold">
-        {title}
-      </p>
+      <div className="drop-shadow-lg">{icon}</div>
+      <p className="text-2xl font-semibold">{title}</p>
     </div>
   );
 }
@@ -684,9 +725,7 @@ function StatGrid({ wpm, accuracy, progress, result }: StatGridProps) {
         <span className="text-zinc-400">Progress</span>
         <span className="text-white font-semibold">{Math.round(progress * 100)}%</span>
       </div>
-      {result && (
-        <div className="text-xs uppercase tracking-wide text-yellow-400">{result}</div>
-      )}
+      {result && <div className="text-xs uppercase tracking-wide text-yellow-400">{result}</div>}
     </div>
   );
 }
@@ -699,7 +738,13 @@ interface WordPreviewProps {
   showAllWords?: boolean;
 }
 
-function WordPreview({ words, completedWordCount, currentIndex, currentInput, showAllWords = true }: WordPreviewProps) {
+function WordPreview({
+  words,
+  completedWordCount,
+  currentIndex,
+  currentInput,
+  showAllWords = true,
+}: WordPreviewProps) {
   if (!words.length) {
     return <div className="text-sm text-zinc-500">Waiting for word sequence…</div>;
   }
@@ -711,13 +756,13 @@ function WordPreview({ words, completedWordCount, currentIndex, currentInput, sh
       {words.map((word, index) => {
         const completed = index < clampedCompleted;
         const isCurrent = currentIndex === index;
-        
+
         // If showAllWords is false (your board), hide completed words
         // If showAllWords is true (opponent board), show all words
         if (!showAllWords && completed && !isCurrent) {
           return null;
         }
-        
+
         return (
           <span
             key={`${word}-${index}`}

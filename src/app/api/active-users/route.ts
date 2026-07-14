@@ -6,7 +6,7 @@ import { checkRateLimit, generalLimiter, getRateLimitIdentifier } from '@/lib/ra
 export async function GET() {
   try {
     const count = await getActiveUsersCount();
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -15,17 +15,16 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching active users:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     let identity: string;
 
@@ -38,10 +37,7 @@ export async function POST(request: NextRequest) {
       const guestId = body?.guestId;
 
       if (!guestId || typeof guestId !== 'string' || guestId.length > 100) {
-        return NextResponse.json(
-          { error: 'Guest ID required' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Guest ID required' }, { status: 400 });
       }
 
       // Rate-limit guest pings by IP - authenticated calls are already
@@ -49,10 +45,7 @@ export async function POST(request: NextRequest) {
       const identifier = getRateLimitIdentifier(request);
       const rateLimitResult = await checkRateLimit(generalLimiter, identifier, 60);
       if (!rateLimitResult.success) {
-        return NextResponse.json(
-          { error: 'Too many requests' },
-          { status: 429 }
-        );
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
       }
 
       identity = `guest:${guestId}`;
@@ -65,9 +58,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error marking user active:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

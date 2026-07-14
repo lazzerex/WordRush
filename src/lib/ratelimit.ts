@@ -4,7 +4,7 @@ import { LRUCache } from 'lru-cache';
 // Fallback in-memory rate limiter (used if Redis is down)
 const memoryLimiter = new LRUCache<string, number[]>({
   max: 10000, // max unique identifiers
-  ttl: 60000 // 1 minute
+  ttl: 60000, // 1 minute
 });
 
 function fallbackRateLimit(identifier: string, limit: number): boolean {
@@ -146,18 +146,21 @@ export async function checkRateLimit(
       error: success ? undefined : 'Rate limit exceeded. Please try again later.',
     };
   } catch (error) {
-    console.error('Rate limit check error - falling back to in-memory limiter (per-instance only, not distributed):', error);
+    console.error(
+      'Rate limit check error - falling back to in-memory limiter (per-instance only, not distributed):',
+      error
+    );
     const allowed = fallbackRateLimit(identifier, fallbackLimit);
     if (!allowed) {
       return {
         success: false,
-        error: 'Rate limiting temporarily unavailable. Please try again.'
+        error: 'Rate limiting temporarily unavailable. Please try again.',
       };
     }
     // If allowed by fallback, return limited info
     return {
       success: true,
-      error: 'Redis unavailable, using fallback rate limiter.'
+      error: 'Redis unavailable, using fallback rate limiter.',
     };
   }
 }
@@ -166,10 +169,7 @@ export async function checkRateLimit(
  * Get client identifier for rate limiting
  * Uses user ID if authenticated, otherwise falls back to IP address
  */
-export function getRateLimitIdentifier(
-  request: Request,
-  userId?: string
-): string {
+export function getRateLimitIdentifier(request: Request, userId?: string): string {
   if (userId) {
     return `user:${userId}`;
   }

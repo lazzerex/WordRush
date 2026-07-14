@@ -44,7 +44,7 @@ export function calculateTestMetrics(
   duration: number
 ): TestMetrics {
   const totalChars = correctChars + incorrectChars;
-  
+
   return {
     wpm: calculateWPM(correctChars, duration),
     rawWpm: calculateRawWPM(totalChars, duration),

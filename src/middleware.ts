@@ -15,9 +15,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
@@ -33,30 +31,30 @@ export async function middleware(request: NextRequest) {
   let user = null;
   try {
     const { data, error } = await supabase.auth.getUser();
-    
+
     // If there's a refresh token error, clear the auth cookies
     if (error && error.message.includes('refresh_token_not_found')) {
       const response = NextResponse.next({
         request,
       });
-      
+
       // Clear all Supabase auth cookies
-      const cookiesToClear = request.cookies.getAll().filter(cookie => 
-        cookie.name.startsWith('sb-') || cookie.name.includes('auth-token')
-      );
-      
+      const cookiesToClear = request.cookies
+        .getAll()
+        .filter((cookie) => cookie.name.startsWith('sb-') || cookie.name.includes('auth-token'));
+
       cookiesToClear.forEach(({ name }) => {
         response.cookies.delete(name);
       });
-      
+
       // Redirect to login if trying to access protected routes
       if (request.nextUrl.pathname.startsWith('/account')) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
-      
+
       return response;
     }
-    
+
     user = data.user;
   } catch (error) {
     // Handle any other auth errors gracefully
@@ -65,7 +63,7 @@ export async function middleware(request: NextRequest) {
 
   // Protect authenticated routes - redirect to login if not authenticated
   const protectedRoutes = ['/account', '/admin', '/shop', '/customize'];
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   );
 

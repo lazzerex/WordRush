@@ -7,9 +7,15 @@ export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin();
 
-    const rateLimitResult = await checkRateLimit(adminLimiter, getRateLimitIdentifier(request, admin.userId));
+    const rateLimitResult = await checkRateLimit(
+      adminLimiter,
+      getRateLimitIdentifier(request, admin.userId)
+    );
     if (!rateLimitResult.success) {
-      return NextResponse.json({ error: rateLimitResult.error || 'Rate limit exceeded' }, { status: 429 });
+      return NextResponse.json(
+        { error: rateLimitResult.error || 'Rate limit exceeded' },
+        { status: 429 }
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -17,10 +23,11 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '50');
 
     const adminClient = createAdminClient();
-    
+
     const query = adminClient
       .from('admin_logs')
-      .select(`
+      .select(
+        `
         id,
         action,
         target_type,
@@ -28,7 +35,9 @@ export async function GET(request: NextRequest) {
         details,
         created_at,
         profiles!admin_id (username, email)
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .order('created_at', { ascending: false });
 
     const offset = (page - 1) * pageSize;
@@ -48,7 +57,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error fetching logs:', error);
-    
+
     if (error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

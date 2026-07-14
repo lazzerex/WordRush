@@ -11,10 +11,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!message || !username) {
-      return NextResponse.json(
-        { error: 'Message and username are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Message and username are required' }, { status: 400 });
     }
 
     // Validate guest requirements
@@ -28,15 +25,14 @@ export async function POST(request: NextRequest) {
     // Validate message content
     const validation = validateMessage(message);
     if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     // Get user session for authenticated users
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     // Verify authenticated user consistency
     if (!isGuest && !user) {
@@ -49,18 +45,18 @@ export async function POST(request: NextRequest) {
     // Rate limiting
     // Use user ID for authenticated users, guest ID for guests
     const rateLimitKey = isGuest ? `guest:${guestId}` : `user:${user?.id}`;
-    
+
     const rateLimitResult = await checkRateLimit(chatLimiter, rateLimitKey, 5);
-    
+
     if (!rateLimitResult.success) {
-      const retryAfter = rateLimitResult.reset 
+      const retryAfter = rateLimitResult.reset
         ? Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
         : 60;
-        
+
       return NextResponse.json(
-        { 
+        {
           error: rateLimitResult.error || 'Rate limit exceeded',
-          retryAfter 
+          retryAfter,
         },
         { status: 429 }
       );
@@ -88,22 +84,14 @@ export async function POST(request: NextRequest) {
     // For guest messages, we need to use anon client
     // For authenticated messages, use the user's client
     let insertResult;
-    
+
     if (isGuest) {
       // Use admin client with service role to bypass RLS for guest inserts
       const adminClient = createAdminClient();
-      insertResult = await adminClient
-        .from('chat_messages')
-        .insert(messageData)
-        .select()
-        .single();
+      insertResult = await adminClient.from('chat_messages').insert(messageData).select().single();
     } else {
       // Use user's client for authenticated messages
-      insertResult = await supabase
-        .from('chat_messages')
-        .insert(messageData)
-        .select()
-        .single();
+      insertResult = await supabase.from('chat_messages').insert(messageData).select().single();
     }
 
     const { data: newMessage, error: insertError } = insertResult;
@@ -120,7 +108,6 @@ export async function POST(request: NextRequest) {
       success: true,
       message: newMessage,
     });
-
   } catch (error: any) {
     console.error('Chat API error:', error);
     return NextResponse.json(
@@ -154,10 +141,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching chat messages:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch messages' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
     }
 
     // Reverse to show oldest first
@@ -168,13 +152,9 @@ export async function GET(request: NextRequest) {
       messages: orderedMessages,
       count: orderedMessages.length,
     });
-
   } catch (error: any) {
     console.error('Chat GET error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -184,21 +164,17 @@ export async function DELETE(request: NextRequest) {
     const messageId = searchParams.get('messageId');
 
     if (!messageId) {
-      return NextResponse.json(
-        { error: 'Message ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Message ID is required' }, { status: 400 });
     }
 
     // Get user session
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     // Delete message (RLS ensures user can only delete their own)
@@ -210,22 +186,15 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       console.error('Error deleting chat message:', error);
-      return NextResponse.json(
-        { error: 'Failed to delete message' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to delete message' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
       message: 'Message deleted successfully',
     });
-
   } catch (error: any) {
     console.error('Chat DELETE error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

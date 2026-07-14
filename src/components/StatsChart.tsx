@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
 
 interface StatsChartProps {
   wpm: number;
@@ -59,7 +67,6 @@ const StatsChart: React.FC<StatsChartProps> = ({
     });
   }, [wpm, duration]);
 
-
   // Custom tooltip for the chart
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -73,7 +80,9 @@ const StatsChart: React.FC<StatsChartProps> = ({
   };
 
   return (
-    <div className={`max-w-5xl mx-auto transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+    <div
+      className={`max-w-5xl mx-auto transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}
+    >
       {/* Main Stats Row - Compact */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {/* WPM */}
@@ -81,7 +90,15 @@ const StatsChart: React.FC<StatsChartProps> = ({
           <div className="text-zinc-400 text-xs uppercase tracking-wider mb-1">wpm</div>
           <div className="text-5xl font-bold text-yellow-500 leading-none mb-2">{wpm}</div>
           <div className="text-zinc-500 text-xs">
-            {wpm >= 100 ? 'Expert' : wpm >= 80 ? 'Advanced' : wpm >= 60 ? 'Intermediate' : wpm >= 40 ? 'Beginner' : 'Novice'}
+            {wpm >= 100
+              ? 'Expert'
+              : wpm >= 80
+                ? 'Advanced'
+                : wpm >= 60
+                  ? 'Intermediate'
+                  : wpm >= 40
+                    ? 'Beginner'
+                    : 'Novice'}
           </div>
         </div>
 
@@ -90,7 +107,13 @@ const StatsChart: React.FC<StatsChartProps> = ({
           <div className="text-zinc-400 text-xs uppercase tracking-wider mb-1">acc</div>
           <div className="text-4xl font-bold text-green-500 leading-none mb-2">{accuracy}%</div>
           <div className="text-zinc-500 text-xs">
-            {accuracy >= 95 ? 'Excellent' : accuracy >= 90 ? 'Great' : accuracy >= 80 ? 'Good' : 'Fair'}
+            {accuracy >= 95
+              ? 'Excellent'
+              : accuracy >= 90
+                ? 'Great'
+                : accuracy >= 80
+                  ? 'Good'
+                  : 'Fair'}
           </div>
         </div>
 
@@ -148,9 +171,7 @@ const StatsChart: React.FC<StatsChartProps> = ({
       <div className="bg-zinc-800/50 rounded-xl p-6 border border-zinc-700/50">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-medium text-zinc-300">Speed Progression</h3>
-          <div className="text-xs text-zinc-500">
-            Your WPM throughout the test
-          </div>
+          <div className="text-xs text-zinc-500">Your WPM throughout the test</div>
         </div>
 
         {/* Chart */}
@@ -159,12 +180,12 @@ const StatsChart: React.FC<StatsChartProps> = ({
             <AreaChart data={wpmProgressionData}>
               <defs>
                 <linearGradient id="wpmGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis 
-                dataKey="time" 
+              <XAxis
+                dataKey="time"
                 stroke="#52525b"
                 tick={{ fill: '#71717a', fontSize: 12 }}
                 tickLine={false}
@@ -172,33 +193,45 @@ const StatsChart: React.FC<StatsChartProps> = ({
                 domain={[0, duration]}
                 type="number"
                 tickCount={Math.min(6, Math.max(3, Math.floor(duration / 3)))}
-                label={{ value: 'seconds', position: 'insideBottomRight', offset: -5, fill: '#52525b', fontSize: 11 }}
+                label={{
+                  value: 'seconds',
+                  position: 'insideBottomRight',
+                  offset: -5,
+                  fill: '#52525b',
+                  fontSize: 11,
+                }}
               />
-              <YAxis 
+              <YAxis
                 stroke="#52525b"
                 tick={{ fill: '#71717a', fontSize: 12 }}
                 tickLine={false}
                 axisLine={{ stroke: '#3f3f46' }}
-                label={{ value: 'WPM', angle: -90, position: 'insideLeft', fill: '#52525b', fontSize: 11 }}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <ReferenceLine 
-                y={wpm} 
-                stroke="#52525b" 
-                strokeDasharray="3 3"
-                label={{ 
-                  value: `avg: ${wpm}`, 
-                  position: 'right',
-                  fill: '#71717a',
-                  fontSize: 12
+                label={{
+                  value: 'WPM',
+                  angle: -90,
+                  position: 'insideLeft',
+                  fill: '#52525b',
+                  fontSize: 11,
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="wpm" 
-                stroke="#eab308" 
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceLine
+                y={wpm}
+                stroke="#52525b"
+                strokeDasharray="3 3"
+                label={{
+                  value: `avg: ${wpm}`,
+                  position: 'right',
+                  fill: '#71717a',
+                  fontSize: 12,
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="wpm"
+                stroke="#eab308"
                 strokeWidth={2}
-                fill="url(#wpmGradient)" 
+                fill="url(#wpmGradient)"
                 animationDuration={1000}
               />
             </AreaChart>

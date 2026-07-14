@@ -15,8 +15,10 @@ export function useOnlineUsers() {
 
     const setupPresence = async () => {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       // Create a channel for presence tracking
       channel = supabase.channel('online-users', {
         config: {

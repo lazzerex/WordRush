@@ -17,7 +17,11 @@ const ThemeInitializer = () => {
     if (!supabase) return;
     let cancelled = false;
 
-    const applyAndPersistTheme = (detail: { themeId: string; cssVariables: Record<string, string>; themeName?: string }) => {
+    const applyAndPersistTheme = (detail: {
+      themeId: string;
+      cssVariables: Record<string, string>;
+      themeName?: string;
+    }) => {
       applyThemeVariables(detail.cssVariables);
       storeThemePreference({
         themeId: detail.themeId,
@@ -35,7 +39,9 @@ const ThemeInitializer = () => {
         applyThemeVariables(null);
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user || cancelled) {
         if (!user) {
           clearThemePreference();

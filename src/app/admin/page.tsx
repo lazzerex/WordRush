@@ -13,7 +13,7 @@ export const metadata = {
 export default async function AdminDashboardPage() {
   // Check if user is admin
   const userIsAdmin = await isAdmin();
-  
+
   if (!userIsAdmin) {
     redirect('/');
   }

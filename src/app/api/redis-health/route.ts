@@ -8,20 +8,27 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     const message = error?.message || 'Unauthorized';
     const status = message.includes('Forbidden') ? 403 : 401;
-    return NextResponse.json({
-      success: false,
-      error: message,
-    }, { status });
+    return NextResponse.json(
+      {
+        success: false,
+        error: message,
+      },
+      { status }
+    );
   }
 
   try {
     // Check if Redis is configured
     if (!isRedisConfigured()) {
-      return NextResponse.json({
-        success: false,
-        error: 'Redis not configured',
-        message: 'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are missing from environment variables'
-      }, { status: 503 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Redis not configured',
+          message:
+            'UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are missing from environment variables',
+        },
+        { status: 503 }
+      );
     }
 
     // Test Redis connection with PING
@@ -41,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     // Get some Redis info
     const timestamp = Date.now();
-    
+
     return NextResponse.json({
       success: true,
       message: 'Redis is connected and working!',
@@ -51,26 +58,28 @@ export async function GET(request: NextRequest) {
         operations: {
           set: '✅',
           get: getValue === 'test-value' ? '✅' : '❌',
-          delete: '✅'
+          delete: '✅',
         },
         timestamp: new Date(timestamp).toISOString(),
         environment: {
           url: process.env.UPSTASH_REDIS_REST_URL?.substring(0, 30) + '...',
-          tokenConfigured: !!process.env.UPSTASH_REDIS_REST_TOKEN
-        }
-      }
+          tokenConfigured: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+        },
+      },
     });
-
   } catch (error) {
     console.error('Redis health check error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Redis connection failed',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      details: {
-        configured: isRedisConfigured(),
-        timestamp: new Date().toISOString()
-      }
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Redis connection failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: {
+          configured: isRedisConfigured(),
+          timestamp: new Date().toISOString(),
+        },
+      },
+      { status: 500 }
+    );
   }
 }

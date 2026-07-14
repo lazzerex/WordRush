@@ -74,46 +74,46 @@ export default function LeaderboardClient() {
     }
   }, []);
 
-  const computeRowDeltas = useCallback((
-    previousRows: LeaderboardEntry[],
-    nextRows: LeaderboardEntry[]
-  ) => {
-    const previousById = new Map<string, number>();
-    const nextIds = new Set(nextRows.map((entry) => entry.id));
-    const deltas: Record<string, RowDelta> = {};
+  const computeRowDeltas = useCallback(
+    (previousRows: LeaderboardEntry[], nextRows: LeaderboardEntry[]) => {
+      const previousById = new Map<string, number>();
+      const nextIds = new Set(nextRows.map((entry) => entry.id));
+      const deltas: Record<string, RowDelta> = {};
 
-    let removedCount = 0;
+      let removedCount = 0;
 
-    previousRows.forEach((entry, index) => {
-      previousById.set(entry.id, entry.rank ?? index + 1);
-      if (!nextIds.has(entry.id)) {
-        removedCount += 1;
-      }
-    });
+      previousRows.forEach((entry, index) => {
+        previousById.set(entry.id, entry.rank ?? index + 1);
+        if (!nextIds.has(entry.id)) {
+          removedCount += 1;
+        }
+      });
 
-    nextRows.forEach((entry, index) => {
-      const previousRank = previousById.get(entry.id);
-      const nextRank = entry.rank ?? index + 1;
+      nextRows.forEach((entry, index) => {
+        const previousRank = previousById.get(entry.id);
+        const nextRank = entry.rank ?? index + 1;
 
-      if (!previousRank) {
-        deltas[entry.id] = { type: 'insert' };
-        return;
-      }
+        if (!previousRank) {
+          deltas[entry.id] = { type: 'insert' };
+          return;
+        }
 
-      if (previousRank !== nextRank) {
-        deltas[entry.id] = { type: 'move', previousRank };
-        return;
-      }
+        if (previousRank !== nextRank) {
+          deltas[entry.id] = { type: 'move', previousRank };
+          return;
+        }
 
-      deltas[entry.id] = { type: 'steady', previousRank };
-    });
+        deltas[entry.id] = { type: 'steady', previousRank };
+      });
 
-    return {
-      deltas,
-      removedCount,
-      changed: Object.values(deltas).some((item) => item.type !== 'steady') || removedCount > 0,
-    };
-  }, []);
+      return {
+        deltas,
+        removedCount,
+        changed: Object.values(deltas).some((item) => item.type !== 'steady') || removedCount > 0,
+      };
+    },
+    []
+  );
 
   useEffect(() => {
     // Get current user
@@ -138,18 +138,18 @@ export default function LeaderboardClient() {
         const response = await fetch(
           `/api/leaderboard?duration=${selectedDuration}&page=${safePage}&pageSize=${PAGE_SIZE}`
         );
-        
+
         if (!response.ok) {
           console.error('Leaderboard API error:', response.status, response.statusText);
           throw new Error('Failed to fetch leaderboard');
         }
 
         const result = await response.json();
-        
+
         if (result.success) {
           const { entries, total, totalPages, source } = result.data;
           console.log(`Loaded ${entries.length} entries from ${source}, total: ${total}`);
-          
+
           const normalizedPage = Math.min(safePage, totalPages || 1);
           const currentContextKey = `${selectedDuration}:${normalizedPage}`;
 
@@ -303,7 +303,14 @@ export default function LeaderboardClient() {
       supabase.removeChannel(channel);
       setLiveUpdatesEnabled(false);
     };
-  }, [selectedDuration, scheduleCoalescedRefresh, runRealtimeRefresh, supabase, isInitialized, clearRealtimeTimer]);
+  }, [
+    selectedDuration,
+    scheduleCoalescedRefresh,
+    runRealtimeRefresh,
+    supabase,
+    isInitialized,
+    clearRealtimeTimer,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -375,7 +382,9 @@ export default function LeaderboardClient() {
             Global Leaderboard
           </div>
           <h1 className="text-4xl font-bold text-zinc-50">Chase the crown</h1>
-          <p className="text-sm text-zinc-400">Compete with WordRush typists across every duration.</p>
+          <p className="text-sm text-zinc-400">
+            Compete with WordRush typists across every duration.
+          </p>
         </div>
 
         {/* User Rank Card (if logged in) */}
@@ -404,7 +413,9 @@ export default function LeaderboardClient() {
 
         {/* Duration Selector */}
         <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl p-6 md:p-8 backdrop-blur-sm animate-slideInUp animation-delay-200">
-          <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-[0.3em] mb-6">Select duration</h3>
+          <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-[0.3em] mb-6">
+            Select duration
+          </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[15, 30, 60, 120].map((duration) => (
               <button
@@ -434,7 +445,7 @@ export default function LeaderboardClient() {
                   Top scores • Showing {showingFrom}-{showingTo} of {totalCount || 0}
                 </p>
                 {liveUpdatesEnabled && (
-                  <div 
+                  <div
                     className="flex items-center gap-1.5 rounded-full bg-green-500/10 border border-green-500/30 px-2.5 py-1"
                     title="Real-time updates enabled via Supabase Realtime"
                   >
@@ -442,7 +453,9 @@ export default function LeaderboardClient() {
                       <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                       <div className="absolute inset-0 h-1.5 w-1.5 rounded-full bg-green-400 animate-ping" />
                     </div>
-                    <span className="text-[10px] uppercase tracking-wider text-green-400 font-semibold">Live</span>
+                    <span className="text-[10px] uppercase tracking-wider text-green-400 font-semibold">
+                      Live
+                    </span>
                   </div>
                 )}
                 {hasNewScores && page > 1 && (
@@ -460,7 +473,9 @@ export default function LeaderboardClient() {
                   </div>
                 )}
               </div>
-              <h2 className="mt-2 text-2xl font-semibold text-zinc-50">{selectedDuration} second test</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
+                {selectedDuration} second test
+              </h2>
               <p className="text-sm text-zinc-500">
                 {liveUpdatesEnabled
                   ? page === 1
@@ -517,12 +532,14 @@ export default function LeaderboardClient() {
                         rowDeltas[entry.id]?.type === 'insert'
                           ? 'bg-emerald-500/10'
                           : rowDeltas[entry.id]?.type === 'move'
-                          ? 'bg-sky-500/10'
-                          : isCurrentUser(entry.user_id)
-                          ? 'bg-yellow-500/10'
-                          : 'hover:bg-zinc-900/40'
+                            ? 'bg-sky-500/10'
+                            : isCurrentUser(entry.user_id)
+                              ? 'bg-yellow-500/10'
+                              : 'hover:bg-zinc-900/40'
                       }`}
-                      style={{ transitionDuration: prefersReducedMotion ? '0ms' : `${ROW_TRANSITION_MS}ms` }}
+                      style={{
+                        transitionDuration: prefersReducedMotion ? '0ms' : `${ROW_TRANSITION_MS}ms`,
+                      }}
                     >
                       <td className="px-6 py-5 text-lg font-semibold">
                         <div className={`flex items-center gap-3 ${getRankColor(entry.rank || 0)}`}>
@@ -547,13 +564,19 @@ export default function LeaderboardClient() {
                           <span className={`text-3xl font-semibold ${getWpmColor(entry.wpm)}`}>
                             {entry.wpm}
                           </span>
-                          <span className="text-xs uppercase tracking-[0.3em] text-zinc-500">WPM</span>
+                          <span className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+                            WPM
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-semibold text-zinc-100">{entry.accuracy}%</span>
-                          {entry.accuracy >= 95 && <span className="text-green-400 text-sm">precise</span>}
+                          <span className="text-lg font-semibold text-zinc-100">
+                            {entry.accuracy}%
+                          </span>
+                          {entry.accuracy >= 95 && (
+                            <span className="text-green-400 text-sm">precise</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-5 text-sm text-zinc-500">

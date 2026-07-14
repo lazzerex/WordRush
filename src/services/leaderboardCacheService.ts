@@ -1,4 +1,11 @@
-import { redis, LEADERBOARD_KEYS, calculateLeaderboardScore, createLeaderboardMember, parseLeaderboardMember, isRedisConfigured } from '@/lib/redis';
+import {
+  redis,
+  LEADERBOARD_KEYS,
+  calculateLeaderboardScore,
+  createLeaderboardMember,
+  parseLeaderboardMember,
+  isRedisConfigured,
+} from '@/lib/redis';
 import type { LeaderboardEntry } from '@/types/leaderboard';
 import { getLeaderboardPaginated } from '@/lib/leaderboard';
 
@@ -78,10 +85,10 @@ export async function getLeaderboardFromCache(
 
   try {
     const leaderboardKey = LEADERBOARD_KEYS.leaderboard(duration);
-    
+
     // Get total count
     const total = await redis.zcard(leaderboardKey);
-    
+
     if (!total || total === 0) {
       console.warn(`[leaderboard_cache][cache_miss] empty_zset duration=${duration} page=${page}`);
       return null;
@@ -106,24 +113,24 @@ export async function getLeaderboardFromCache(
     const entries: LeaderboardEntry[] = [];
     const members: string[] = [];
     const pipeline = redis.pipeline();
-    
+
     // withScores returns alternating [member, score, member, score, ...]
     // So we iterate by 2 to get only the members (at even indices)
     for (let i = 0; i < membersWithScores.length; i += 2) {
       const member = membersWithScores[i] as string;
       if (!member) continue; // Skip if member is undefined
-      
+
       const { entryId } = parseLeaderboardMember(member);
       members.push(member);
       pipeline.hgetall(LEADERBOARD_KEYS.entry(entryId));
     }
-    
+
     // Execute all fetches in one Redis call
     const results = await pipeline.exec();
 
     const orphanMembers: string[] = [];
     let rankCursor = startIndex + 1;
-    
+
     // Process results
     if (results && Array.isArray(results)) {
       results.forEach((result: any, index: number) => {
@@ -175,7 +182,9 @@ export async function getLeaderboardFromCache(
       return null;
     }
 
-    console.log(`✅ Retrieved ${entries.length} entries from cache (page ${page}, total: ${total})`);
+    console.log(
+      `✅ Retrieved ${entries.length} entries from cache (page ${page}, total: ${total})`
+    );
 
     return { entries, total };
   } catch (error) {
@@ -197,10 +206,10 @@ export async function getUserRankFromCache(
 
   try {
     const leaderboardKey = LEADERBOARD_KEYS.leaderboard(duration);
-    
+
     // Find user's best entry in the leaderboard
     const members = await redis.zrange(leaderboardKey, 0, -1, { rev: true });
-    
+
     if (!members) {
       return null;
     }
@@ -209,7 +218,7 @@ export async function getUserRankFromCache(
     for (let i = 0; i < members.length; i++) {
       const member = members[i] as string;
       const { userId: memberId } = parseLeaderboardMember(member);
-      
+
       if (memberId === userId) {
         userRank = i + 1;
         break;
@@ -221,7 +230,7 @@ export async function getUserRankFromCache(
     }
 
     const total = await redis.zcard(leaderboardKey);
-    
+
     return {
       rank: userRank,
       total: total || 0,
@@ -243,28 +252,28 @@ export async function refreshLeaderboardCache(duration: number): Promise<void> {
 
   try {
     console.log(`Refreshing leaderboard cache for duration ${duration}...`);
-    
+
     // Fetch top entries from database
     const { entries } = await getLeaderboardPaginated(duration, MAX_LEADERBOARD_SIZE, 0);
-    
+
     if (entries.length === 0) {
       console.log(`No entries found for duration ${duration}`);
       return;
     }
 
     const leaderboardKey = LEADERBOARD_KEYS.leaderboard(duration);
-    
+
     // Clear existing cache
     await redis.del(leaderboardKey);
-    
+
     // Add all entries
     const pipeline = redis.pipeline();
-    
+
     for (const entry of entries) {
       const score = calculateLeaderboardScore(entry.wpm, entry.accuracy, entry.created_at);
       const member = createLeaderboardMember(entry.user_id, entry.id);
       const entryKey = LEADERBOARD_KEYS.entry(entry.id);
-      
+
       pipeline.zadd(leaderboardKey, { score, member });
       pipeline.hset(entryKey, {
         id: entry.id,
@@ -278,10 +287,12 @@ export async function refreshLeaderboardCache(duration: number): Promise<void> {
       });
       // Don't set TTL - entries persist as long as they're in the sorted set
     }
-    
+
     await pipeline.exec();
-    
-    console.log(`Successfully refreshed cache for duration ${duration} with ${entries.length} entries`);
+
+    console.log(
+      `Successfully refreshed cache for duration ${duration} with ${entries.length} entries`
+    );
   } catch (error) {
     console.error('Error refreshing leaderboard cache:', error);
   }
@@ -297,12 +308,12 @@ export async function clearLeaderboardCache(): Promise<void> {
 
   try {
     const durations = [15, 30, 60, 120];
-    
+
     for (const duration of durations) {
       const leaderboardKey = LEADERBOARD_KEYS.leaderboard(duration);
       await redis.del(leaderboardKey);
     }
-    
+
     console.log('Cleared all leaderboard caches');
   } catch (error) {
     console.error('Error clearing leaderboard cache:', error);

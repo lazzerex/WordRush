@@ -5,10 +5,7 @@ interface AbandonParams {
   matchId: string;
 }
 
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<AbandonParams> }
-) {
+export async function POST(_request: Request, { params }: { params: Promise<AbandonParams> }) {
   const supabase = await createClient();
   const {
     data: { user },

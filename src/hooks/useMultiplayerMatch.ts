@@ -105,79 +105,97 @@ export function useMultiplayerMatch(): UseMultiplayerMatchResult {
     [service]
   );
 
-  const applyBundle = useCallback((bundle: MatchBundle, fallbackWords?: string[]) => {
-    const playerMap = new Map(bundle.players.map((player) => [player.user_id, player]));
-    const nextNameMap = new Map(playerNameMap.current);
+  const applyBundle = useCallback(
+    (bundle: MatchBundle, fallbackWords?: string[]) => {
+      const playerMap = new Map(bundle.players.map((player) => [player.user_id, player]));
+      const nextNameMap = new Map(playerNameMap.current);
 
-    bundle.players.forEach((player) => {
-      const fallback = `Player ${player.user_id.slice(0, 8)}`;
-      const existingName = player.display_name ?? nextNameMap.get(player.user_id) ?? fallback;
-      nextNameMap.set(player.user_id, existingName);
-    });
+      bundle.players.forEach((player) => {
+        const fallback = `Player ${player.user_id.slice(0, 8)}`;
+        const existingName = player.display_name ?? nextNameMap.get(player.user_id) ?? fallback;
+        nextNameMap.set(player.user_id, existingName);
+      });
 
-    const ensureDisplayName = (player: MultiplayerMatchPlayer | null | undefined): MultiplayerMatchPlayer | null => {
-      if (!player) {
-        return null;
-      }
-      const fallback = `Player ${player.user_id.slice(0, 8)}`;
-      const existingName = nextNameMap.get(player.user_id) ?? fallback;
-      return {
-        ...player,
-        display_name: existingName,
+      const ensureDisplayName = (
+        player: MultiplayerMatchPlayer | null | undefined
+      ): MultiplayerMatchPlayer | null => {
+        if (!player) {
+          return null;
+        }
+        const fallback = `Player ${player.user_id.slice(0, 8)}`;
+        const existingName = nextNameMap.get(player.user_id) ?? fallback;
+        return {
+          ...player,
+          display_name: existingName,
+        };
       };
-    };
 
-    const inferredMe = bundle.me ?? null;
-    const meId = inferredMe?.user_id ?? bundle.players[0]?.user_id;
-    const inferredOpponent = bundle.opponent ?? (meId ? bundle.players.find((p) => p.user_id !== meId) ?? null : null);
-    const opponentId = inferredOpponent?.user_id;
+      const inferredMe = bundle.me ?? null;
+      const meId = inferredMe?.user_id ?? bundle.players[0]?.user_id;
+      const inferredOpponent =
+        bundle.opponent ?? (meId ? (bundle.players.find((p) => p.user_id !== meId) ?? null) : null);
+      const opponentId = inferredOpponent?.user_id;
 
-    setMatch(bundle.match);
-    setMe(ensureDisplayName(inferredMe ?? (meId ? playerMap.get(meId) ?? null : null)));
-    setOpponent(ensureDisplayName(inferredOpponent ?? (opponentId ? playerMap.get(opponentId) ?? null : null)));
-    setWordSequence(bundle.match.word_sequence?.length ? bundle.match.word_sequence : fallbackWords ?? []);
-    setPhase('playing');
-    playerNameMap.current = nextNameMap;
-
-    matchCleanup.current?.();
-    matchCleanup.current = null;
-    matchStateCleanup.current?.();
-    matchStateCleanup.current = null;
-
-    matchCleanup.current = service.subscribeToMatch(bundle.match.id, (payload) => {
-      playerNameMap.current.set(
-        payload.user_id,
-        playerNameMap.current.get(payload.user_id) ?? `Player ${payload.user_id.slice(0, 8)}`
+      setMatch(bundle.match);
+      setMe(ensureDisplayName(inferredMe ?? (meId ? (playerMap.get(meId) ?? null) : null)));
+      setOpponent(
+        ensureDisplayName(
+          inferredOpponent ?? (opponentId ? (playerMap.get(opponentId) ?? null) : null)
+        )
       );
-      if (payload.user_id === meId) {
-        setMe((prev) => {
-          const displayName = playerNameMap.current.get(payload.user_id) ?? prev?.display_name ?? `Player ${payload.user_id.slice(0, 8)}`;
-          playerNameMap.current.set(payload.user_id, displayName);
-          return {
-            ...(prev ?? payload),
-            ...payload,
-            display_name: displayName,
-          };
-        });
-        return;
-      }
-      if (payload.user_id === opponentId || !opponentId) {
-        setOpponent((prev) => {
-          const displayName = playerNameMap.current.get(payload.user_id) ?? prev?.display_name ?? `Player ${payload.user_id.slice(0, 8)}`;
-          playerNameMap.current.set(payload.user_id, displayName);
-          return {
-            ...(prev ?? payload),
-            ...payload,
-            display_name: displayName,
-          };
-        });
-      }
-    });
+      setWordSequence(
+        bundle.match.word_sequence?.length ? bundle.match.word_sequence : (fallbackWords ?? [])
+      );
+      setPhase('playing');
+      playerNameMap.current = nextNameMap;
 
-    matchStateCleanup.current = service.subscribeToMatchState(bundle.match.id, (updatedMatch) => {
-      setMatch(updatedMatch);
-    });
-  }, [service]);
+      matchCleanup.current?.();
+      matchCleanup.current = null;
+      matchStateCleanup.current?.();
+      matchStateCleanup.current = null;
+
+      matchCleanup.current = service.subscribeToMatch(bundle.match.id, (payload) => {
+        playerNameMap.current.set(
+          payload.user_id,
+          playerNameMap.current.get(payload.user_id) ?? `Player ${payload.user_id.slice(0, 8)}`
+        );
+        if (payload.user_id === meId) {
+          setMe((prev) => {
+            const displayName =
+              playerNameMap.current.get(payload.user_id) ??
+              prev?.display_name ??
+              `Player ${payload.user_id.slice(0, 8)}`;
+            playerNameMap.current.set(payload.user_id, displayName);
+            return {
+              ...(prev ?? payload),
+              ...payload,
+              display_name: displayName,
+            };
+          });
+          return;
+        }
+        if (payload.user_id === opponentId || !opponentId) {
+          setOpponent((prev) => {
+            const displayName =
+              playerNameMap.current.get(payload.user_id) ??
+              prev?.display_name ??
+              `Player ${payload.user_id.slice(0, 8)}`;
+            playerNameMap.current.set(payload.user_id, displayName);
+            return {
+              ...(prev ?? payload),
+              ...payload,
+              display_name: displayName,
+            };
+          });
+        }
+      });
+
+      matchStateCleanup.current = service.subscribeToMatchState(bundle.match.id, (updatedMatch) => {
+        setMatch(updatedMatch);
+      });
+    },
+    [service]
+  );
 
   const startQueue = useCallback(async () => {
     setError(null);

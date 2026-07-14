@@ -48,7 +48,7 @@ export async function POST() {
   // If matched, fetch the match details
   if (data && data.length > 0 && data[0].match_id) {
     const matchId = data[0].match_id;
-    
+
     const { data: match, error: matchError } = await supabase
       .from('multiplayer_matches')
       .select('id, duration, word_sequence')
@@ -57,7 +57,10 @@ export async function POST() {
 
     if (matchError || !match) {
       console.error('Failed to fetch match after queue', matchError);
-      return NextResponse.json({ error: 'Match created but could not fetch details' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Match created but could not fetch details' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -81,10 +84,7 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { error } = await supabase
-    .from('multiplayer_queue')
-    .delete()
-    .eq('user_id', user.id);
+  const { error } = await supabase.from('multiplayer_queue').delete().eq('user_id', user.id);
 
   if (error) {
     console.error('Failed to cancel queue entry', error);

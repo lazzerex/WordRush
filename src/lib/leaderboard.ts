@@ -118,13 +118,16 @@ export async function getLeaderboardPaginated(
       .in('id', userIds);
 
     if (!profilesError && profilesData) {
-      profileMap = (profilesData as any[]).reduce((acc, profile) => {
-        acc[profile.id] = {
-          username: profile.username,
-          email: profile.email,
-        };
-        return acc;
-      }, {} as Record<string, { username?: string; email?: string }>);
+      profileMap = (profilesData as any[]).reduce(
+        (acc, profile) => {
+          acc[profile.id] = {
+            username: profile.username,
+            email: profile.email,
+          };
+          return acc;
+        },
+        {} as Record<string, { username?: string; email?: string }>
+      );
     }
   }
 
@@ -243,7 +246,7 @@ export function subscribeToLeaderboard(
         if (userData) {
           const username = (userData as any).profiles?.username || 'Anonymous';
           const email = (userData as any).profiles?.email || '';
-          
+
           callback({
             id: userData.id,
             user_id: userData.user_id,

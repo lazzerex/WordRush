@@ -27,7 +27,9 @@ export default function ShopClient() {
   const loadShopData = async () => {
     if (!supabase) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Get user coins
@@ -51,12 +53,12 @@ export default function ShopClient() {
         .select('theme_id')
         .eq('user_id', user.id);
 
-      const purchasedThemeIds = new Set(userThemes?.map(ut => ut.theme_id) || []);
+      const purchasedThemeIds = new Set(userThemes?.map((ut) => ut.theme_id) || []);
 
       // Combine data
-      const themesWithOwnership = (allThemes || []).map(theme => ({
+      const themesWithOwnership = (allThemes || []).map((theme) => ({
         ...theme,
-        owned: theme.is_default || purchasedThemeIds.has(theme.id)
+        owned: theme.is_default || purchasedThemeIds.has(theme.id),
       }));
 
       setThemes(themesWithOwnership);
@@ -84,37 +86,35 @@ export default function ShopClient() {
     setMessage(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Start a transaction-like operation
       // 1. Deduct coins
       const { error: coinsError } = await supabase.rpc('add_coins', {
         user_uuid: user.id,
-        amount: -theme.price
+        amount: -theme.price,
       });
 
       if (coinsError) throw coinsError;
 
       // 2. Add theme to user_themes
-      const { error: themeError } = await supabase
-        .from('user_themes')
-        .insert({
-          user_id: user.id,
-          theme_id: theme.id
-        });
+      const { error: themeError } = await supabase.from('user_themes').insert({
+        user_id: user.id,
+        theme_id: theme.id,
+      });
 
       if (themeError) throw themeError;
 
       // Update local state
-      setUserCoins(prev => {
+      setUserCoins((prev) => {
         const updated = Math.max(0, prev - theme.price);
         broadcastCoinsEvent(updated);
         return updated;
       });
-      setThemes(prev => prev.map(t => 
-        t.id === theme.id ? { ...t, owned: true } : t
-      ));
+      setThemes((prev) => prev.map((t) => (t.id === theme.id ? { ...t, owned: true } : t)));
 
       setMessage({ text: `Successfully purchased ${theme.display_name}!`, type: 'success' });
     } catch (error) {
@@ -134,7 +134,7 @@ export default function ShopClient() {
             <div className="animate-pulse">
               <div className="h-10 w-48 bg-zinc-800 rounded mb-8"></div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3, 4, 5, 6].map(i => (
+                {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div key={i} className="h-64 bg-zinc-800 rounded-xl"></div>
                 ))}
               </div>
@@ -157,7 +157,9 @@ export default function ShopClient() {
                 <ShoppingCart className="w-8 h-8 text-yellow-500" />
                 WordRush Shop
               </h1>
-              <p className="text-zinc-400 wr-text-secondary">Purchase themes to customize your typing experience</p>
+              <p className="text-zinc-400 wr-text-secondary">
+                Purchase themes to customize your typing experience
+              </p>
             </div>
             <div className="flex items-center gap-2 px-6 py-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl wr-border">
               <Coins className="w-6 h-6 text-yellow-500" />
@@ -168,33 +170,35 @@ export default function ShopClient() {
 
           {/* Message */}
           {message && (
-            <div className={`mb-6 p-4 rounded-lg border ${
-              message.type === 'success' 
-                ? 'bg-green-500/10 border-green-500/20 text-green-400' 
-                : 'bg-red-500/10 border-red-500/20 text-red-400'
-            }`}>
+            <div
+              className={`mb-6 p-4 rounded-lg border ${
+                message.type === 'success'
+                  ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}
+            >
               {message.text}
             </div>
           )}
 
           {/* Themes Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {themes.map(theme => (
+            {themes.map((theme) => (
               <div
                 key={theme.id}
                 className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6 hover:border-zinc-600 transition-all wr-surface"
               >
                 {/* Theme Preview */}
-                <div 
+                <div
                   className="h-32 rounded-lg mb-4 p-4 flex items-center justify-center relative overflow-hidden"
-                  style={{ 
+                  style={{
                     background: theme.preview_colors.background,
-                    color: theme.preview_colors.text
+                    color: theme.preview_colors.text,
                   }}
                 >
                   <div className="text-center space-y-2">
                     <div className="font-mono text-lg opacity-60">the quick brown</div>
-                    <div 
+                    <div
                       className="font-mono text-xl font-bold"
                       style={{ color: theme.preview_colors.accent }}
                     >
@@ -258,7 +262,9 @@ export default function ShopClient() {
           {themes.length === 0 && (
             <div className="text-center py-16">
               <ShoppingCart className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
-              <p className="text-zinc-400 wr-text-secondary">No themes available yet. Check back later!</p>
+              <p className="text-zinc-400 wr-text-secondary">
+                No themes available yet. Check back later!
+              </p>
             </div>
           )}
         </div>

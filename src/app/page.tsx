@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -75,7 +75,9 @@ function HomeContent() {
 
   return (
     <div className="relative min-h-screen bg-zinc-900 wr-bg-primary wr-text-primary">
-      <div className={`relative z-10 min-h-screen transition-all duration-500 ease-out ${overlayVisible ? 'pointer-events-none select-none opacity-90 blur-[6px]' : 'opacity-100 blur-0'}`}> 
+      <div
+        className={`relative z-10 min-h-screen transition-all duration-500 ease-out ${overlayVisible ? 'pointer-events-none select-none opacity-90 blur-[6px]' : 'opacity-100 blur-0'}`}
+      >
         <Navigation />
         <main className="pt-20 pb-12 px-4">
           <TypingTest onOpenMenu={handleOpenMenu} />
@@ -89,23 +91,31 @@ function HomeContent() {
             className={`relative z-10 flex flex-col items-center gap-8 text-center text-white transition-all duration-500 ease-out ${menuState === 'closing' ? '-translate-y-20 opacity-0' : menuState === 'opening' ? 'translate-y-12 opacity-0' : 'translate-y-0 opacity-100'}`}
           >
             <div className="mb-4 flex flex-col items-center">
-              <img src="/wordrush-large.png" alt="WordRush Logo" className="w-16 h-16 mb-2 select-none" draggable="false" />
-              <p className="text-xs uppercase tracking-[0.4em] text-zinc-400 mb-2 animate-fade-in">Welcome to</p>
+              <img
+                src="/wordrush-large.png"
+                alt="WordRush Logo"
+                className="w-16 h-16 mb-2 select-none"
+                draggable="false"
+              />
+              <p className="text-xs uppercase tracking-[0.4em] text-zinc-400 mb-2 animate-fade-in">
+                Welcome to
+              </p>
               <h1 className="text-6xl font-bold mb-3 tracking-tight drop-shadow-lg">
-                <span className="text-blue-500">Word</span><span className="text-yellow-400">Rush</span>
+                <span className="text-blue-500">Word</span>
+                <span className="text-yellow-400">Rush</span>
               </h1>
             </div>
             <div className="flex flex-col items-center gap-4">
-              <button 
-                type="button" 
-                onClick={handleSingleplayer} 
+              <button
+                type="button"
+                onClick={handleSingleplayer}
                 className="text-4xl font-semibold tracking-wide text-white transition-all duration-200 hover:text-yellow-400 hover:scale-105 drop-shadow-md"
               >
                 Singleplayer
               </button>
-              <button 
-                type="button" 
-                onClick={handleMultiplayer} 
+              <button
+                type="button"
+                onClick={handleMultiplayer}
                 className="text-4xl font-semibold tracking-wide text-white transition-all duration-200 hover:text-yellow-400 hover:scale-105 drop-shadow-md"
               >
                 Multiplayer
@@ -113,7 +123,10 @@ function HomeContent() {
               {!isAuthenticated && (
                 <div className="mt-6 text-base text-white/70">
                   New here?{' '}
-                  <Link href="/register?returnTo=/" className="underline decoration-yellow-500/40 underline-offset-4 transition-all hover:decoration-yellow-500 hover:text-yellow-400">
+                  <Link
+                    href="/register?returnTo=/"
+                    className="underline decoration-yellow-500/40 underline-offset-4 transition-all hover:decoration-yellow-500 hover:text-yellow-400"
+                  >
                     Sign up
                   </Link>
                 </div>

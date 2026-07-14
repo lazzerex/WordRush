@@ -18,7 +18,7 @@ const WORDS_BUFFER_THRESHOLD = 50;
 const WORDS_BATCH_SIZE = 120;
 const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
-  { code: 'vi', label: 'Tiếng Việt (Beta)' }
+  { code: 'vi', label: 'Tiếng Việt (Beta)' },
 ];
 
 export interface TypingTestProps {
@@ -28,9 +28,9 @@ export interface TypingTestProps {
 const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   // Unique test ID for replay protection
   const testIdRef = useRef<string | null>(null);
-  
+
   const { isInitialized } = useSupabase();
-  
+
   // State management
   const [wordPool, setWordPool] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
@@ -134,7 +134,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
       if (testActive) {
         setTestActive(false);
       }
-      
+
       if (!overlayVisible) {
         handleReset();
       }
@@ -219,10 +219,10 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
         return prevWords;
       }
 
-      setWordStatus((prevStatus) => ([
+      setWordStatus((prevStatus) => [
         ...prevStatus,
         ...new Array<WordStatus>(queuedWords.length).fill('pending'),
-      ]));
+      ]);
 
       return [...prevWords, ...queuedWords];
     });
@@ -255,13 +255,18 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setTestActive(false);
     setTestComplete(true);
 
-    const stats = calculateStats(correctCharsRef.current, incorrectCharsRef.current, selectedDuration, 0);
+    const stats = calculateStats(
+      correctCharsRef.current,
+      incorrectCharsRef.current,
+      selectedDuration,
+      0
+    );
     setWpm(stats.wpm);
     setAccuracy(stats.accuracy);
 
     try {
       resultSavedRef.current = true;
-      
+
       // CRITICAL: Validate test ID exists before submission
       const testId = testIdRef.current;
       if (!testId) {
@@ -270,7 +275,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
       }
 
       broadcastLoadingEvent({ active: true, message: 'Syncing your rewards…' });
-      
+
       const response = await fetch('/api/submit-result', {
         method: 'POST',
         headers: {
@@ -299,7 +304,8 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           setLatestResultMeta({
             id: data.id,
             userId: data.user_id,
-            createdAt: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString(),
+            createdAt:
+              typeof data.created_at === 'string' ? data.created_at : new Date().toISOString(),
           });
         }
 
@@ -334,7 +340,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
         applyServerData(result.data);
       } else {
         applyServerData(result.data);
-        
+
         // Clear the test ID from localStorage after successful submission
         localStorage.removeItem('currentTestId');
       }
@@ -502,23 +508,39 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
             {
               icon: <ShoppingBag className="w-5 h-5 text-zinc-400" />,
               label: 'Shop',
-              onClick: () => window.location.href = '/shop',
+              onClick: () => (window.location.href = '/shop'),
               className: 'hover:bg-zinc-800',
             },
             {
               icon: <Palette className="w-5 h-5 text-zinc-400" />,
               label: 'Customize',
-              onClick: () => window.location.href = '/customize',
+              onClick: () => (window.location.href = '/customize'),
               className: 'hover:bg-zinc-800',
             },
-            { icon: <div className="w-px h-8 bg-zinc-800" />, label: '', onClick: () => {}, className: 'pointer-events-none bg-transparent border-none shadow-none' },
+            {
+              icon: <div className="w-px h-8 bg-zinc-800" />,
+              label: '',
+              onClick: () => {},
+              className: 'pointer-events-none bg-transparent border-none shadow-none',
+            },
             ...([15, 30, 60, 120] as DurationOption[]).map((duration) => ({
-              icon: <span className={`text-sm font-semibold ${selectedDuration === duration ? 'text-yellow-500' : 'text-zinc-500'}`}>{duration}s</span>,
+              icon: (
+                <span
+                  className={`text-sm font-semibold ${selectedDuration === duration ? 'text-yellow-500' : 'text-zinc-500'}`}
+                >
+                  {duration}s
+                </span>
+              ),
               label: `${duration} seconds`,
               onClick: () => handleDurationChange(duration),
               className: `${selectedDuration === duration ? 'bg-zinc-800 border-zinc-700' : 'hover:bg-zinc-800'}`,
             })),
-            { icon: <div className="w-px h-8 bg-zinc-800" />, label: '', onClick: () => {}, className: 'pointer-events-none bg-transparent border-none shadow-none' },
+            {
+              icon: <div className="w-px h-8 bg-zinc-800" />,
+              label: '',
+              onClick: () => {},
+              className: 'pointer-events-none bg-transparent border-none shadow-none',
+            },
             {
               icon: <RotateCcw className="w-5 h-5 text-zinc-400" />,
               label: 'Reset',
@@ -527,10 +549,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
             },
             {
               icon: <Globe className="w-5 h-5 text-zinc-400" />,
-              label: SUPPORTED_LANGUAGES.find(l => l.code === selectedLanguage)?.label || 'Language',
+              label:
+                SUPPORTED_LANGUAGES.find((l) => l.code === selectedLanguage)?.label || 'Language',
               onClick: () => {
                 // Toggle to next language in SUPPORTED_LANGUAGES
-                const idx = SUPPORTED_LANGUAGES.findIndex(l => l.code === selectedLanguage);
+                const idx = SUPPORTED_LANGUAGES.findIndex((l) => l.code === selectedLanguage);
                 const nextIdx = (idx + 1) % SUPPORTED_LANGUAGES.length;
                 setSelectedLanguage(SUPPORTED_LANGUAGES[nextIdx].code);
               },

@@ -35,15 +35,19 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       markInitialized();
     }, 5000);
 
-    supabase.auth.getSession().then(({ error }) => {
-      if (error) {
-        console.warn('[SupabaseProvider] Session load error:', error);
-      }
-      markInitialized();
-    }).catch(err => {
-      console.error('[SupabaseProvider] Session load exception:', err);
-      markInitialized();
-    }).finally(() => clearTimeout(timeout));
+    supabase.auth
+      .getSession()
+      .then(({ error }) => {
+        if (error) {
+          console.warn('[SupabaseProvider] Session load error:', error);
+        }
+        markInitialized();
+      })
+      .catch((err) => {
+        console.error('[SupabaseProvider] Session load exception:', err);
+        markInitialized();
+      })
+      .finally(() => clearTimeout(timeout));
 
     return () => clearTimeout(timeout);
   }, [supabase]);

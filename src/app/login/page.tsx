@@ -23,8 +23,8 @@ function LoginPageContent() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-  setError(null);
-  setOauthLoading(false);
+    setError(null);
+    setOauthLoading(false);
     let triggeredGlobalLoading = false;
 
     try {
@@ -59,7 +59,9 @@ function LoginPageContent() {
       setOauthLoading(true);
       broadcastLoadingEvent({ active: true, message: 'Signing in with Google…' });
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        (typeof window !== 'undefined' ? window.location.origin : '');
       if (!supabase) throw new Error('Supabase not ready');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -103,7 +105,9 @@ function LoginPageContent() {
                 disabled={loading || oauthLoading}
                 className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-zinc-100 transition-smooth hover:bg-zinc-800/60 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-zinc-900">G</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-zinc-900">
+                  G
+                </span>
                 {oauthLoading ? 'Connecting…' : 'Continue with Google'}
               </button>
               <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-zinc-600">
@@ -113,7 +117,10 @@ function LoginPageContent() {
               </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6 animate-slideInUp animation-delay-100">
+            <form
+              onSubmit={handleLogin}
+              className="space-y-6 animate-slideInUp animation-delay-100"
+            >
               {error && (
                 <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                   {error}

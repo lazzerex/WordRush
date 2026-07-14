@@ -100,97 +100,97 @@ export const TestResults: React.FC<TestResultsProps> = ({
     }, UPDATE_HINT_TTL_MS);
   }, [UPDATE_HINT_TTL_MS, clearUpdateHintTimer]);
 
-  const computeRowDeltas = useCallback((
-    previousRows: LeaderboardEntry[],
-    nextRows: LeaderboardEntry[]
-  ) => {
-    const previousById = new Map<string, { rank: number }>();
-    const nextIds = new Set(nextRows.map((entry) => entry.id));
-    const deltas: Record<string, RowDelta> = {};
+  const computeRowDeltas = useCallback(
+    (previousRows: LeaderboardEntry[], nextRows: LeaderboardEntry[]) => {
+      const previousById = new Map<string, { rank: number }>();
+      const nextIds = new Set(nextRows.map((entry) => entry.id));
+      const deltas: Record<string, RowDelta> = {};
 
-    let insertedCount = 0;
-    let movedCount = 0;
-    let removedCount = 0;
+      let insertedCount = 0;
+      let movedCount = 0;
+      let removedCount = 0;
 
-    previousRows.forEach((entry, index) => {
-      const effectiveRank = entry.rank ?? index + 1;
-      previousById.set(entry.id, { rank: effectiveRank });
+      previousRows.forEach((entry, index) => {
+        const effectiveRank = entry.rank ?? index + 1;
+        previousById.set(entry.id, { rank: effectiveRank });
 
-      if (!nextIds.has(entry.id)) {
-        removedCount += 1;
+        if (!nextIds.has(entry.id)) {
+          removedCount += 1;
+        }
+      });
+
+      nextRows.forEach((entry, index) => {
+        const previous = previousById.get(entry.id);
+        const nextRank = entry.rank ?? index + 1;
+
+        if (!previous) {
+          deltas[entry.id] = { type: 'insert' };
+          insertedCount += 1;
+          return;
+        }
+
+        if (previous.rank !== nextRank) {
+          deltas[entry.id] = { type: 'move', previousRank: previous.rank };
+          movedCount += 1;
+          return;
+        }
+
+        deltas[entry.id] = { type: 'steady', previousRank: previous.rank };
+      });
+
+      return { deltas, insertedCount, movedCount, removedCount };
+    },
+    []
+  );
+
+  const fetchLeaderboardWindow = useCallback(
+    async (rank: number, total: number): Promise<LeaderboardEntry[]> => {
+      const maxWindowStart = Math.max(1, total - PREVIEW_SIZE + 1);
+      const targetStart = Math.max(
+        1,
+        Math.min(rank - Math.floor(PREVIEW_SIZE / 2), maxWindowStart)
+      );
+      const targetEnd = targetStart + PREVIEW_SIZE - 1;
+
+      const contextStart = Math.max(1, targetStart - PREVIEW_SIZE);
+      const contextPage = Math.floor((contextStart - 1) / CONTEXT_BATCH_SIZE) + 1;
+
+      const response = await fetch(
+        `/api/leaderboard?duration=${duration}&page=${contextPage}&pageSize=${CONTEXT_BATCH_SIZE}`
+      );
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        return [];
       }
-    });
 
-    nextRows.forEach((entry, index) => {
-      const previous = previousById.get(entry.id);
-      const nextRank = entry.rank ?? index + 1;
+      const contextEntries: LeaderboardEntry[] = payload.data.entries || [];
+      const byRank = contextEntries
+        .filter((entry) => typeof entry.rank === 'number')
+        .sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
-      if (!previous) {
-        deltas[entry.id] = { type: 'insert' };
-        insertedCount += 1;
-        return;
+      const focusedWindow = byRank.filter((entry) => {
+        const rankValue = entry.rank || 0;
+        return rankValue >= targetStart && rankValue <= targetEnd;
+      });
+
+      if (focusedWindow.length >= PREVIEW_SIZE) {
+        return focusedWindow.slice(0, PREVIEW_SIZE);
       }
 
-      if (previous.rank !== nextRank) {
-        deltas[entry.id] = { type: 'move', previousRank: previous.rank };
-        movedCount += 1;
-        return;
+      if (byRank.length === 0) {
+        return [];
       }
 
-      deltas[entry.id] = { type: 'steady', previousRank: previous.rank };
-    });
+      const fallbackStartIndex = Math.max(
+        0,
+        byRank.findIndex((entry) => (entry.rank || 0) >= targetStart)
+      );
 
-    return { deltas, insertedCount, movedCount, removedCount };
-  }, []);
-
-  const fetchLeaderboardWindow = useCallback(async (
-    rank: number,
-    total: number
-  ): Promise<LeaderboardEntry[]> => {
-    const maxWindowStart = Math.max(1, total - PREVIEW_SIZE + 1);
-    const targetStart = Math.max(
-      1,
-      Math.min(rank - Math.floor(PREVIEW_SIZE / 2), maxWindowStart)
-    );
-    const targetEnd = targetStart + PREVIEW_SIZE - 1;
-
-    const contextStart = Math.max(1, targetStart - PREVIEW_SIZE);
-    const contextPage = Math.floor((contextStart - 1) / CONTEXT_BATCH_SIZE) + 1;
-
-    const response = await fetch(
-      `/api/leaderboard?duration=${duration}&page=${contextPage}&pageSize=${CONTEXT_BATCH_SIZE}`
-    );
-    const payload = await response.json();
-
-    if (!response.ok || !payload?.success) {
-      return [];
-    }
-
-    const contextEntries: LeaderboardEntry[] = payload.data.entries || [];
-    const byRank = contextEntries
-      .filter((entry) => typeof entry.rank === 'number')
-      .sort((a, b) => (a.rank || 0) - (b.rank || 0));
-
-    const focusedWindow = byRank.filter((entry) => {
-      const rankValue = entry.rank || 0;
-      return rankValue >= targetStart && rankValue <= targetEnd;
-    });
-
-    if (focusedWindow.length >= PREVIEW_SIZE) {
-      return focusedWindow.slice(0, PREVIEW_SIZE);
-    }
-
-    if (byRank.length === 0) {
-      return [];
-    }
-
-    const fallbackStartIndex = Math.max(
-      0,
-      byRank.findIndex((entry) => (entry.rank || 0) >= targetStart)
-    );
-
-    return byRank.slice(fallbackStartIndex, fallbackStartIndex + PREVIEW_SIZE);
-  }, [CONTEXT_BATCH_SIZE, PREVIEW_SIZE, duration]);
+      return byRank.slice(fallbackStartIndex, fallbackStartIndex + PREVIEW_SIZE);
+    },
+    [CONTEXT_BATCH_SIZE, PREVIEW_SIZE, duration]
+  );
 
   const loadMiniLeaderboard = useCallback(async () => {
     if (inFlightRef.current) {
@@ -241,7 +241,8 @@ export const TestResults: React.FC<TestResultsProps> = ({
         }
       }
 
-      const latestAlreadyShown = !!latestResultId && nextEntries.some((entry) => entry.id === latestResultId);
+      const latestAlreadyShown =
+        !!latestResultId && nextEntries.some((entry) => entry.id === latestResultId);
       if (!latestAlreadyShown && latestResultId) {
         const syntheticCurrentEntry: LeaderboardEntry = {
           id: latestResultId,
@@ -254,11 +255,17 @@ export const TestResults: React.FC<TestResultsProps> = ({
           rank: latestRank,
         };
 
-        nextEntries = [...nextEntries.slice(0, Math.max(0, PREVIEW_SIZE - 1)), syntheticCurrentEntry];
+        nextEntries = [
+          ...nextEntries.slice(0, Math.max(0, PREVIEW_SIZE - 1)),
+          syntheticCurrentEntry,
+        ];
       }
 
       const previousRows = previewEntriesRef.current;
-      const { deltas, insertedCount, movedCount, removedCount } = computeRowDeltas(previousRows, nextEntries);
+      const { deltas, insertedCount, movedCount, removedCount } = computeRowDeltas(
+        previousRows,
+        nextEntries
+      );
       const hasDeltaChanges = insertedCount + movedCount + removedCount > 0;
 
       setWindowContext(nextContext);
@@ -314,30 +321,33 @@ export const TestResults: React.FC<TestResultsProps> = ({
     clearUpdateHintTimer,
   ]);
 
-  const requestMiniLeaderboardRefresh = useCallback((force = false) => {
-    if (!showLeaderboard) {
-      return;
-    }
-
-    if (inFlightRef.current) {
-      pendingRefreshRef.current = true;
-      return;
-    }
-
-    const elapsed = Date.now() - lastRefreshAtRef.current;
-    if (!force && elapsed < MIN_REFRESH_INTERVAL_MS) {
-      const wait = MIN_REFRESH_INTERVAL_MS - elapsed;
-      if (scheduledRefreshRef.current === null) {
-        scheduledRefreshRef.current = window.setTimeout(() => {
-          scheduledRefreshRef.current = null;
-          void loadMiniLeaderboard();
-        }, wait);
+  const requestMiniLeaderboardRefresh = useCallback(
+    (force = false) => {
+      if (!showLeaderboard) {
+        return;
       }
-      return;
-    }
 
-    void loadMiniLeaderboard();
-  }, [MIN_REFRESH_INTERVAL_MS, showLeaderboard, loadMiniLeaderboard]);
+      if (inFlightRef.current) {
+        pendingRefreshRef.current = true;
+        return;
+      }
+
+      const elapsed = Date.now() - lastRefreshAtRef.current;
+      if (!force && elapsed < MIN_REFRESH_INTERVAL_MS) {
+        const wait = MIN_REFRESH_INTERVAL_MS - elapsed;
+        if (scheduledRefreshRef.current === null) {
+          scheduledRefreshRef.current = window.setTimeout(() => {
+            scheduledRefreshRef.current = null;
+            void loadMiniLeaderboard();
+          }, wait);
+        }
+        return;
+      }
+
+      void loadMiniLeaderboard();
+    },
+    [MIN_REFRESH_INTERVAL_MS, showLeaderboard, loadMiniLeaderboard]
+  );
 
   useEffect(() => {
     requestMiniLeaderboardRefresh(true);
@@ -406,7 +416,9 @@ export const TestResults: React.FC<TestResultsProps> = ({
           </button>
         </div>
 
-        <div className={`grid gap-6 ${showLeaderboard ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
+        <div
+          className={`grid gap-6 ${showLeaderboard ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}
+        >
           <div className="space-y-6">
             {typeof coinsEarned === 'number' && coinsEarned > 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 animate-fadeIn animation-delay-100">
@@ -445,7 +457,9 @@ export const TestResults: React.FC<TestResultsProps> = ({
             <div className="rounded-2xl border border-zinc-700/70 bg-zinc-900/50 p-4 md:p-5 animate-fadeIn">
               <div className="mb-4 flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Live leaderboard</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+                    Live leaderboard
+                  </p>
                   <h3 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-yellow-400" />
                     {windowContext} {PREVIEW_SIZE} for {duration}s
@@ -508,15 +522,21 @@ export const TestResults: React.FC<TestResultsProps> = ({
                         }`}
                         style={{
                           transitionDelay: `${index * 60}ms`,
-                          transitionDuration: prefersReducedMotion ? '0ms' : `${ROW_TRANSITION_MS}ms`,
+                          transitionDuration: prefersReducedMotion
+                            ? '0ms'
+                            : `${ROW_TRANSITION_MS}ms`,
                         }}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 text-sm">
-                            <span className={`font-semibold ${highlighted ? 'text-yellow-300' : 'text-zinc-300'}`}>
+                            <span
+                              className={`font-semibold ${highlighted ? 'text-yellow-300' : 'text-zinc-300'}`}
+                            >
                               #{entry.rank || '-'}
                             </span>
-                            <span className={`truncate ${highlighted ? 'text-yellow-200' : 'text-zinc-200'}`}>
+                            <span
+                              className={`truncate ${highlighted ? 'text-yellow-200' : 'text-zinc-200'}`}
+                            >
                               {highlighted ? 'You' : entry.username}
                             </span>
                           </div>
@@ -532,7 +552,9 @@ export const TestResults: React.FC<TestResultsProps> = ({
                         </div>
 
                         <div className="text-right">
-                          <div className={`text-sm font-semibold ${highlighted ? 'text-yellow-300' : 'text-zinc-100'}`}>
+                          <div
+                            className={`text-sm font-semibold ${highlighted ? 'text-yellow-300' : 'text-zinc-100'}`}
+                          >
                             {entry.wpm} WPM
                           </div>
                           <p className="text-[11px] text-zinc-500">{entry.accuracy}% acc</p>

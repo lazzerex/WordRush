@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest';
 import {
   getAccuracyColorClass,
   getAccuracyRating,
   getWpmColorClass,
   getWpmRating,
-} from './formatters'
+} from './formatters';
 
 describe('getWpmRating', () => {
   it.each([
@@ -19,9 +19,9 @@ describe('getWpmRating', () => {
     [100, 'Expert'],
     [150, 'Expert'],
   ])('rates %i wpm as %s', (wpm, expected) => {
-    expect(getWpmRating(wpm)).toBe(expected)
-  })
-})
+    expect(getWpmRating(wpm)).toBe(expected);
+  });
+});
 
 describe('getAccuracyRating', () => {
   it.each([
@@ -36,9 +36,9 @@ describe('getAccuracyRating', () => {
     [95, 'Excellent'],
     [100, 'Excellent'],
   ])('rates %i%% accuracy as %s', (accuracy, expected) => {
-    expect(getAccuracyRating(accuracy)).toBe(expected)
-  })
-})
+    expect(getAccuracyRating(accuracy)).toBe(expected);
+  });
+});
 
 describe('getWpmColorClass', () => {
   it.each([
@@ -50,9 +50,9 @@ describe('getWpmColorClass', () => {
     [79, 'text-green-400'],
     [80, 'text-yellow-400'],
   ])('colors %i wpm as %s', (wpm, expected) => {
-    expect(getWpmColorClass(wpm)).toBe(expected)
-  })
-})
+    expect(getWpmColorClass(wpm)).toBe(expected);
+  });
+});
 
 describe('getAccuracyColorClass', () => {
   it.each([
@@ -64,6 +64,6 @@ describe('getAccuracyColorClass', () => {
     [94, 'text-blue-400'],
     [95, 'text-green-400'],
   ])('colors %i%% accuracy as %s', (accuracy, expected) => {
-    expect(getAccuracyColorClass(accuracy)).toBe(expected)
-  })
-})
+    expect(getAccuracyColorClass(accuracy)).toBe(expected);
+  });
+});

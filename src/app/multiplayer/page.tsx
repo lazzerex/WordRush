@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Navigation from '@/components/Navigation';
-import { Users, Plus, Search, Clock, Trophy, Zap, Loader2, Sword, TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  Users,
+  Plus,
+  Search,
+  Clock,
+  Trophy,
+  Zap,
+  Loader2,
+  Sword,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react';
 import { useMultiplayerMatch } from '@/hooks/useMultiplayerMatch';
 import { MatchArena } from '@/components/Multiplayer/MatchArena';
 import { useRankedProfileStats } from '@/hooks/useRankedProfileStats';
@@ -14,9 +25,18 @@ export default function MultiplayerPage() {
   const [activeTab, setActiveTab] = useState<TabType>('find-match');
   const [comingSoonVisible, setComingSoonVisible] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { stats: rankedStats, isLoading: rankedStatsLoading, error: rankedStatsError } = useRankedProfileStats(refreshTrigger);
-  const { value: animatedElo, trend: eloTrend } = useAnimatedNumber(rankedStats?.elo_rating ?? null);
-  const [eloChangeNotification, setEloChangeNotification] = useState<{ amount: number; visible: boolean } | null>(null);
+  const {
+    stats: rankedStats,
+    isLoading: rankedStatsLoading,
+    error: rankedStatsError,
+  } = useRankedProfileStats(refreshTrigger);
+  const { value: animatedElo, trend: eloTrend } = useAnimatedNumber(
+    rankedStats?.elo_rating ?? null
+  );
+  const [eloChangeNotification, setEloChangeNotification] = useState<{
+    amount: number;
+    visible: boolean;
+  } | null>(null);
   const previousEloRef = useRef<number | null>(null);
   const {
     phase,
@@ -35,22 +55,22 @@ export default function MultiplayerPage() {
   // Track ELO changes and show notification
   useEffect(() => {
     if (!rankedStats?.elo_rating) return;
-    
+
     if (previousEloRef.current === null) {
       previousEloRef.current = rankedStats.elo_rating;
       return;
     }
-    
+
     const change = rankedStats.elo_rating - previousEloRef.current;
     if (change !== 0) {
       setEloChangeNotification({ amount: change, visible: true });
       previousEloRef.current = rankedStats.elo_rating;
-      
+
       // Auto-hide after 5 seconds
       const timer = setTimeout(() => {
-        setEloChangeNotification(prev => prev ? { ...prev, visible: false } : null);
+        setEloChangeNotification((prev) => (prev ? { ...prev, visible: false } : null));
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [rankedStats?.elo_rating]);
@@ -85,14 +105,18 @@ export default function MultiplayerPage() {
     eloTrend === 'up'
       ? 'text-green-400 scale-105 drop-shadow-[0_0_12px_rgba(34,197,94,0.45)]'
       : eloTrend === 'down'
-      ? 'text-red-400 scale-95 drop-shadow-[0_0_12px_rgba(248,113,113,0.35)]'
-      : 'text-yellow-500'
+        ? 'text-red-400 scale-95 drop-shadow-[0_0_12px_rgba(248,113,113,0.35)]'
+        : 'text-yellow-500'
   }`;
 
   // Track original ELO before match starts
   const [originalElo, setOriginalElo] = useState<number | null>(null);
   useEffect(() => {
-    if (phase === 'playing' && originalElo === null && typeof rankedStats?.elo_rating === 'number') {
+    if (
+      phase === 'playing' &&
+      originalElo === null &&
+      typeof rankedStats?.elo_rating === 'number'
+    ) {
       setOriginalElo(rankedStats.elo_rating);
     }
     if (phase !== 'playing' && phase !== 'completed') {
@@ -116,7 +140,7 @@ export default function MultiplayerPage() {
           onBackToLobby={() => {
             resetMatch();
             setTimeout(() => {
-              setRefreshTrigger(prev => prev + 1);
+              setRefreshTrigger((prev) => prev + 1);
             }, 500);
           }}
         />
@@ -130,24 +154,28 @@ export default function MultiplayerPage() {
   return (
     <div className="min-h-screen bg-zinc-900 wr-bg-primary wr-text-primary">
       <Navigation />
-      
+
       {/* ELO Change Notification */}
       {eloChangeNotification && (
-        <div 
+        <div
           className={`fixed top-24 right-6 z-50 transition-all duration-500 ${
-            eloChangeNotification.visible 
-              ? 'opacity-100 translate-x-0' 
+            eloChangeNotification.visible
+              ? 'opacity-100 translate-x-0'
               : 'opacity-0 translate-x-full pointer-events-none'
           }`}
         >
-          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border-2 ${
-            eloChangeNotification.amount > 0
-              ? 'bg-gradient-to-br from-green-500/20 to-green-600/10 border-green-500/40 shadow-green-500/20'
-              : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/40 shadow-red-500/20'
-          }`}>
-            <div className={`p-2 rounded-xl ${
-              eloChangeNotification.amount > 0 ? 'bg-green-500/20' : 'bg-red-500/20'
-            }`}>
+          <div
+            className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border-2 ${
+              eloChangeNotification.amount > 0
+                ? 'bg-gradient-to-br from-green-500/20 to-green-600/10 border-green-500/40 shadow-green-500/20'
+                : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/40 shadow-red-500/20'
+            }`}
+          >
+            <div
+              className={`p-2 rounded-xl ${
+                eloChangeNotification.amount > 0 ? 'bg-green-500/20' : 'bg-red-500/20'
+              }`}
+            >
               {eloChangeNotification.amount > 0 ? (
                 <TrendingUp className="w-6 h-6 text-green-400" />
               ) : (
@@ -155,19 +183,26 @@ export default function MultiplayerPage() {
               )}
             </div>
             <div>
-              <div className={`text-sm font-semibold ${
-                eloChangeNotification.amount > 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
+              <div
+                className={`text-sm font-semibold ${
+                  eloChangeNotification.amount > 0 ? 'text-green-400' : 'text-red-400'
+                }`}
+              >
                 ELO Rating Changed
               </div>
-              <div className={`text-2xl font-bold ${
-                eloChangeNotification.amount > 0 ? 'text-green-300' : 'text-red-300'
-              }`}>
-                {eloChangeNotification.amount > 0 ? '+' : ''}{eloChangeNotification.amount}
+              <div
+                className={`text-2xl font-bold ${
+                  eloChangeNotification.amount > 0 ? 'text-green-300' : 'text-red-300'
+                }`}
+              >
+                {eloChangeNotification.amount > 0 ? '+' : ''}
+                {eloChangeNotification.amount}
               </div>
             </div>
             <button
-              onClick={() => setEloChangeNotification(prev => prev ? { ...prev, visible: false } : null)}
+              onClick={() =>
+                setEloChangeNotification((prev) => (prev ? { ...prev, visible: false } : null))
+              }
               className="ml-2 text-zinc-400 hover:text-white transition-colors"
             >
               ✕
@@ -175,7 +210,7 @@ export default function MultiplayerPage() {
           </div>
         </div>
       )}
-      
+
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 animate-fadeIn">
@@ -183,9 +218,7 @@ export default function MultiplayerPage() {
               <Users className="w-10 h-10 text-yellow-500" />
             </div>
             <h1 className="text-5xl font-bold text-white mb-3">Multiplayer</h1>
-            <p className="text-lg text-zinc-400">
-              Challenge your friends or find worthy opponents
-            </p>
+            <p className="text-lg text-zinc-400">Challenge your friends or find worthy opponents</p>
           </div>
 
           <div className="flex gap-3 mb-8 p-2 bg-zinc-800/50 rounded-xl border border-zinc-700/50 animate-slideIn">
@@ -305,7 +338,8 @@ export default function MultiplayerPage() {
                     <div>
                       <h4 className="text-sm font-semibold text-white mb-1">ELO Rating System</h4>
                       <p className="text-xs text-zinc-400 leading-relaxed">
-                        Your skill rating adjusts based on match performance. Win against higher-rated players to gain more ELO. Starting rating is 1000.
+                        Your skill rating adjusts based on match performance. Win against
+                        higher-rated players to gain more ELO. Starting rating is 1000.
                       </p>
                     </div>
                   </div>
@@ -325,8 +359,14 @@ export default function MultiplayerPage() {
 
                 <div className="space-y-6 mb-8">
                   <DisabledField label="Room Name" placeholder="Enter room name..." />
-                  <DisabledOptions label="Duration" options={[15, 30, 60, 120].map((value) => `${value}s`)} />
-                  <DisabledOptions label="Max Players" options={[2, 4, 6, 8].map((value) => `${value}`)} />
+                  <DisabledOptions
+                    label="Duration"
+                    options={[15, 30, 60, 120].map((value) => `${value}s`)}
+                  />
+                  <DisabledOptions
+                    label="Max Players"
+                    options={[2, 4, 6, 8].map((value) => `${value}`)}
+                  />
                 </div>
 
                 <button

@@ -71,16 +71,18 @@ export function useTestState(defaultDuration: DurationOption = 30) {
     setTimeLeft: (time) => setState((prev) => ({ ...prev, timeLeft: time })),
     setTestActive: (active) => setState((prev) => ({ ...prev, testActive: active })),
     setTestComplete: (complete) => setState((prev) => ({ ...prev, testComplete: complete })),
-    setSelectedDuration: (duration) => setState((prev) => ({ ...prev, selectedDuration: duration })),
+    setSelectedDuration: (duration) =>
+      setState((prev) => ({ ...prev, selectedDuration: duration })),
     setWpm: (wpm) => setState((prev) => ({ ...prev, wpm })),
     setAccuracy: (accuracy) => setState((prev) => ({ ...prev, accuracy })),
     setWordStatus: (status) => setState((prev) => ({ ...prev, wordStatus: status })),
     setOverlayVisible: (visible) => setState((prev) => ({ ...prev, overlayVisible: visible })),
-    resetTest: () => setState((prev) => ({
-      ...initialState,
-      timeLeft: prev.selectedDuration,
-      selectedDuration: prev.selectedDuration,
-    })),
+    resetTest: () =>
+      setState((prev) => ({
+        ...initialState,
+        timeLeft: prev.selectedDuration,
+        selectedDuration: prev.selectedDuration,
+      })),
   };
 
   return { state, actions };

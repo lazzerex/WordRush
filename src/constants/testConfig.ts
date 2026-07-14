@@ -3,7 +3,7 @@
  */
 
 export const DURATION_OPTIONS = [15, 30, 60, 120] as const;
-export type DurationOption = typeof DURATION_OPTIONS[number];
+export type DurationOption = (typeof DURATION_OPTIONS)[number];
 
 export const DEFAULT_DURATION: DurationOption = 30;
 

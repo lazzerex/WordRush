@@ -7,10 +7,7 @@ import { TEST_CONFIG } from '@/constants/testConfig';
 /**
  * Generate random words from a pool without too many repetitions
  */
-export function generateRandomWords(
-  wordPool: string[],
-  duration: number
-): string[] {
+export function generateRandomWords(wordPool: string[], duration: number): string[] {
   if (!wordPool || wordPool.length === 0) {
     console.warn('Word pool is empty. Please ensure the database is seeded.');
     return [];

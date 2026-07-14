@@ -7,9 +7,15 @@ export async function GET(request: NextRequest) {
     // Verify admin authentication
     const admin = await requireAdmin();
 
-    const rateLimitResult = await checkRateLimit(adminLimiter, getRateLimitIdentifier(request, admin.userId));
+    const rateLimitResult = await checkRateLimit(
+      adminLimiter,
+      getRateLimitIdentifier(request, admin.userId)
+    );
     if (!rateLimitResult.success) {
-      return NextResponse.json({ error: rateLimitResult.error || 'Rate limit exceeded' }, { status: 429 });
+      return NextResponse.json(
+        { error: rateLimitResult.error || 'Rate limit exceeded' },
+        { status: 429 }
+      );
     }
 
     // Get dashboard stats
@@ -24,17 +30,11 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error fetching admin stats:', error);
-    
+
     if (error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 403 });
     }
 
-    return NextResponse.json(
-      { error: 'Failed to fetch admin statistics' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch admin statistics' }, { status: 500 });
   }
 }

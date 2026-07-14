@@ -6,7 +6,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function ShopPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Middleware ensures user exists, but double-check for type safety
   if (!user) {

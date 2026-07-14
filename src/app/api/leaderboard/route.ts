@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLeaderboardFromCache, refreshLeaderboardCache } from '@/services/leaderboardCacheService';
+import {
+  getLeaderboardFromCache,
+  refreshLeaderboardCache,
+} from '@/services/leaderboardCacheService';
 import { getLeaderboardPaginated } from '@/lib/leaderboard';
 import { checkRateLimit, getRateLimitIdentifier, leaderboardLimiter } from '@/lib/ratelimit';
 
@@ -9,17 +12,17 @@ export async function GET(request: NextRequest) {
     const identifier = getRateLimitIdentifier(request);
     // Pass fallback limit (30 per minute) to match Redis config
     const rateLimitResult = await checkRateLimit(leaderboardLimiter, identifier, 30);
-    
+
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
-        { 
+        {
           status: 429,
           headers: {
             'X-RateLimit-Limit': String(rateLimitResult.limit || 0),
             'X-RateLimit-Remaining': String(rateLimitResult.remaining || 0),
             'X-RateLimit-Reset': String(rateLimitResult.reset || 0),
-          }
+          },
         }
       );
     }
@@ -38,10 +41,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (page < 1 || pageSize < 1 || pageSize > 100) {
-      return NextResponse.json(
-        { error: 'Invalid pagination parameters' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid pagination parameters' }, { status: 400 });
     }
 
     // Try to get from cache first.
@@ -73,9 +73,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -7,7 +7,7 @@ import {
   useSpring,
   useTransform,
   type SpringOptions,
-  AnimatePresence
+  AnimatePresence,
 } from 'motion/react';
 import React, { Children, cloneElement, useEffect, useRef, useState } from 'react';
 
@@ -48,20 +48,24 @@ function DockItem({
   spring,
   distance,
   magnification,
-  baseItemSize
+  baseItemSize,
 }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isHovered = useMotionValue(0);
 
-  const mouseDistance = useTransform(mouseX, val => {
+  const mouseDistance = useTransform(mouseX, (val) => {
     const rect = ref.current?.getBoundingClientRect() ?? {
       x: 0,
-      width: baseItemSize
+      width: baseItemSize,
     };
     return val - rect.x - baseItemSize / 2;
   });
 
-  const targetSize = useTransform(mouseDistance, [-distance, 0, distance], [baseItemSize, magnification, baseItemSize]);
+  const targetSize = useTransform(
+    mouseDistance,
+    [-distance, 0, distance],
+    [baseItemSize, magnification, baseItemSize]
+  );
   const size = useSpring(targetSize, spring);
 
   return (
@@ -69,7 +73,7 @@ function DockItem({
       ref={ref}
       style={{
         width: size,
-        height: size
+        height: size,
       }}
       onHoverStart={() => isHovered.set(1)}
       onHoverEnd={() => isHovered.set(0)}
@@ -81,9 +85,11 @@ function DockItem({
       role="button"
       aria-haspopup="true"
     >
-      {Children.map(children, child =>
+      {Children.map(children, (child) =>
         React.isValidElement(child)
-          ? cloneElement(child as React.ReactElement<{ isHovered?: MotionValue<number> }>, { isHovered })
+          ? cloneElement(child as React.ReactElement<{ isHovered?: MotionValue<number> }>, {
+              isHovered,
+            })
           : child
       )}
     </motion.div>
@@ -101,7 +107,7 @@ function DockLabel({ children, className = '', isHovered }: DockLabelProps) {
 
   useEffect(() => {
     if (!isHovered) return;
-    const unsubscribe = isHovered.on('change', latest => {
+    const unsubscribe = isHovered.on('change', (latest) => {
       setIsVisible(latest === 1);
     });
     return () => unsubscribe();
@@ -142,7 +148,7 @@ export default function Dock({
   spring = { mass: 0.1, stiffness: 150, damping: 12 },
   magnification = 70,
   distance = 200,
-  baseItemSize = 50
+  baseItemSize = 50,
 }: DockProps) {
   const mouseX = useMotionValue(Infinity);
 

@@ -12,9 +12,9 @@ import { generateRuntimeUuid } from '@/lib/uuid';
 const GUEST_DATA_KEY = 'wordrush_guest_data';
 
 export interface GuestData {
-  id: string;           // UUID for internal use
-  displayName: string;  // guest_123456 format
-  createdAt: number;    // timestamp
+  id: string; // UUID for internal use
+  displayName: string; // guest_123456 format
+  createdAt: number; // timestamp
 }
 
 /**
@@ -24,10 +24,10 @@ export interface GuestData {
 function generateGuestData(): GuestData {
   // Permanent unique ID for internal use (UUID format)
   const uniqueId = generateRuntimeUuid();
-  
+
   // Human-readable display name using last 6 digits of timestamp
   const displayNumber = Date.now().toString().slice(-6);
-  
+
   return {
     id: uniqueId,
     displayName: `guest_${displayNumber}`,
@@ -51,12 +51,12 @@ export function getOrCreateGuestId(): GuestData {
 
   try {
     const stored = sessionStorage.getItem(GUEST_DATA_KEY);
-    
+
     if (stored) {
       const guestData = JSON.parse(stored) as GuestData;
       return guestData;
     }
-    
+
     // Create new guest data
     const guestData = generateGuestData();
     sessionStorage.setItem(GUEST_DATA_KEY, JSON.stringify(guestData));
@@ -102,7 +102,7 @@ const PROFANITY_LIST = [
  */
 export function detectProfanity(message: string): string | null {
   const lowerMessage = message.toLowerCase();
-  
+
   for (const word of PROFANITY_LIST) {
     // Check for whole word matches (with word boundaries)
     const regex = new RegExp(`\\b${word}\\b`, 'i');
@@ -110,7 +110,7 @@ export function detectProfanity(message: string): string | null {
       return word;
     }
   }
-  
+
   return null;
 }
 
@@ -119,12 +119,12 @@ export function detectProfanity(message: string): string | null {
  */
 export function filterProfanity(message: string): string {
   let filtered = message;
-  
+
   for (const word of PROFANITY_LIST) {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
     filtered = filtered.replace(regex, (match) => '*'.repeat(match.length));
   }
-  
+
   return filtered;
 }
 
@@ -158,18 +158,18 @@ export function validateMessage(message: string): {
 
   // Check maximum length
   if (message.length > MESSAGE_CONSTRAINTS.MAX_LENGTH) {
-    return { 
-      valid: false, 
-      error: `Message exceeds ${MESSAGE_CONSTRAINTS.MAX_LENGTH} characters` 
+    return {
+      valid: false,
+      error: `Message exceeds ${MESSAGE_CONSTRAINTS.MAX_LENGTH} characters`,
     };
   }
 
   // Check for profanity
   const profaneWord = detectProfanity(message);
   if (profaneWord) {
-    return { 
-      valid: false, 
-      error: 'Message contains inappropriate language' 
+    return {
+      valid: false,
+      error: 'Message contains inappropriate language',
     };
   }
 
@@ -216,7 +216,7 @@ export function formatRelativeTime(timestamp: string | Date): string {
   if (diffSeconds < 60) return `${diffSeconds}s ago`;
   if (diffMinutes < 60) return `${diffMinutes}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
-  
+
   return date.toLocaleDateString();
 }
 

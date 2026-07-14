@@ -23,7 +23,7 @@ export function useTimer({ duration, isActive, onTick, onComplete }: UseTimerOpt
     if (isActive) {
       intervalRef.current = setInterval(() => {
         timeLeftRef.current -= 1;
-        
+
         if (onTick) {
           onTick(timeLeftRef.current);
         }

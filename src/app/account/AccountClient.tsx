@@ -52,7 +52,7 @@ export default function AccountClient({ user }: AccountClientProps) {
       .select('elo_rating, wins, losses, draws, matches_played, last_ranked_at, is_admin')
       .eq('id', user.id)
       .single();
-    
+
     if (!error && data) {
       setProfile(data);
       setIsAdmin(data.is_admin || false);
@@ -88,7 +88,9 @@ export default function AccountClient({ user }: AccountClientProps) {
 
   // Local state for confirmation toast
   const [showConfirm, setShowConfirm] = useState(false);
-  const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showToast, setShowToast] = useState<{ message: string; type: 'success' | 'error' } | null>(
+    null
+  );
 
   const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
   const email = user.email || '';
@@ -181,7 +183,9 @@ export default function AccountClient({ user }: AccountClientProps) {
                   )}
                   Email Status
                 </div>
-                <p className={`mt-2 text-lg font-semibold ${user.email_confirmed_at ? 'text-green-400' : 'text-yellow-300'}`}>
+                <p
+                  className={`mt-2 text-lg font-semibold ${user.email_confirmed_at ? 'text-green-400' : 'text-yellow-300'}`}
+                >
                   {user.email_confirmed_at ? 'Verified' : 'Not Verified'}
                 </p>
               </div>
@@ -217,8 +221,14 @@ export default function AccountClient({ user }: AccountClientProps) {
 
           {/* Small ephemeral toast */}
           {showToast && (
-            <div className="fixed right-6 bottom-6 z-50 w-[220px] rounded-lg p-3 shadow-lg animate-scaleIn"
-                 style={{ background: showToast.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: '1px solid rgba(255,255,255,0.04)' }}>
+            <div
+              className="fixed right-6 bottom-6 z-50 w-[220px] rounded-lg p-3 shadow-lg animate-scaleIn"
+              style={{
+                background:
+                  showToast.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(255,255,255,0.04)',
+              }}
+            >
               <div className="text-sm font-medium text-zinc-100">{showToast.message}</div>
             </div>
           )}
@@ -260,7 +270,9 @@ export default function AccountClient({ user }: AccountClientProps) {
                       ELO Rating
                       <Trophy className="w-4 h-4 text-purple-400" />
                     </div>
-                    <p className="mt-3 text-3xl font-bold text-purple-400">{profile?.elo_rating ?? 1000}</p>
+                    <p className="mt-3 text-3xl font-bold text-purple-400">
+                      {profile?.elo_rating ?? 1000}
+                    </p>
                     <p className="text-xs text-zinc-500 mt-1">Ranked multiplayer</p>
                   </div>
                   <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp animation-delay-100">
@@ -276,7 +288,9 @@ export default function AccountClient({ user }: AccountClientProps) {
                       Average Accuracy
                       <Target className="w-4 h-4 text-green-400" />
                     </div>
-                    <p className="mt-3 text-3xl font-bold text-green-400">{stats.averageAccuracy}%</p>
+                    <p className="mt-3 text-3xl font-bold text-green-400">
+                      {stats.averageAccuracy}%
+                    </p>
                     <p className="text-xs text-zinc-500 mt-1">Precision matters</p>
                   </div>
                   <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-6 transition-smooth hover:scale-105 animate-slideInUp animation-delay-300">
@@ -299,26 +313,43 @@ export default function AccountClient({ user }: AccountClientProps) {
 
                 {/* Performance Breakdown by Duration */}
                 <div className="mt-10 animate-fadeIn animation-delay-500">
-                  <h3 className="text-lg font-semibold text-zinc-200 mb-4">Performance by Duration</h3>
+                  <h3 className="text-lg font-semibold text-zinc-200 mb-4">
+                    Performance by Duration
+                  </h3>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {[15, 30, 60, 120].map((duration) => {
-                      const testsForDuration = stats.allResults.filter((r) => r.duration === duration);
-                      const avgWpm = testsForDuration.length > 0
-                        ? Math.round(testsForDuration.reduce((sum, r) => sum + r.wpm, 0) / testsForDuration.length)
-                        : 0;
-                      const avgAccuracy = testsForDuration.length > 0
-                        ? Math.round(testsForDuration.reduce((sum, r) => sum + r.accuracy, 0) / testsForDuration.length)
-                        : 0;
-                      
+                      const testsForDuration = stats.allResults.filter(
+                        (r) => r.duration === duration
+                      );
+                      const avgWpm =
+                        testsForDuration.length > 0
+                          ? Math.round(
+                              testsForDuration.reduce((sum, r) => sum + r.wpm, 0) /
+                                testsForDuration.length
+                            )
+                          : 0;
+                      const avgAccuracy =
+                        testsForDuration.length > 0
+                          ? Math.round(
+                              testsForDuration.reduce((sum, r) => sum + r.accuracy, 0) /
+                                testsForDuration.length
+                            )
+                          : 0;
+
                       return (
-                        <div key={duration} className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5">
+                        <div
+                          key={duration}
+                          className="rounded-2xl border border-zinc-700/60 bg-zinc-900/50 p-5"
+                        >
                           <div className="text-xs uppercase tracking-[0.3em] text-zinc-500 mb-3">
                             {duration} seconds
                           </div>
                           <div className="space-y-3">
                             <div>
                               <div className="text-xs text-zinc-500">Tests</div>
-                              <div className="text-2xl font-semibold text-zinc-100">{testsForDuration.length}</div>
+                              <div className="text-2xl font-semibold text-zinc-100">
+                                {testsForDuration.length}
+                              </div>
                             </div>
                             <div>
                               <div className="text-xs text-zinc-500">Avg WPM</div>
@@ -326,7 +357,9 @@ export default function AccountClient({ user }: AccountClientProps) {
                             </div>
                             <div>
                               <div className="text-xs text-zinc-500">Avg Accuracy</div>
-                              <div className="text-lg font-semibold text-green-400">{avgAccuracy}%</div>
+                              <div className="text-lg font-semibold text-green-400">
+                                {avgAccuracy}%
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -349,12 +382,18 @@ export default function AccountClient({ user }: AccountClientProps) {
                             <p className="text-2xl font-semibold text-yellow-400">{result.wpm}</p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Accuracy</p>
+                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+                              Accuracy
+                            </p>
                             <p className="text-lg font-medium text-green-400">{result.accuracy}%</p>
                           </div>
                           <div>
-                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Session</p>
-                            <p className="text-sm text-zinc-300">{result.duration}s • {result.theme}</p>
+                            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+                              Session
+                            </p>
+                            <p className="text-sm text-zinc-300">
+                              {result.duration}s • {result.theme}
+                            </p>
                           </div>
                           <div className="text-sm text-zinc-500 justify-self-end">
                             {new Date(result.created_at).toLocaleString()}
@@ -408,11 +447,17 @@ export default function AccountClient({ user }: AccountClientProps) {
                     ELO Rating
                     <Trophy className="w-4 h-4 text-purple-400" />
                   </div>
-                  <p className="mt-3 text-4xl font-bold text-purple-400">{profile.elo_rating ?? 1000}</p>
+                  <p className="mt-3 text-4xl font-bold text-purple-400">
+                    {profile.elo_rating ?? 1000}
+                  </p>
                   <p className="text-xs text-zinc-500 mt-1">
-                    {(profile.elo_rating ?? 1000) >= 1500 ? 'Expert' : 
-                     (profile.elo_rating ?? 1000) >= 1200 ? 'Advanced' : 
-                     (profile.elo_rating ?? 1000) >= 900 ? 'Intermediate' : 'Beginner'}
+                    {(profile.elo_rating ?? 1000) >= 1500
+                      ? 'Expert'
+                      : (profile.elo_rating ?? 1000) >= 1200
+                        ? 'Advanced'
+                        : (profile.elo_rating ?? 1000) >= 900
+                          ? 'Intermediate'
+                          : 'Beginner'}
                   </p>
                 </div>
 
@@ -422,7 +467,9 @@ export default function AccountClient({ user }: AccountClientProps) {
                     <Swords className="w-4 h-4 text-zinc-600" />
                   </div>
                   <p className="mt-3 text-3xl font-bold text-zinc-50">{matchesPlayed}</p>
-                  <p className="text-xs text-zinc-500 mt-1">{hasRankedMatches ? 'Total duels' : 'Play your first ranked match'}</p>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {hasRankedMatches ? 'Total duels' : 'Play your first ranked match'}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl border border-green-500/20 bg-green-900/10 p-6 transition-smooth hover:scale-105">

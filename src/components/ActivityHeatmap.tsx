@@ -19,10 +19,10 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
     const today = new Date();
     const startDate = new Date(today);
     startDate.setMonth(startDate.getMonth() - 12);
-    
+
     // Create a map of dates to test counts
     const dateMap = new Map<string, DayData>();
-    
+
     // Initialize all days in the range
     const currentDate = new Date(startDate);
     while (currentDate <= today) {
@@ -30,7 +30,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
       dateMap.set(dateStr, { date: dateStr, count: 0, tests: [] });
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     // Fill in the actual test data
     results.forEach((result) => {
       const dateStr = new Date(result.created_at).toISOString().split('T')[0];
@@ -40,18 +40,18 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
         dayData.tests.push(result);
       }
     });
-    
+
     return Array.from(dateMap.values());
   }, [results]);
 
   const weeks = useMemo(() => {
     const weeksArray: DayData[][] = [];
     let currentWeek: DayData[] = [];
-    
+
     heatmapData.forEach((day, index) => {
       const date = new Date(day.date);
       const dayOfWeek = date.getDay();
-      
+
       // Start a new week on Sunday (0)
       if (index === 0) {
         // Fill in empty days at the start
@@ -59,16 +59,16 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
           currentWeek.push({ date: '', count: 0, tests: [] });
         }
       }
-      
+
       currentWeek.push(day);
-      
+
       // End of week (Saturday = 6)
       if (dayOfWeek === 6) {
         weeksArray.push(currentWeek);
         currentWeek = [];
       }
     });
-    
+
     // Add remaining days
     if (currentWeek.length > 0) {
       // Fill in empty days at the end
@@ -77,7 +77,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
       }
       weeksArray.push(currentWeek);
     }
-    
+
     return weeksArray;
   }, [heatmapData]);
 
@@ -93,13 +93,13 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
   const months = useMemo(() => {
     const monthsArray: { name: string; startWeek: number }[] = [];
     let currentMonth = -1;
-    
+
     weeks.forEach((week, weekIndex) => {
       week.forEach((day) => {
         if (day.date) {
           const date = new Date(day.date);
           const month = date.getMonth();
-          
+
           if (month !== currentMonth) {
             currentMonth = month;
             monthsArray.push({
@@ -110,7 +110,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
         }
       });
     });
-    
+
     return monthsArray;
   }, [weeks]);
 
@@ -118,7 +118,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
   const maxStreak = useMemo(() => {
     let currentStreak = 0;
     let maxStreak = 0;
-    
+
     heatmapData.forEach((day) => {
       if (day.count > 0) {
         currentStreak++;
@@ -127,7 +127,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
         currentStreak = 0;
       }
     });
-    
+
     return maxStreak;
   }, [heatmapData]);
 
@@ -163,9 +163,12 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
               <div
                 key={index}
                 className="text-xs text-zinc-500"
-                style={{ 
-                  marginLeft: index === 0 ? '0' : `${(month.startWeek - (months[index - 1]?.startWeek || 0)) * 13 - 20}px`,
-                  minWidth: '30px'
+                style={{
+                  marginLeft:
+                    index === 0
+                      ? '0'
+                      : `${(month.startWeek - (months[index - 1]?.startWeek || 0)) * 13 - 20}px`,
+                  minWidth: '30px',
                 }}
               >
                 {month.name}
@@ -195,18 +198,20 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ results }) => {
                     } ${day.count > 0 ? 'cursor-pointer' : ''}`}
                     title={
                       day.date && day.count > 0
-                        ? `${day.count} test${day.count > 1 ? 's' : ''} on ${new Date(day.date).toLocaleDateString('en-US', {
+                        ? `${day.count} test${day.count > 1 ? 's' : ''} on ${new Date(
+                            day.date
+                          ).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
                           })}`
                         : day.date
-                        ? `No tests on ${new Date(day.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}`
-                        : ''
+                          ? `No tests on ${new Date(day.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}`
+                          : ''
                     }
                   />
                 ))}

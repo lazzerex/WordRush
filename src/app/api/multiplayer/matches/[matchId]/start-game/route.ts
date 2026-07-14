@@ -5,10 +5,7 @@ interface StartGameParams {
   matchId: string;
 }
 
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<StartGameParams> }
-) {
+export async function POST(_request: Request, { params }: { params: Promise<StartGameParams> }) {
   const supabase = await createClient();
   const {
     data: { user },

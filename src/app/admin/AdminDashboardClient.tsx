@@ -3,18 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
-import { 
-  Users, 
-  FileText, 
-  TrendingUp, 
-  Activity, 
-  Shield, 
+import {
+  Users,
+  FileText,
+  TrendingUp,
+  Activity,
+  Shield,
   Clock,
   Search,
   Trash2,
   Edit,
   CheckCircle,
-  XCircle
+  XCircle,
 } from 'lucide-react';
 
 interface AdminStats {
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
       const response = await fetch('/api/admin/stats');
-      
+
       if (response.status === 403) {
         router.push('/');
         return;
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
       <Navigation />
-      
+
       <main className="max-w-7xl mx-auto px-4 pt-24 pb-12">
         {/* Header */}
         <div className="mb-8">
@@ -264,7 +264,9 @@ export default function AdminDashboard() {
             <Shield className="w-8 h-8 text-yellow-400" />
             <h1 className="text-3xl font-bold text-zinc-50">Admin Dashboard</h1>
           </div>
-          <p className="text-zinc-400">Manage users, monitor activity, and view system statistics</p>
+          <p className="text-zinc-400">
+            Manage users, monitor activity, and view system statistics
+          </p>
         </div>
 
         {/* Tabs */}
@@ -274,7 +276,7 @@ export default function AdminDashboard() {
             { id: 'users' as Tab, label: 'Users', icon: Users },
             { id: 'results' as Tab, label: 'Results', icon: FileText },
             { id: 'logs' as Tab, label: 'Audit Logs', icon: Clock },
-          ].map(tab => (
+          ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => {
@@ -401,7 +403,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(user => (
+                    {users.map((user) => (
                       <tr key={user.id} className="border-b border-zinc-800 hover:bg-zinc-800/30">
                         <td className="py-3 px-4 font-medium">{user.username || 'N/A'}</td>
                         <td className="py-3 px-4 text-zinc-400 text-sm">{user.email}</td>
@@ -443,7 +445,11 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
-              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             </div>
           </div>
         )}
@@ -464,7 +470,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map(result => (
+                  {results.map((result) => (
                     <tr key={result.id} className="border-b border-zinc-800 hover:bg-zinc-800/30">
                       <td className="py-3 px-4">
                         <div>
@@ -494,7 +500,11 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
 
@@ -512,7 +522,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map(log => (
+                  {logs.map((log) => (
                     <tr key={log.id} className="border-b border-zinc-800 hover:bg-zinc-800/30">
                       <td className="py-3 px-4">
                         <div>
@@ -536,7 +546,11 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
       </main>

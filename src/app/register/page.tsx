@@ -78,7 +78,9 @@ function RegisterPageContent() {
       setOauthLoading(true);
       broadcastLoadingEvent({ active: true, message: 'Connecting to Google…' });
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        (typeof window !== 'undefined' ? window.location.origin : '');
       if (!supabase) throw new Error('Supabase not ready');
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -131,7 +133,9 @@ function RegisterPageContent() {
                 <UserPlus className="w-5 h-5" />
               </div>
               <h1 className="mt-6 text-3xl font-bold text-zinc-50">Create your account</h1>
-              <p className="mt-2 text-sm text-zinc-400">Save your progress and compete with the leaderboard.</p>
+              <p className="mt-2 text-sm text-zinc-400">
+                Save your progress and compete with the leaderboard.
+              </p>
             </div>
 
             <div className="space-y-4 animate-fadeIn">
@@ -141,7 +145,9 @@ function RegisterPageContent() {
                 disabled={loading || oauthLoading}
                 className="w-full inline-flex items-center justify-center gap-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-3 text-sm font-semibold text-zinc-100 transition-smooth hover:bg-zinc-800/60 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-zinc-900">G</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-zinc-900">
+                  G
+                </span>
                 {oauthLoading ? 'Connecting…' : 'Continue with Google'}
               </button>
               <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-zinc-600">
@@ -151,7 +157,10 @@ function RegisterPageContent() {
               </div>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-5 animate-slideInUp animation-delay-100">
+            <form
+              onSubmit={handleRegister}
+              className="space-y-5 animate-slideInUp animation-delay-100"
+            >
               {error && (
                 <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                   {error}
@@ -241,10 +250,16 @@ function RegisterPageContent() {
                     type="button"
                     onClick={() => setShowConfirmPassword((s) => !s)}
                     className="absolute inset-y-0 right-3 flex items-center justify-center p-1 text-zinc-400 hover:text-zinc-200 transition-colors"
-                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    aria-label={
+                      showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'
+                    }
                     title={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                   >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>

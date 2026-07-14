@@ -5,10 +5,7 @@
 /**
  * Format a date string to localized format
  */
-export function formatDate(
-  dateString: string,
-  options?: Intl.DateTimeFormatOptions
-): string {
+export function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions): string {
   const date = new Date(dateString);
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
