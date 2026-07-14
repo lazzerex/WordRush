@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { headers } from 'next/headers';
 import './globals.css';
 import ThemeInitializer from '@/components/ThemeInitializer';
 import GlobalLoadingOverlay from '@/components/GlobalLoadingOverlay';
@@ -13,7 +14,12 @@ export const metadata: Metadata = {
   description: 'A sleek and interactive typing test app',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Reading headers() opts this layout into dynamic rendering, which is
+  // required for Next.js to apply the per-request CSP nonce (see middleware.ts)
+  // to the inline scripts it generates.
+  await headers();
+
   return (
     <html lang="en">
       <head>
