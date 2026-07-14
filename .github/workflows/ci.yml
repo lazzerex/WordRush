@@ -23,6 +23,10 @@ jobs:
       UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL || '' }}
       UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN || '' }}
       CRON_SECRET: ${{ secrets.CRON_SECRET || 'placeholder-cron-secret' }}
+      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN || '' }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG || '' }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT || '' }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN || '' }}
 
     steps:
       - name: Checkout
