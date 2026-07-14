@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 interface StartCountdownParams {
   matchId: string;
@@ -51,7 +52,7 @@ export async function POST(
     .in('state', ['waiting', 'pending']); // Only update if still in a pre-game state
 
   if (updateError) {
-    console.error('Failed to start countdown', updateError);
+    logger.error('Failed to start countdown', updateError);
     return NextResponse.json({ error: 'Could not start countdown' }, { status: 500 });
   }
 

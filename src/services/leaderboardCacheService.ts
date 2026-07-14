@@ -8,6 +8,7 @@ import {
 } from '@/lib/redis';
 import type { LeaderboardEntry } from '@/types/leaderboard';
 import { getLeaderboardPaginated } from '@/lib/leaderboard';
+import { logger } from '@/lib/logger';
 
 const MAX_LEADERBOARD_SIZE = 1000; // Keep top 1000 entries per duration
 
@@ -26,7 +27,7 @@ export async function addToLeaderboardCache(entry: {
   language?: string;
 }): Promise<void> {
   if (!isRedisConfigured()) {
-    console.log('Redis not configured, skipping cache update');
+    logger.info('Redis not configured, skipping cache update');
     return;
   }
 
@@ -64,9 +65,9 @@ export async function addToLeaderboardCache(entry: {
     // Execute all commands
     await pipeline.exec();
 
-    console.log(`✅ Added entry ${entry.id} to leaderboard cache for duration ${entry.duration}`);
+    logger.info(`✅ Added entry ${entry.id} to leaderboard cache for duration ${entry.duration}`);
   } catch (error) {
-    console.error('Error adding to leaderboard cache:', error);
+    logger.error('Error adding to leaderboard cache:', error);
     // Don't throw - cache failures shouldn't break the app
   }
 }
@@ -90,7 +91,7 @@ export async function getLeaderboardFromCache(
     const total = await redis.zcard(leaderboardKey);
 
     if (!total || total === 0) {
-      console.warn(`[leaderboard_cache][cache_miss] empty_zset duration=${duration} page=${page}`);
+      logger.warn(`[leaderboard_cache][cache_miss] empty_zset duration=${duration} page=${page}`);
       return null;
     }
 
@@ -158,7 +159,7 @@ export async function getLeaderboardFromCache(
 
     // Bounded orphan cleanup: only remove missing members observed in this page window.
     if (orphanMembers.length > 0) {
-      console.warn(
+      logger.warn(
         `[leaderboard_cache][hash_missing] duration=${duration} page=${page} orphan_count=${orphanMembers.length}`
       );
 
@@ -169,26 +170,26 @@ export async function getLeaderboardFromCache(
         }
         await cleanupPipeline.exec();
       } catch (cleanupError) {
-        console.error('[leaderboard_cache][hash_missing] orphan_cleanup_failed', cleanupError);
+        logger.error('[leaderboard_cache][hash_missing] orphan_cleanup_failed', cleanupError);
       }
     }
 
     // Stricter page-level integrity check: any short page result triggers fallback.
     const expectedEntries = Math.min(pageSize, total - startIndex);
     if (expectedEntries > 0 && entries.length < expectedEntries) {
-      console.warn(
+      logger.warn(
         `[leaderboard_cache][integrity_fail] duration=${duration} page=${page} expected=${expectedEntries} got=${entries.length} missing=${Math.max(expectedEntries - entries.length, 0)}`
       );
       return null;
     }
 
-    console.log(
+    logger.info(
       `✅ Retrieved ${entries.length} entries from cache (page ${page}, total: ${total})`
     );
 
     return { entries, total };
   } catch (error) {
-    console.error('Error fetching from leaderboard cache:', error);
+    logger.error('Error fetching from leaderboard cache:', error);
     return null;
   }
 }
@@ -236,7 +237,7 @@ export async function getUserRankFromCache(
       total: total || 0,
     };
   } catch (error) {
-    console.error('Error fetching user rank from cache:', error);
+    logger.error('Error fetching user rank from cache:', error);
     return null;
   }
 }
@@ -251,13 +252,13 @@ export async function refreshLeaderboardCache(duration: number): Promise<void> {
   }
 
   try {
-    console.log(`Refreshing leaderboard cache for duration ${duration}...`);
+    logger.info(`Refreshing leaderboard cache for duration ${duration}...`);
 
     // Fetch top entries from database
     const { entries } = await getLeaderboardPaginated(duration, MAX_LEADERBOARD_SIZE, 0);
 
     if (entries.length === 0) {
-      console.log(`No entries found for duration ${duration}`);
+      logger.info(`No entries found for duration ${duration}`);
       return;
     }
 
@@ -290,11 +291,11 @@ export async function refreshLeaderboardCache(duration: number): Promise<void> {
 
     await pipeline.exec();
 
-    console.log(
+    logger.info(
       `Successfully refreshed cache for duration ${duration} with ${entries.length} entries`
     );
   } catch (error) {
-    console.error('Error refreshing leaderboard cache:', error);
+    logger.error('Error refreshing leaderboard cache:', error);
   }
 }
 
@@ -314,8 +315,8 @@ export async function clearLeaderboardCache(): Promise<void> {
       await redis.del(leaderboardKey);
     }
 
-    console.log('Cleared all leaderboard caches');
+    logger.info('Cleared all leaderboard caches');
   } catch (error) {
-    console.error('Error clearing leaderboard cache:', error);
+    logger.error('Error clearing leaderboard cache:', error);
   }
 }

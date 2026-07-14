@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -10,7 +11,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError) {
-      console.warn('[api/me] Auth error', authError.message);
+      logger.warn('[api/me] Auth error', authError.message);
     }
 
     if (!user) {
@@ -24,7 +25,7 @@ export async function GET() {
       .single();
 
     if (profileError) {
-      console.warn('[api/me] Profile fetch error', profileError.message);
+      logger.warn('[api/me] Profile fetch error', profileError.message);
     }
 
     const displayName =
@@ -40,7 +41,7 @@ export async function GET() {
       isAdmin: profile?.is_admin ?? false,
     });
   } catch (error) {
-    console.error('[api/me] Unexpected error', error);
+    logger.error('[api/me] Unexpected error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

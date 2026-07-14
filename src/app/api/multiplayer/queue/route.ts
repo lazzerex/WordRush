@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 const DEFAULT_DURATION = 30;
 
@@ -11,7 +12,7 @@ export async function POST() {
   } = await supabase.auth.getUser();
 
   if (authError) {
-    console.error('Failed to fetch user during queue POST', authError);
+    logger.error('Failed to fetch user during queue POST', authError);
     return NextResponse.json({ error: 'Unable to authenticate' }, { status: 500 });
   }
 
@@ -26,7 +27,7 @@ export async function POST() {
     .single();
 
   if (profileError) {
-    console.warn('Profile lookup failed, falling back to default elo', profileError);
+    logger.warn('Profile lookup failed, falling back to default elo', profileError);
   }
 
   const elo = profile?.elo_rating ?? 1000;
@@ -41,7 +42,7 @@ export async function POST() {
   });
 
   if (error) {
-    console.error('Failed to enqueue ranked match', error);
+    logger.error('Failed to enqueue ranked match', error);
     return NextResponse.json({ error: 'Could not enqueue match' }, { status: 500 });
   }
 
@@ -56,7 +57,7 @@ export async function POST() {
       .single();
 
     if (matchError || !match) {
-      console.error('Failed to fetch match after queue', matchError);
+      logger.error('Failed to fetch match after queue', matchError);
       return NextResponse.json(
         { error: 'Match created but could not fetch details' },
         { status: 500 }
@@ -87,7 +88,7 @@ export async function DELETE() {
   const { error } = await supabase.from('multiplayer_queue').delete().eq('user_id', user.id);
 
   if (error) {
-    console.error('Failed to cancel queue entry', error);
+    logger.error('Failed to cancel queue entry', error);
     return NextResponse.json({ error: 'Could not cancel queue' }, { status: 500 });
   }
 

@@ -1,4 +1,5 @@
 import { redis, isRedisConfigured } from './redis';
+import { logger } from '@/lib/logger';
 
 /**
  * Session storage using Redis
@@ -25,16 +26,16 @@ export async function createTypingSession(
   data: TypingSession
 ): Promise<boolean> {
   if (!isRedisConfigured()) {
-    console.log('Redis not configured, skipping session storage');
+    logger.info('Redis not configured, skipping session storage');
     return false;
   }
 
   try {
     await redis.setex(`${SESSION_PREFIX}:${sessionId}`, SESSION_TTL, JSON.stringify(data));
-    console.log(`✅ Created typing session: ${sessionId}`);
+    logger.info(`✅ Created typing session: ${sessionId}`);
     return true;
   } catch (error) {
-    console.error('Error creating typing session:', error);
+    logger.error('Error creating typing session:', error);
     return false;
   }
 }
@@ -56,7 +57,7 @@ export async function getTypingSession(sessionId: string): Promise<TypingSession
 
     return JSON.parse(data) as TypingSession;
   } catch (error) {
-    console.error('Error getting typing session:', error);
+    logger.error('Error getting typing session:', error);
     return null;
   }
 }
@@ -71,10 +72,10 @@ export async function deleteTypingSession(sessionId: string): Promise<boolean> {
 
   try {
     await redis.del(`${SESSION_PREFIX}:${sessionId}`);
-    console.log(`🗑️ Deleted typing session: ${sessionId}`);
+    logger.info(`🗑️ Deleted typing session: ${sessionId}`);
     return true;
   } catch (error) {
-    console.error('Error deleting typing session:', error);
+    logger.error('Error deleting typing session:', error);
     return false;
   }
 }
@@ -94,7 +95,7 @@ export async function extendTypingSession(
     await redis.expire(`${SESSION_PREFIX}:${sessionId}`, additionalSeconds);
     return true;
   } catch (error) {
-    console.error('Error extending typing session:', error);
+    logger.error('Error extending typing session:', error);
     return false;
   }
 }
@@ -162,10 +163,10 @@ export async function updateUserStreak(userId: string): Promise<UserStreak | nul
     }
 
     await redis.setex(key, STREAK_TTL, JSON.stringify(streak));
-    console.log(`🔥 Updated streak for user ${userId}: ${streak.currentStreak} days`);
+    logger.info(`🔥 Updated streak for user ${userId}: ${streak.currentStreak} days`);
     return streak;
   } catch (error) {
-    console.error('Error updating user streak:', error);
+    logger.error('Error updating user streak:', error);
     return null;
   }
 }
@@ -187,7 +188,7 @@ export async function getUserStreak(userId: string): Promise<UserStreak | null> 
 
     return JSON.parse(data) as UserStreak;
   } catch (error) {
-    console.error('Error getting user streak:', error);
+    logger.error('Error getting user streak:', error);
     return null;
   }
 }
@@ -213,7 +214,7 @@ export async function markUserActive(userId: string): Promise<void> {
     const twoMinutesAgo = timestamp - 120000;
     await redis.zremrangebyscore(ACTIVE_USERS_KEY, 0, twoMinutesAgo);
   } catch (error) {
-    console.error('Error marking user active:', error);
+    logger.error('Error marking user active:', error);
   }
 }
 
@@ -229,7 +230,7 @@ export async function getActiveUsersCount(): Promise<number> {
     const count = await redis.zcard(ACTIVE_USERS_KEY);
     return count || 0;
   } catch (error) {
-    console.error('Error getting active users count:', error);
+    logger.error('Error getting active users count:', error);
     return 0;
   }
 }

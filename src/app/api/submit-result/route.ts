@@ -5,6 +5,7 @@ import { addToLeaderboardCache } from '@/services/leaderboardCacheService';
 import { checkRateLimit, getRateLimitIdentifier, testSubmissionLimiter } from '@/lib/ratelimit';
 import { updateUserStreak } from '@/lib/session';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 interface KeystrokeEvent {
   timestamp: number;
@@ -78,31 +79,31 @@ export async function POST(request: NextRequest) {
 
     //Idempotency/replay protection with atomic operation
     if (!testId || typeof testId !== 'string') {
-      console.error('[ReplayProtection] Missing or invalid test ID');
+      logger.error('[ReplayProtection] Missing or invalid test ID');
       return NextResponse.json({ error: 'Missing test ID' }, { status: 400 });
     }
 
     // Validate testId format (UUID v4)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(testId)) {
-      console.error('[ReplayProtection] Invalid test ID format:', testId);
+      logger.error('[ReplayProtection] Invalid test ID format:', testId);
       return NextResponse.json({ error: 'Invalid test ID format' }, { status: 400 });
     }
 
     // Use Redis SET with NX for atomic check-and-set (prevents race conditions)
     const testKey = `test:${user.id}:${testId}`;
-    console.log('[ReplayProtection] Checking test ID:', testId);
+    logger.info('[ReplayProtection] Checking test ID:', testId);
 
     // Use SET with options object, the classic ioredis/upstash style i guess
     const wasSet = await redis.set(testKey, '1', { ex: 86400, nx: true });
 
     if (!wasSet) {
-      console.warn('[ReplayProtection] Duplicate submission detected for test:', testId);
-      console.warn('[ReplayProtection] User:', user.id);
+      logger.warn('[ReplayProtection] Duplicate submission detected for test:', testId);
+      logger.warn('[ReplayProtection] User:', user.id);
       return NextResponse.json({ error: 'Test result already submitted' }, { status: 400 });
     }
 
-    console.log('[ReplayProtection] Test ID accepted:', testId);
+    logger.info('[ReplayProtection] Test ID accepted:', testId);
 
     // Check rate limit (20 submissions per minute per user)
     const identifier = getRateLimitIdentifier(request, user.id);
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
     // Verify keystroke timestamps are sequential and within test duration
 
     if (keystrokes.length === 0) {
-      console.log('[Validation] No keystrokes recorded - skipping timing validation');
+      logger.info('[Validation] No keystrokes recorded - skipping timing validation');
     }
 
     const sortedKeystrokes = [...keystrokes].sort((a, b) => a.timestamp - b.timestamp);
@@ -156,15 +157,15 @@ export async function POST(request: NextRequest) {
     const actualDurationFromKeystrokes = lastKeystroke - startTime;
 
     // Log timing info for debugging
-    console.log('[Timing] Start time:', new Date(startTime).toISOString());
-    console.log('[Timing] First keystroke:', new Date(firstKeystroke).toISOString());
-    console.log('[Timing] Last keystroke:', new Date(lastKeystroke).toISOString());
-    console.log('[Timing] Expected duration:', expectedDurationMs, 'ms');
-    console.log('[Timing] Actual duration:', actualDurationFromKeystrokes, 'ms');
-    console.log('[Timing] Tolerance:', toleranceMs, 'ms');
+    logger.info('[Timing] Start time:', new Date(startTime).toISOString());
+    logger.info('[Timing] First keystroke:', new Date(firstKeystroke).toISOString());
+    logger.info('[Timing] Last keystroke:', new Date(lastKeystroke).toISOString());
+    logger.info('[Timing] Expected duration:', expectedDurationMs, 'ms');
+    logger.info('[Timing] Actual duration:', actualDurationFromKeystrokes, 'ms');
+    logger.info('[Timing] Tolerance:', toleranceMs, 'ms');
 
     if (actualDurationFromKeystrokes < -2000) {
-      console.error('[Timing] Keystrokes precede start time');
+      logger.error('[Timing] Keystrokes precede start time');
       return NextResponse.json(
         { error: 'Invalid timing - keystrokes precede recorded start time' },
         { status: 400 }
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
 
     // Allow keystrokes to start before recorded start (5s grace period for clock sync issues)
     if (keystrokes.length > 0 && firstKeystroke < startTime - 5000) {
-      console.error('[Timing] First keystroke too early:', {
+      logger.error('[Timing] First keystroke too early:', {
         firstKeystroke: new Date(firstKeystroke).toISOString(),
         startTime: new Date(startTime).toISOString(),
         difference: startTime - firstKeystroke,
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (keystrokes.length > 0 && lastKeystroke > startTime + expectedDurationMs + toleranceMs) {
-      console.error('[Timing] Last keystroke too late:', {
+      logger.error('[Timing] Last keystroke too late:', {
         lastKeystroke: new Date(lastKeystroke).toISOString(),
         expectedEnd: new Date(startTime + expectedDurationMs).toISOString(),
         allowedEnd: new Date(startTime + expectedDurationMs + toleranceMs).toISOString(),
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (gap > 30000) {
-          console.error('[Keystroke] Extremely long pause detected:', gap, 'ms');
+          logger.error('[Keystroke] Extremely long pause detected:', gap, 'ms');
           return NextResponse.json(
             { error: 'Test session expired or invalid - please try again' },
             { status: 400 }
@@ -220,7 +221,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (suspiciouslyLongPauses > 3) {
-        console.error('[Keystroke] Too many long pauses:', suspiciouslyLongPauses);
+        logger.error('[Keystroke] Too many long pauses:', suspiciouslyLongPauses);
         return NextResponse.json(
           { error: 'Test contains too many long pauses - please maintain consistent typing' },
           { status: 400 }
@@ -231,7 +232,7 @@ export async function POST(request: NextRequest) {
         const avgGap = keystrokeGaps.reduce((a, b) => a + b, 0) / keystrokeGaps.length;
 
         if (avgGap < 3 || avgGap > 5000) {
-          console.error('[Keystroke] Invalid average gap:', avgGap, 'ms');
+          logger.error('[Keystroke] Invalid average gap:', avgGap, 'ms');
           return NextResponse.json(
             { error: 'Invalid typing pattern detected - please type naturally' },
             { status: 400 }
@@ -242,14 +243,14 @@ export async function POST(request: NextRequest) {
         // variance is naturally lower). Re-enable once the threshold scales
         // with the user's typing speed instead of being a fixed value.
         // const timingVariance = calculateTimingVariance(sortedKeystrokes);
-        // console.log('[Debug] Timing variance:', timingVariance, 'ms');
+        // logger.info('[Debug] Timing variance:', timingVariance, 'ms');
 
         const testDurationMs = lastKeystroke - firstKeystroke;
         const keystrokesPerSecond =
           testDurationMs > 0 ? keystrokes.length / (testDurationMs / 1000) : 0;
 
         if (keystrokesPerSecond > 0 && (keystrokesPerSecond < 0.1 || keystrokesPerSecond > 100)) {
-          console.error('[Keystroke] Invalid keystroke rate:', keystrokesPerSecond, '/sec');
+          logger.error('[Keystroke] Invalid keystroke rate:', keystrokesPerSecond, '/sec');
           return NextResponse.json({ error: 'Invalid typing speed detected' }, { status: 400 });
         }
 
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
         // once the threshold is tuned per-skill-tier rather than fixed.
         // const burstThreshold = 3;
         // if (detectTypingBursts(keystrokeGaps, burstThreshold)) {
-        //   console.error('[Keystroke] Robotic burst pattern detected');
+        //   logger.error('[Keystroke] Robotic burst pattern detected');
         //   return NextResponse.json(
         //     { error: 'Automated typing pattern detected' },
         //     { status: 400 }
@@ -266,7 +267,7 @@ export async function POST(request: NextRequest) {
         // }
       }
     } else {
-      console.log('[Validation] Too few keystrokes to validate patterns - skipping');
+      logger.info('[Validation] Too few keystrokes to validate patterns - skipping');
     }
 
     //just keep some logs for this one
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
       keystrokes.length > 0 &&
       actualDurationFromKeystrokes > expectedDurationMs + toleranceMs + 5000
     ) {
-      console.warn(
+      logger.warn(
         `Timing mismatch: keystroke duration ${actualDurationFromKeystrokes}ms exceeds expected ${expectedDurationMs}ms by a lot`
       );
     }
@@ -368,7 +369,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (error) {
-      console.error('Database error inserting result:', error);
+      logger.error('Database error inserting result:', error);
       return NextResponse.json(
         { error: 'Failed to save result', details: error?.message ?? 'Unknown insert error' },
         { status: 500 }
@@ -376,14 +377,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data) {
-      console.error('No data returned from insert_validated_typing_result');
+      logger.error('No data returned from insert_validated_typing_result');
       return NextResponse.json(
         { error: 'Failed to save result - no data returned' },
         { status: 500 }
       );
     }
 
-    console.log('[Success] Test result saved:', {
+    logger.info('[Success] Test result saved:', {
       testId,
       user_id: user.id,
       wpm,
@@ -397,7 +398,7 @@ export async function POST(request: NextRequest) {
 
     let totalCoins: number | null = null;
 
-    console.log(`Calculated coins to award: ${coinsEarned} (WPM: ${wpm}, Duration: ${duration}s)`);
+    logger.info(`Calculated coins to award: ${coinsEarned} (WPM: ${wpm}, Duration: ${duration}s)`);
 
     if (coinsEarned > 0) {
       // Try using RPC function first
@@ -407,8 +408,8 @@ export async function POST(request: NextRequest) {
       });
 
       if (coinsError) {
-        console.error('Failed to award coins via RPC:', coinsError);
-        console.log('Attempting atomic fallback increment...');
+        logger.error('Failed to award coins via RPC:', coinsError);
+        logger.info('Attempting atomic fallback increment...');
 
         const { data: newBalance, error: incrementError } = await adminClient.rpc(
           'increment_user_coins',
@@ -419,15 +420,15 @@ export async function POST(request: NextRequest) {
         );
 
         if (incrementError) {
-          console.error('Failed to award coins via atomic fallback:', incrementError);
+          logger.error('Failed to award coins via atomic fallback:', incrementError);
         } else {
-          console.log(
+          logger.info(
             `Successfully awarded ${coinsEarned} coins via atomic fallback to user ${user.id} (new balance: ${newBalance})`
           );
           totalCoins = newBalance ?? null;
         }
       } else {
-        console.log(`Successfully awarded ${coinsEarned} coins via RPC to user ${user.id}`);
+        logger.info(`Successfully awarded ${coinsEarned} coins via RPC to user ${user.id}`);
         const { data: profileData, error: profileError } = await adminClient
           .from('profiles')
           .select('coins')
@@ -435,14 +436,14 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (profileError) {
-          console.error('Failed to fetch updated coin balance:', profileError);
+          logger.error('Failed to fetch updated coin balance:', profileError);
         } else {
           totalCoins = profileData?.coins ?? null;
-          console.log(`User ${user.id} now has ${totalCoins} total coins`);
+          logger.info(`User ${user.id} now has ${totalCoins} total coins`);
         }
       }
     } else {
-      console.log('No coins to award (coinsEarned = 0)');
+      logger.info('No coins to award (coinsEarned = 0)');
     }
 
     if (totalCoins === null) {
@@ -453,7 +454,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (profileError) {
-        console.error('Failed to fetch coin balance post-result:', profileError);
+        logger.error('Failed to fetch coin balance post-result:', profileError);
       } else {
         totalCoins = profileData?.coins ?? null;
       }
@@ -480,14 +481,14 @@ export async function POST(request: NextRequest) {
         language,
       });
     } catch (cacheError) {
-      console.error('Error updating leaderboard cache:', cacheError);
+      logger.error('Error updating leaderboard cache:', cacheError);
     }
 
     let streak = null;
     try {
       streak = await updateUserStreak(user.id);
     } catch (streakError) {
-      console.error('Error updating user streak:', streakError);
+      logger.error('Error updating user streak:', streakError);
     }
 
     return NextResponse.json({
@@ -508,7 +509,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error in submit-result API:', error);
+    logger.error('Error in submit-result API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

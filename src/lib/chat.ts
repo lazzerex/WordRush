@@ -4,6 +4,7 @@
 // Guest ID management, profanity filtering, and message validation
 
 import { generateRuntimeUuid } from '@/lib/uuid';
+import { logger } from '@/lib/logger';
 
 // =====================================================
 // Guest ID Management (Native crypto, no dependencies)
@@ -62,7 +63,7 @@ export function getOrCreateGuestId(): GuestData {
     sessionStorage.setItem(GUEST_DATA_KEY, JSON.stringify(guestData));
     return guestData;
   } catch (error) {
-    console.error('Error managing guest data:', error);
+    logger.error('Error managing guest data:', error);
     return generateGuestData();
   }
 }

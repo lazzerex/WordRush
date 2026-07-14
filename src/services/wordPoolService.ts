@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Word Pool Service Interface
  * Following Interface Segregation Principle
@@ -15,17 +17,17 @@ export class ApiWordPoolService implements IWordPoolService {
 
   async fetchWords(language: string = 'en'): Promise<string[]> {
     if (this.cachedWordPool && this.cachedWordPool.length > 0 && this.lastLanguage === language) {
-      console.log('[Word Pool Service] Returning cached words:', this.cachedWordPool.length);
+      logger.info('[Word Pool Service] Returning cached words:', this.cachedWordPool.length);
       return this.cachedWordPool;
     }
 
-    console.log('[Word Pool Service] Fetching words via API...');
+    logger.info('[Word Pool Service] Fetching words via API...');
     const response = await fetch(`/api/word-pool?language=${encodeURIComponent(language)}`, {
       cache: 'no-store',
     });
 
     if (!response.ok) {
-      console.error('[Word Pool Service] API error:', response.status);
+      logger.error('[Word Pool Service] API error:', response.status);
       return [];
     }
 

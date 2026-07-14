@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { MultiplayerMatch, MultiplayerMatchPlayer } from '@/types/database';
+import { logger } from '@/lib/logger';
 
 export type QueueStatus =
   | { status: 'queued' }
@@ -76,20 +77,20 @@ export class SupabaseMultiplayerService {
           .order('created_at', { ascending: true }),
       ]);
 
-    console.log('fetchMatch debug:', { matchId, match, matchError, players, playerError });
+    logger.info('fetchMatch debug:', { matchId, match, matchError, players, playerError });
 
     if (matchError) {
-      console.error('Failed to load match', matchError);
+      logger.error('Failed to load match', matchError);
       return null;
     }
 
     if (playerError) {
-      console.error('Failed to load match roster', playerError);
+      logger.error('Failed to load match roster', playerError);
       return null;
     }
 
     if (!players || players.length === 0) {
-      console.error('No players found for match', matchId);
+      logger.error('No players found for match', matchId);
       return null;
     }
 
@@ -206,7 +207,7 @@ export class SupabaseMultiplayerService {
       .maybeSingle();
 
     if (error) {
-      console.warn('Failed to check existing assignment', error);
+      logger.warn('Failed to check existing assignment', error);
       return null;
     }
 

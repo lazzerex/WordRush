@@ -29,6 +29,7 @@ export interface ITypingResultsService {
  * Supabase implementation of Typing Results Service
  */
 import { createClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
 
 export class SupabaseTypingResultsService implements ITypingResultsService {
   private supabase = createClient();
@@ -39,7 +40,7 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
     } = await this.supabase.auth.getUser();
 
     if (!user) {
-      console.log('User not authenticated, result not saved');
+      logger.info('User not authenticated, result not saved');
       return null;
     }
 
@@ -60,7 +61,7 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
       .single();
 
     if (error) {
-      console.error('Error saving typing result:', error);
+      logger.error('Error saving typing result:', error);
       return null;
     }
 
@@ -95,7 +96,7 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
       .range(rangeStart, rangeEnd);
 
     if (error) {
-      console.error('Error fetching user results:', error);
+      logger.error('Error fetching user results:', error);
       return { results: [], total: 0 };
     }
 
@@ -121,7 +122,7 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching user stats:', error);
+      logger.error('Error fetching user stats:', error);
       return null;
     }
 
@@ -158,7 +159,7 @@ export class SupabaseTypingResultsService implements ITypingResultsService {
     const { error } = await this.supabase.from('typing_results').delete().eq('id', resultId);
 
     if (error) {
-      console.error('Error deleting result:', error);
+      logger.error('Error deleting result:', error);
       return false;
     }
 

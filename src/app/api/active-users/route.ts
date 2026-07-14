@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveUsersCount, markUserActive } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, generalLimiter, getRateLimitIdentifier } from '@/lib/ratelimit';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Error fetching active users:', error);
+    logger.error('Error fetching active users:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       success: true,
     });
   } catch (error) {
-    console.error('Error marking user active:', error);
+    logger.error('Error marking user active:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

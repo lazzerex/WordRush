@@ -5,6 +5,7 @@ import {
 } from '@/services/leaderboardCacheService';
 import { getLeaderboardPaginated } from '@/lib/leaderboard';
 import { checkRateLimit, getRateLimitIdentifier, leaderboardLimiter } from '@/lib/ratelimit';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
       // Refresh cache in background (non-blocking), only on database fallback path.
       refreshLeaderboardCache(duration).catch((error) => {
-        console.error('Error refreshing cache:', error);
+        logger.error('Error refreshing cache:', error);
       });
     }
 
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching leaderboard:', error);
+    logger.error('Error fetching leaderboard:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

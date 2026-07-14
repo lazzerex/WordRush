@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
 
 /**
  * Cleanup expired chat messages
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await adminClient.rpc('cleanup_expired_chat_messages');
 
     if (error) {
-      console.error('Error running cleanup function:', error);
+      logger.error('Error running cleanup function:', error);
       return NextResponse.json(
         {
           success: false,
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     const deletedCount = data || 0;
 
-    console.log(`Chat cleanup completed: ${deletedCount} messages deleted`);
+    logger.info(`Chat cleanup completed: ${deletedCount} messages deleted`);
 
     return NextResponse.json({
       success: true,
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
-    console.error('Chat cleanup cron error:', error);
+    logger.error('Chat cleanup cron error:', error);
     return NextResponse.json(
       {
         success: false,

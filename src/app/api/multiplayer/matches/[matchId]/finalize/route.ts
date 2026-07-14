@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 interface FinalizeParams {
   matchId: string;
@@ -26,7 +27,7 @@ export async function POST(_request: Request, { params }: { params: Promise<Fina
   });
 
   if (error) {
-    console.error('Failed to finalize match', error);
+    logger.error('Failed to finalize match', error);
     return NextResponse.json({ error: 'Could not finalize match' }, { status: 500 });
   }
 

@@ -1,6 +1,7 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { redis, isRedisConfigured } from './redis';
 import { LRUCache } from 'lru-cache';
+import { logger } from '@/lib/logger';
 // Fallback in-memory rate limiter (used if Redis is down)
 const memoryLimiter = new LRUCache<string, number[]>({
   max: 10000, // max unique identifiers
@@ -132,7 +133,7 @@ export async function checkRateLimit(
 }> {
   if (!limiter) {
     // Rate limiting disabled (Redis not configured)
-    console.warn('Rate limiting disabled - Redis not configured');
+    logger.warn('Rate limiting disabled - Redis not configured');
     return { success: true };
   }
 
@@ -146,7 +147,7 @@ export async function checkRateLimit(
       error: success ? undefined : 'Rate limit exceeded. Please try again later.',
     };
   } catch (error) {
-    console.error(
+    logger.error(
       'Rate limit check error - falling back to in-memory limiter (per-instance only, not distributed):',
       error
     );

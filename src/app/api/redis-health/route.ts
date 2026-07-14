@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redis, isRedisConfigured } from '@/lib/redis';
 import { requireAdmin } from '@/lib/admin';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Redis health check error:', error);
+    logger.error('Redis health check error:', error);
     return NextResponse.json(
       {
         success: false,

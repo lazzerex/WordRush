@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 interface AbandonParams {
   matchId: string;
@@ -42,7 +43,7 @@ export async function POST(_request: Request, { params }: { params: Promise<Aban
     .neq('state', 'completed');
 
   if (updateError) {
-    console.error('Failed to abandon match', updateError);
+    logger.error('Failed to abandon match', updateError);
     return NextResponse.json({ error: 'Could not abandon match' }, { status: 500 });
   }
 

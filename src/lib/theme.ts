@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 export const THEME_STORAGE_KEY = 'wordrush.theme-preference';
 
 const DEFAULT_THEME_VARIABLES: Record<string, string> = {
@@ -58,7 +60,7 @@ export const getStoredThemePreference = (): StoredThemePreference | null => {
       return parsed;
     }
   } catch (error) {
-    console.warn('Failed to parse stored theme preference:', error);
+    logger.warn('Failed to parse stored theme preference:', error);
   }
 
   return null;
@@ -72,7 +74,7 @@ export const storeThemePreference = (preference: StoredThemePreference) => {
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(preference));
   } catch (error) {
-    console.warn('Failed to persist theme preference:', error);
+    logger.warn('Failed to persist theme preference:', error);
   }
 };
 

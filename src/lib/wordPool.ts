@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 // Fetch word pool via server API (uses service role safely server-side)
 export async function getWordPool(language: string = 'en'): Promise<string[]> {
   const response = await fetch(`/api/word-pool?language=${encodeURIComponent(language)}`, {
@@ -5,7 +7,7 @@ export async function getWordPool(language: string = 'en'): Promise<string[]> {
   });
 
   if (!response.ok) {
-    console.error('[wordPool] Failed to fetch word pool:', response.status);
+    logger.error('[wordPool] Failed to fetch word pool:', response.status);
     return [];
   }
 

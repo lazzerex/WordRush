@@ -1,5 +1,6 @@
 import { createClient } from './supabase/server';
 import { createAdminClient } from './supabase/admin';
+import { logger } from '@/lib/logger';
 
 export interface AdminStats {
   totalUsers: number;
@@ -45,7 +46,7 @@ export async function isAdmin(): Promise<boolean> {
 
     return profile.is_admin === true;
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    logger.error('Error checking admin status:', error);
     return false;
   }
 }
@@ -97,7 +98,7 @@ export async function logAdminAction(
       p_details: details || null,
     });
   } catch (error) {
-    console.error('[AUDIT_LOG_FAILURE] Admin action was not recorded:', {
+    logger.error('[AUDIT_LOG_FAILURE] Admin action was not recorded:', {
       adminId,
       action,
       targetType,

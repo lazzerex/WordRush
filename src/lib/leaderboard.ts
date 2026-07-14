@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { LeaderboardEntry } from '@/types/leaderboard';
+import { logger } from '@/lib/logger';
 
 interface RawLeaderboardResult {
   entries: any[];
@@ -47,7 +48,7 @@ async function fetchLeaderboardBatch(
     };
   }
 
-  console.warn('Error fetching leaderboard with profile join, falling back without join:', error);
+  logger.warn('Error fetching leaderboard with profile join, falling back without join:', error);
 
   const fallbackQuery = await supabase
     .from('typing_results')
@@ -59,7 +60,7 @@ async function fetchLeaderboardBatch(
     .range(rangeStart, rangeEnd);
 
   if (fallbackQuery.error || !fallbackQuery.data) {
-    console.error('Fallback leaderboard query failed:', fallbackQuery.error);
+    logger.error('Fallback leaderboard query failed:', fallbackQuery.error);
     return { entries: [], total: 0 };
   }
 
