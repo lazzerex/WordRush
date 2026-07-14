@@ -255,7 +255,9 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // too many false positive (will check later)
+        // Disabled: flagged fast/skilled typists as suspicious (their timing
+        // variance is naturally lower). Re-enable once the threshold scales
+        // with the user's typing speed instead of being a fixed value.
         // const timingVariance = calculateTimingVariance(sortedKeystrokes);
         // console.log('[Debug] Timing variance:', timingVariance, 'ms');
 
@@ -271,9 +273,11 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        
-        // uncomment below function if need to check for burst detection
-        // const burstThreshold = 3; 
+
+        // Disabled: low gap-variance windows are also normal for consistent
+        // skilled typists, not just bots - caused false positives. Re-enable
+        // once the threshold is tuned per-skill-tier rather than fixed.
+        // const burstThreshold = 3;
         // if (detectTypingBursts(keystrokeGaps, burstThreshold)) {
         //   console.error('[Keystroke] Robotic burst pattern detected');
         //   return NextResponse.json(
