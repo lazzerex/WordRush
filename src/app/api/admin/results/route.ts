@@ -4,6 +4,62 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getRateLimitIdentifier, adminLimiter } from '@/lib/ratelimit';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/admin/results:
+ *   get:
+ *     summary: List typing test results with owning profile joined in
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: duration
+ *         schema:
+ *           type: integer
+ *         description: Filter by test duration in seconds
+ *     responses:
+ *       200:
+ *         description: Results page
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     results:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       403:
+ *         description: Not an admin
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin();
@@ -96,6 +152,41 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/admin/results:
+ *   delete:
+ *     summary: Delete a typing test result
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: query
+ *         name: resultId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Result deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Missing resultId
+ *       403:
+ *         description: Not an admin
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const admin = await requireAdmin();

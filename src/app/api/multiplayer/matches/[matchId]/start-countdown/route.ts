@@ -6,6 +6,39 @@ interface StartCountdownParams {
   matchId: string;
 }
 
+/**
+ * @swagger
+ * /api/multiplayer/matches/{matchId}/start-countdown:
+ *   post:
+ *     summary: Transition a match from waiting/pending to countdown
+ *     description: Requires both players to be marked is_ready; only updates the row if it's still in a pre-game state.
+ *     tags: [Multiplayer]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Countdown started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [countdown_started]
+ *       400:
+ *         description: Missing matchId, match doesn't have exactly 2 players, or not all players ready
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(
   _request: Request,
   { params }: { params: Promise<StartCountdownParams> }

@@ -3,6 +3,37 @@ import { redis, isRedisConfigured } from '@/lib/redis';
 import { requireAdmin } from '@/lib/admin';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/redis-health:
+ *   get:
+ *     summary: Admin diagnostic - exercise PING/SET/GET/DEL against Redis
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     responses:
+ *       200:
+ *         description: Redis is configured and all operations succeeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 details:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not an admin
+ *       500:
+ *         description: Redis operation failed
+ *       503:
+ *         description: Redis is not configured (missing env vars)
+ */
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();

@@ -7,6 +7,66 @@ import { getLeaderboardPaginated } from '@/lib/leaderboard';
 import { checkRateLimit, getRateLimitIdentifier, leaderboardLimiter } from '@/lib/ratelimit';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/leaderboard:
+ *   get:
+ *     summary: Get paginated leaderboard for a test duration
+ *     tags: [Leaderboard]
+ *     parameters:
+ *       - in: query
+ *         name: duration
+ *         schema:
+ *           type: integer
+ *           enum: [15, 30, 60, 120]
+ *           default: 30
+ *         description: Test duration in seconds
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           maximum: 100
+ *     responses:
+ *       200:
+ *         description: Leaderboard page
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     entries:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     source:
+ *                       type: string
+ *                       enum: [cache, database]
+ *       400:
+ *         description: Invalid duration or pagination parameters
+ *       429:
+ *         description: Rate limit exceeded (30 req/min per IP)
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(request: NextRequest) {
   try {
     // Check rate limit (30 requests per minute per IP)

@@ -4,6 +4,62 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getRateLimitIdentifier, adminLimiter } from '@/lib/ratelimit';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/admin/users:
+ *   get:
+ *     summary: List/search user profiles
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Matched against username and email (ILIKE)
+ *     responses:
+ *       200:
+ *         description: User page
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     users:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       403:
+ *         description: Not an admin
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin();
@@ -68,6 +124,53 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/admin/users:
+ *   patch:
+ *     summary: Update allowed fields on a user profile
+ *     description: Only is_admin and coins can be modified through this endpoint; other fields in the updates object are silently ignored.
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, updates]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               updates:
+ *                 type: object
+ *                 properties:
+ *                   is_admin:
+ *                     type: boolean
+ *                   coins:
+ *                     type: integer
+ *     responses:
+ *       200:
+ *         description: Updated profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Missing userId
+ *       403:
+ *         description: Not an admin
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
 export async function PATCH(request: NextRequest) {
   try {
     const admin = await requireAdmin();
@@ -123,6 +226,42 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/admin/users:
+ *   delete:
+ *     summary: Delete a user account
+ *     description: Cascades to related records via the Supabase auth admin API. An admin cannot delete their own account.
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Missing userId, or caller tried to delete their own account
+ *       403:
+ *         description: Not an admin
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const admin = await requireAdmin();

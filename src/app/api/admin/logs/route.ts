@@ -4,6 +4,57 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getRateLimitIdentifier, adminLimiter } from '@/lib/ratelimit';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/admin/logs:
+ *   get:
+ *     summary: List admin audit log entries
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *     responses:
+ *       200:
+ *         description: Audit log page
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     logs:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       403:
+ *         description: Not an admin
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin();

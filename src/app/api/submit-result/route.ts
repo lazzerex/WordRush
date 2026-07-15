@@ -51,6 +51,106 @@ function calculateTimingVariance(keystrokes: { timestamp: number }[]) {
   return Math.sqrt(variance);
 }
 
+/**
+ * @swagger
+ * /api/submit-result:
+ *   post:
+ *     summary: Submit a completed typing test for server-side validation and scoring
+ *     description: >
+ *       Recomputes WPM/accuracy server-side from raw keystrokes rather than trusting client-reported
+ *       values, and runs anti-cheat checks (timing bounds, keystroke rate, backspace ratio, replay
+ *       protection via Redis SET NX on testId). Awards WRCoins and updates the daily streak and
+ *       leaderboard cache on success.
+ *     tags: [Results]
+ *     security:
+ *       - supabaseSession: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [testId, keystrokes, wordsTyped, expectedWords, duration, startTime]
+ *             properties:
+ *               testId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: UUID v4, used for replay protection - a duplicate testId is rejected.
+ *               keystrokes:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     timestamp:
+ *                       type: number
+ *                     key:
+ *                       type: string
+ *                     wordIndex:
+ *                       type: integer
+ *                     isCorrect:
+ *                       type: boolean
+ *               wordsTyped:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               expectedWords:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               duration:
+ *                 type: integer
+ *                 description: Test duration in seconds
+ *               startTime:
+ *                 type: number
+ *                 description: Client epoch ms when the test started
+ *               theme:
+ *                 type: string
+ *               language:
+ *                 type: string
+ *                 default: en
+ *     responses:
+ *       200:
+ *         description: Result accepted and scored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     testId:
+ *                       type: string
+ *                     wpm:
+ *                       type: integer
+ *                     accuracy:
+ *                       type: integer
+ *                     coinsEarned:
+ *                       type: integer
+ *                     totalCoins:
+ *                       type: integer
+ *                       nullable: true
+ *                     streak:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         currentStreak:
+ *                           type: integer
+ *                         longestStreak:
+ *                           type: integer
+ *       400:
+ *         description: Missing/invalid fields, duplicate testId, or failed anti-cheat validation (implausible timing/WPM/keystroke pattern)
+ *       401:
+ *         description: Not authenticated
+ *       429:
+ *         description: Too many submissions (20/min per user)
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();

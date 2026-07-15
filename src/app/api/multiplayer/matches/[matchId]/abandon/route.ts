@@ -6,6 +6,41 @@ interface AbandonParams {
   matchId: string;
 }
 
+/**
+ * @swagger
+ * /api/multiplayer/matches/{matchId}/abandon:
+ *   post:
+ *     summary: Abandon an in-progress ranked match
+ *     description: Marks the match completed so it stops being resurfaced as an active assignment. No-op if already completed.
+ *     tags: [Multiplayer]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Match marked abandoned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [abandoned]
+ *       400:
+ *         description: Missing matchId
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Caller is not a participant in this match
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(_request: Request, { params }: { params: Promise<AbandonParams> }) {
   const supabase = await createClient();
   const {

@@ -6,6 +6,39 @@ interface StartGameParams {
   matchId: string;
 }
 
+/**
+ * @swagger
+ * /api/multiplayer/matches/{matchId}/start-game:
+ *   post:
+ *     summary: Transition a match from countdown to in-progress
+ *     description: Only updates the row if it's currently in the countdown state.
+ *     tags: [Multiplayer]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Game started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [game_started]
+ *       400:
+ *         description: Missing matchId
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(_request: Request, { params }: { params: Promise<StartGameParams> }) {
   const supabase = await createClient();
   const {

@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/word-pool:
+ *   get:
+ *     summary: Get the full word list for a language
+ *     tags: [System]
+ *     parameters:
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           default: en
+ *     responses:
+ *       200:
+ *         description: Word list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 words:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(request: NextRequest) {
   const language = request.nextUrl.searchParams.get('language') || 'en';
 

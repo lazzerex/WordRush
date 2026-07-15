@@ -4,6 +4,30 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, generalLimiter, getRateLimitIdentifier } from '@/lib/ratelimit';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/active-users:
+ *   get:
+ *     summary: Get current online player count
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Active user count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     activeUsers:
+ *                       type: integer
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET() {
   try {
     const count = await getActiveUsersCount();
@@ -20,6 +44,41 @@ export async function GET() {
   }
 }
 
+/**
+ * @swagger
+ * /api/active-users:
+ *   post:
+ *     summary: Ping presence to be counted as an active/online player
+ *     description: Authenticated users are identified by session. Guests must supply a guestId (rate-limited by IP).
+ *     tags: [System]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               guestId:
+ *                 type: string
+ *                 maxLength: 100
+ *                 description: Required only when the caller is not logged in.
+ *     responses:
+ *       200:
+ *         description: Presence recorded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: Missing/invalid guestId for a guest caller
+ *       429:
+ *         description: Too many requests (guest IP rate limit)
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();

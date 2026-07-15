@@ -3,6 +3,63 @@ import { requireAdmin, getAdminStats, logAdminAction } from '@/lib/admin';
 import { checkRateLimit, getRateLimitIdentifier, adminLimiter } from '@/lib/ratelimit';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/admin/stats:
+ *   get:
+ *     summary: Get admin dashboard statistics
+ *     tags: [Admin]
+ *     security:
+ *       - supabaseSession: []
+ *     responses:
+ *       200:
+ *         description: Dashboard stats
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalUsers:
+ *                       type: integer
+ *                     totalTests:
+ *                       type: integer
+ *                     totalCoinsDistributed:
+ *                       type: integer
+ *                     activeUsersToday:
+ *                       type: integer
+ *                     testsToday:
+ *                       type: integer
+ *                     averageWpm:
+ *                       type: number
+ *                     topPlayers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           username:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           totalTests:
+ *                             type: integer
+ *                           bestWpm:
+ *                             type: integer
+ *                           coins:
+ *                             type: integer
+ *       403:
+ *         description: Not an admin
+ *       429:
+ *         description: Rate limit exceeded
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(request: NextRequest) {
   try {
     // Verify admin authentication

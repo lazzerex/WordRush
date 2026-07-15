@@ -5,6 +5,51 @@ import { chatLimiter, checkRateLimit } from '@/lib/ratelimit';
 import { validateMessage, sanitizeMessage, MESSAGE_CONSTRAINTS } from '@/lib/chat';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/chat:
+ *   post:
+ *     summary: Send a global chat message
+ *     description: Guests post via guestId (no account); logged-in users are verified against the session and use their own Supabase client (RLS applies), guests are inserted via the admin client to bypass RLS.
+ *     tags: [Chat]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [message, username]
+ *             properties:
+ *               message:
+ *                 type: string
+ *               username:
+ *                 type: string
+ *               isGuest:
+ *                 type: boolean
+ *               guestId:
+ *                 type: string
+ *                 description: Required when isGuest is true.
+ *     responses:
+ *       200:
+ *         description: Message stored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: object
+ *       400:
+ *         description: Missing fields or message failed content validation
+ *       401:
+ *         description: Not authenticated for a non-guest message
+ *       429:
+ *         description: Rate limit exceeded (5/min per user or guest)
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -118,6 +163,44 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/chat:
+ *   get:
+ *     summary: Get recent global chat messages
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *           maximum: 100
+ *       - in: query
+ *         name: before
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Return messages created before this timestamp (pagination cursor)
+ *     responses:
+ *       200:
+ *         description: Messages, oldest first
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 messages:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 count:
+ *                   type: integer
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -159,6 +242,40 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/chat:
+ *   delete:
+ *     summary: Delete one of the current user's own chat messages
+ *     description: RLS restricts the delete to rows owned by the caller; guests cannot delete messages.
+ *     tags: [Chat]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: query
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deleted (or a no-op if the message wasn't owned by the caller)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Missing messageId
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Internal server error
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

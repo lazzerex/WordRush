@@ -4,6 +4,45 @@ import { logger } from '@/lib/logger';
 
 const DEFAULT_DURATION = 30;
 
+/**
+ * @swagger
+ * /api/multiplayer/queue:
+ *   post:
+ *     summary: Join the ranked matchmaking queue
+ *     description: Matches within ±200 ELO of the caller via the enqueue_ranked_match RPC. Returns immediately with match details if a match was found, otherwise the caller stays queued.
+ *     tags: [Multiplayer]
+ *     security:
+ *       - supabaseSession: []
+ *     responses:
+ *       200:
+ *         description: Either matched immediately or queued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       enum: [matched]
+ *                     matchId:
+ *                       type: string
+ *                     duration:
+ *                       type: integer
+ *                     wordSequence:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                 - type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       enum: [queued]
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Internal server error
+ */
 export async function POST() {
   const supabase = await createClient();
   const {
@@ -75,6 +114,30 @@ export async function POST() {
   return NextResponse.json({ status: 'queued' });
 }
 
+/**
+ * @swagger
+ * /api/multiplayer/queue:
+ *   delete:
+ *     summary: Leave the ranked matchmaking queue
+ *     tags: [Multiplayer]
+ *     security:
+ *       - supabaseSession: []
+ *     responses:
+ *       200:
+ *         description: Removed from queue
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [cancelled]
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: Internal server error
+ */
 export async function DELETE() {
   const supabase = await createClient();
   const {

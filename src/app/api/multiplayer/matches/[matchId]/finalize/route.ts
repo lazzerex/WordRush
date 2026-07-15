@@ -6,6 +6,35 @@ interface FinalizeParams {
   matchId: string;
 }
 
+/**
+ * @swagger
+ * /api/multiplayer/matches/{matchId}/finalize:
+ *   post:
+ *     summary: Finalize a completed ranked match and settle ELO
+ *     description: Delegates all scoring/ELO logic to the finalize_ranked_match Postgres RPC; response shape is whatever that RPC returns.
+ *     tags: [Multiplayer]
+ *     security:
+ *       - supabaseSession: []
+ *     parameters:
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: RPC result (shape defined by finalize_ranked_match)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       400:
+ *         description: Missing matchId
+ *       401:
+ *         description: Not authenticated
+ *       500:
+ *         description: RPC call failed
+ */
 export async function POST(_request: Request, { params }: { params: Promise<FinalizeParams> }) {
   const supabase = await createClient();
   const {

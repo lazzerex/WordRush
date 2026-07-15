@@ -2,6 +2,39 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 
+/**
+ * @swagger
+ * /api/me:
+ *   get:
+ *     summary: Get current session's user profile, coin balance, and admin flag
+ *     description: Returns a null user (not a 401) when unauthenticated, since this endpoint is polled by the nav on every page.
+ *     tags: [User]
+ *     responses:
+ *       200:
+ *         description: Current session info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   nullable: true
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                       nullable: true
+ *                     displayName:
+ *                       type: string
+ *                 coins:
+ *                   type: integer
+ *                 isAdmin:
+ *                   type: boolean
+ *       500:
+ *         description: Internal server error
+ */
 export async function GET() {
   try {
     const supabase = await createClient();
