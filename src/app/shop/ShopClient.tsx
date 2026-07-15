@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
-import { Coins, Lock, Check, ShoppingCart } from 'lucide-react';
+import AppLink from '@/components/AppLink';
+import { Coins, Lock, Check, ShoppingCart, Settings } from 'lucide-react';
 import type { Theme } from '@/types/database';
 import { broadcastCoinsEvent } from '@/lib/ui-events';
 import { useSupabase } from '@/components/SupabaseProvider';
@@ -161,10 +162,20 @@ export default function ShopClient() {
                 Purchase themes to customize your typing experience
               </p>
             </div>
-            <div className="flex items-center gap-2 px-6 py-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl wr-border">
-              <Coins className="w-6 h-6 text-yellow-500" />
-              <span className="text-2xl font-bold text-yellow-500">{userCoins}</span>
-              <span className="text-sm text-zinc-400">WRCoins</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-6 py-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl wr-border">
+                <Coins className="w-6 h-6 text-yellow-500" />
+                <span className="text-2xl font-bold text-yellow-500">{userCoins}</span>
+                <span className="text-sm text-zinc-400">WRCoins</span>
+              </div>
+              <AppLink
+                href="/customize"
+                loadingMessage="Loading customize…"
+                className="px-4 py-2 text-yellow-400 hover:text-yellow-300 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-yellow-500/10 border border-yellow-500/20"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Customize</span>
+              </AppLink>
             </div>
           </div>
 

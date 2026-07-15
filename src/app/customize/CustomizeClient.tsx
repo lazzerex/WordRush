@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
-import { Palette, Lock, Check, Settings } from 'lucide-react';
+import AppLink from '@/components/AppLink';
+import { Palette, Lock, Check, Settings, ShoppingCart } from 'lucide-react';
 import type { Theme } from '@/types/database';
 import { applyThemeVariables, storeThemePreference } from '@/lib/theme';
 import { broadcastThemeEvent } from '@/lib/ui-events';
@@ -164,12 +165,22 @@ export default function CustomizeClient() {
       <main className="pt-24 pb-12 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-zinc-100 mb-2 flex items-center gap-3 wr-text-primary">
-              <Settings className="w-8 h-8 text-yellow-500" />
-              Customize
-            </h1>
-            <p className="text-zinc-400 wr-text-secondary">Choose your preferred theme</p>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-zinc-100 mb-2 flex items-center gap-3 wr-text-primary">
+                <Settings className="w-8 h-8 text-yellow-500" />
+                Customize
+              </h1>
+              <p className="text-zinc-400 wr-text-secondary">Choose your preferred theme</p>
+            </div>
+            <AppLink
+              href="/shop"
+              loadingMessage="Loading shop…"
+              className="px-4 py-2 text-yellow-400 hover:text-yellow-300 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-yellow-500/10 border border-yellow-500/20"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Shop</span>
+            </AppLink>
           </div>
 
           {/* Message */}
