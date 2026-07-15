@@ -4,6 +4,14 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   output: 'standalone', // Enable standalone output for Docker
   productionBrowserSourceMaps: false,
+  // next-swagger-doc globs the API route source files at request time to build
+  // the OpenAPI spec. Standalone/serverless output only bundles files Next can
+  // trace through imports, so those source .ts files get pruned unless we
+  // force-include them here - without this, /api/admin/openapi returns an
+  // empty spec in any deployed (non-dev) build.
+  outputFileTracingIncludes: {
+    '/api/admin/openapi': ['./src/app/api/**/*.ts'],
+  },
   async headers() {
     // Content-Security-Policy is set per-request in middleware.ts (needs a
     // fresh nonce each time, so it can't live in this static config).
