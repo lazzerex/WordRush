@@ -11,7 +11,6 @@ import {
   Keyboard,
   Coins,
   Shield,
-  Bug,
   FileText,
 } from 'lucide-react';
 import { COINS_EVENT, CoinsEventDetail } from '@/lib/ui-events';
@@ -95,13 +94,6 @@ export default function Navigation() {
     await loadUserProfile();
   };
 
-  const handleSentryTest = async () => {
-    // The endpoint deliberately throws (500) to test Sentry reporting; fetch
-    // only rejects on an actual network failure, so a plain await is enough.
-    await fetch('/api/admin/sentry-test').catch(() => {});
-    window.alert('Sentry test error triggered - check the Issues tab in your Sentry dashboard.');
-  };
-
   if (loading) {
     return (
       <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-800">
@@ -179,17 +171,6 @@ export default function Navigation() {
                     <FileText className="w-4 h-4" />
                     <span className="hidden sm:inline">API Docs</span>
                   </AppLink>
-                )}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={handleSentryTest}
-                    title="Trigger a test error to verify Sentry reporting"
-                    className="px-4 py-2 text-red-400 hover:text-red-300 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-red-500/10 border border-red-500/20"
-                  >
-                    <Bug className="w-4 h-4" />
-                    <span className="hidden sm:inline">Sentry Test</span>
-                  </button>
                 )}
                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-lg wr-surface">
                   <UserIcon className="w-4 h-4 text-zinc-500" />
