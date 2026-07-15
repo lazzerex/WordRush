@@ -12,6 +12,7 @@ import {
   Coins,
   Shield,
   Bug,
+  FileText,
 } from 'lucide-react';
 import { COINS_EVENT, CoinsEventDetail } from '@/lib/ui-events';
 import AppLink from '@/components/AppLink';
@@ -167,6 +168,16 @@ export default function Navigation() {
                   >
                     <Shield className="w-4 h-4" />
                     <span className="hidden sm:inline">Admin</span>
+                  </AppLink>
+                )}
+                {isAdmin && (
+                  <AppLink
+                    href="/api-docs"
+                    loadingMessage="Loading API docs…"
+                    className="px-4 py-2 text-yellow-400 hover:text-yellow-300 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-yellow-500/10 border border-yellow-500/20"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="hidden sm:inline">API Docs</span>
                   </AppLink>
                 )}
                 {isAdmin && (
