@@ -142,7 +142,6 @@
 - **Error Boundaries** - `src/app/error.tsx` and `src/app/global-error.tsx` catch unhandled render errors, show a fallback UI, and report to Sentry via `Sentry.captureException`.
 - **Leveled Logging Integration** - server-side errors also go through the structured `logger` (see below), so they land in both Sentry and console/log-aggregator output.
 - **CSP-aware** - the Sentry ingest origin is parsed from the DSN and allow-listed in the per-request CSP `connect-src` (`src/middleware.ts`), so browser error reporting isn't blocked.
-- **Admin Test Trigger** - admins see a "Sentry Test" button in the nav that hits `/api/admin/sentry-test` (auth-gated, deliberately throws) to verify delivery end-to-end.
 - **Optional** - the app runs fine with no DSN configured; Sentry simply stays disabled. Source map upload at build time also requires `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`, otherwise builds still succeed with unminified-but-unmapped stack traces.
 
 ## Quick Start
