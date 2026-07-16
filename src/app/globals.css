@@ -1,11 +1,10 @@
-/* Utility class for Roboto Mono font */
+/* Utility class for Roboto Mono font (loaded via next/font in layout.tsx) */
 .roboto-mono {
-  font-family: 'Roboto Mono', 'Fira Code', 'Courier New', monospace !important;
+  font-family: var(--font-roboto-mono), 'Fira Code', 'Courier New', monospace !important;
 }
 @import '../components/Dock.css';
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
 @theme {
   /* Color System - MonkeyType inspired */
   --color-bg-primary: #1a1a1d;
@@ -23,7 +22,7 @@
   --color-success: #22c55e;
   
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  --font-mono: 'Roboto Mono', 'Fira Code', 'Courier New', monospace;
+  --font-mono: var(--font-roboto-mono), 'Fira Code', 'Courier New', monospace;
 
   --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
