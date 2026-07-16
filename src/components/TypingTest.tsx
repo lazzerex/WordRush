@@ -10,7 +10,7 @@ import { HiddenInput } from './TypingTest/HiddenInput';
 import { TestResults } from './TypingTest/TestResults';
 import { generateRandomWords, calculateStats } from './TypingTest/helpers';
 import type { DurationOption, WordStatus, KeystrokeData } from './TypingTest/types';
-import { broadcastCoinsEvent, broadcastLoadingEvent } from '@/lib/ui-events';
+import { broadcastCoinsEvent } from '@/lib/ui-events';
 import { generateRuntimeUuid } from '@/lib/uuid';
 import { useSupabase } from '@/components/SupabaseProvider';
 
@@ -50,6 +50,8 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
   const [isLoadingWords, setIsLoadingWords] = useState<boolean>(true);
   const [wordPoolError, setWordPoolError] = useState<string | null>(null);
   const [coinsEarned, setCoinsEarned] = useState<number | null>(null);
+  const [isSavingResult, setIsSavingResult] = useState<boolean>(false);
+  const [saveFailed, setSaveFailed] = useState<boolean>(false);
   const [latestResultMeta, setLatestResultMeta] = useState<{
     id: string;
     userId: string;
@@ -185,6 +187,8 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setAccuracy(100);
     setOverlayVisible(true);
     setCoinsEarned(null);
+    setIsSavingResult(false);
+    setSaveFailed(false);
     setLatestResultMeta(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
@@ -241,6 +245,8 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     setAccuracy(100);
     setOverlayVisible(true);
     setCoinsEarned(null);
+    setIsSavingResult(false);
+    setSaveFailed(false);
     setLatestResultMeta(null);
     resultSavedRef.current = false;
     keystrokesRef.current = [];
@@ -274,7 +280,8 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
         return;
       }
 
-      broadcastLoadingEvent({ active: true, message: 'Syncing your rewards…' });
+      setIsSavingResult(true);
+      setSaveFailed(false);
 
       const response = await fetch('/api/submit-result', {
         method: 'POST',
@@ -337,6 +344,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
         }
 
         console.warn('Could not save result:', result.error);
+        setSaveFailed(true);
         applyServerData(result.data);
       } else {
         applyServerData(result.data);
@@ -347,8 +355,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     } catch (error) {
       // Network or other errors - log but don't break UX
       console.warn('Error saving result:', error);
+      setSaveFailed(true);
     } finally {
-      broadcastLoadingEvent({ active: false });
+      setIsSavingResult(false);
     }
   };
 
@@ -599,6 +608,8 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           incorrectChars={incorrectChars}
           duration={selectedDuration}
           coinsEarned={coinsEarned}
+          isSaving={isSavingResult}
+          saveFailed={saveFailed}
           latestResultId={latestResultMeta?.id || null}
           latestResultUserId={latestResultMeta?.userId || null}
           latestResultCreatedAt={latestResultMeta?.createdAt || null}
