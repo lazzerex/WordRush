@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Roboto_Mono } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
 import ThemeInitializer from '@/components/ThemeInitializer';
 import GlobalLoadingOverlay from '@/components/GlobalLoadingOverlay';
 import ClientRoot from '@/components/ClientRoot';
-import ChatBox from '@/components/ChatBox';
+import ChatBox from '@/components/ChatBoxLazy';
 
 const inter = Inter({ subsets: ['latin'] });
+const robotoMono = Roboto_Mono({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-roboto-mono',
+});
 
 export const metadata: Metadata = {
   title: 'WordRush',
@@ -25,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="icon" type="image/png" href="/wordrush-large.png" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${robotoMono.variable}`}>
         <ClientRoot>
           <ThemeInitializer />
           <GlobalLoadingOverlay />
