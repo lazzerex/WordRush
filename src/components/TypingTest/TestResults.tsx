@@ -18,6 +18,8 @@ interface TestResultsProps {
   incorrectChars: number;
   duration: number;
   coinsEarned?: number | null;
+  isSaving?: boolean;
+  saveFailed?: boolean;
   latestResultId?: string | null;
   latestResultUserId?: string | null;
   latestResultCreatedAt?: string | null;
@@ -31,6 +33,8 @@ export const TestResults: React.FC<TestResultsProps> = ({
   incorrectChars,
   duration,
   coinsEarned,
+  isSaving,
+  saveFailed,
   latestResultId,
   latestResultUserId,
   latestResultCreatedAt,
@@ -420,6 +424,18 @@ export const TestResults: React.FC<TestResultsProps> = ({
           className={`grid gap-6 ${showLeaderboard ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}
         >
           <div className="space-y-6">
+            {isSaving && (
+              <div className="flex items-center justify-center gap-2 text-xs text-zinc-500 animate-fadeIn">
+                <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                Saving result…
+              </div>
+            )}
+            {!isSaving && saveFailed && (
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-400 animate-fadeIn">
+                Result not saved to your account — the stats above are still yours.
+              </div>
+            )}
+
             {typeof coinsEarned === 'number' && coinsEarned > 0 && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 animate-fadeIn animation-delay-100">
                 <div className="flex items-center justify-center gap-3">
