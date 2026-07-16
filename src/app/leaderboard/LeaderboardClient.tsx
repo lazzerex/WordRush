@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useSupabase } from '@/components/SupabaseProvider';
 import { getUserRank } from '@/lib/leaderboard';
 import type { LeaderboardEntry } from '@/types/leaderboard';
@@ -17,23 +18,54 @@ interface RowDelta {
   previousRank?: number;
 }
 
-interface LoadLeaderboardOptions {
-  showLoader?: boolean;
-  source?: 'manual' | 'realtime';
+interface LeaderboardChunk {
+  entries: LeaderboardEntry[];
+  total: number;
+}
+
+async function fetchLeaderboardChunk(
+  duration: DurationOption,
+  page: number,
+  pageSize: number
+): Promise<LeaderboardChunk | null> {
+  try {
+    const response = await fetch(
+      `/api/leaderboard?duration=${duration}&page=${page}&pageSize=${pageSize}`
+    );
+
+    if (!response.ok) {
+      console.error('Leaderboard API error:', response.status, response.statusText);
+      return null;
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error('Leaderboard API returned error:', result.error);
+      return null;
+    }
+
+    return { entries: result.data.entries, total: result.data.total };
+  } catch (error) {
+    console.error('Error loading leaderboard:', error);
+    return null;
+  }
 }
 
 export default function LeaderboardClient() {
-  const PAGE_SIZE = 10;
-  const REALTIME_COALESCE_MS = 5000;
+  const CHUNK_SIZE = 50;
   const ROW_TRANSITION_MS = 180;
+  const NEAR_TOP_THRESHOLD_PX = 120;
+  const LOAD_MORE_LOOKAHEAD = 10;
+  const ESTIMATED_ROW_HEIGHT = 92;
 
   const [selectedDuration, setSelectedDuration] = useState<DurationOption>(30);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [userRank, setUserRank] = useState<{ rank: number; total: number } | null>(null);
-  const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [liveUpdatesEnabled, setLiveUpdatesEnabled] = useState(false);
   const [hasNewScores, setHasNewScores] = useState(false);
@@ -41,14 +73,21 @@ export default function LeaderboardClient() {
   const [removedRowsCount, setRemovedRowsCount] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const pageRef = useRef(page);
   const leaderboardRef = useRef<LeaderboardEntry[]>([]);
-  const lastLoadedContextRef = useRef<string | null>(null);
-  const realtimeTimerRef = useRef<number | null>(null);
+  const loadingMoreRef = useRef(false);
+  const scrollParentRef = useRef<HTMLDivElement>(null);
+  const isNearTopRef = useRef(true);
   const realtimeRefreshInFlightRef = useRef(false);
   const realtimePendingRef = useRef(false);
 
   const { supabase, isInitialized } = useSupabase();
+
+  const rowVirtualizer = useVirtualizer({
+    count: leaderboard.length,
+    getScrollElement: () => scrollParentRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 8,
+  });
 
   useEffect(() => {
     leaderboardRef.current = leaderboard;
@@ -65,13 +104,6 @@ export default function LeaderboardClient() {
 
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
-  }, []);
-
-  const clearRealtimeTimer = useCallback(() => {
-    if (realtimeTimerRef.current !== null) {
-      window.clearTimeout(realtimeTimerRef.current);
-      realtimeTimerRef.current = null;
-    }
   }, []);
 
   const computeRowDeltas = useCallback(
@@ -123,88 +155,102 @@ export default function LeaderboardClient() {
     });
   }, [supabase, isInitialized]);
 
-  const loadLeaderboard = useCallback(
-    async (requestedPage: number = 1, options: LoadLeaderboardOptions = {}) => {
-      const { showLoader = true, source = 'manual' } = options;
-      const safePage = Math.max(1, requestedPage);
+  // Reset and load the first chunk whenever the selected duration changes.
+  useEffect(() => {
+    let cancelled = false;
 
-      if (showLoader) {
-        setLoading(true);
-      } else {
-        setRefreshing(true);
+    isNearTopRef.current = true;
+    rowVirtualizer.scrollToOffset(0);
+    setRowDeltas({});
+    setRemovedRowsCount(0);
+    setHasNewScores(false);
+    setLoading(true);
+
+    fetchLeaderboardChunk(selectedDuration, 1, CHUNK_SIZE).then((result) => {
+      if (cancelled) return;
+      if (result) {
+        setLeaderboard(result.entries);
+        setTotalCount(result.total);
       }
+      setLoading(false);
+    });
 
-      try {
-        const response = await fetch(
-          `/api/leaderboard?duration=${selectedDuration}&page=${safePage}&pageSize=${PAGE_SIZE}`
-        );
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDuration]);
 
-        if (!response.ok) {
-          console.error('Leaderboard API error:', response.status, response.statusText);
-          throw new Error('Failed to fetch leaderboard');
-        }
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current) return;
+    if (leaderboard.length >= totalCount) return;
 
-        const result = await response.json();
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
 
-        if (result.success) {
-          const { entries, total, totalPages, source } = result.data;
-          console.log(`Loaded ${entries.length} entries from ${source}, total: ${total}`);
+    const nextPage = Math.floor(leaderboard.length / CHUNK_SIZE) + 1;
+    const result = await fetchLeaderboardChunk(selectedDuration, nextPage, CHUNK_SIZE);
 
-          const normalizedPage = Math.min(safePage, totalPages || 1);
-          const currentContextKey = `${selectedDuration}:${normalizedPage}`;
+    if (result) {
+      setLeaderboard((prev) => {
+        const existingIds = new Set(prev.map((entry) => entry.id));
+        const newRows = result.entries.filter((entry) => !existingIds.has(entry.id));
+        return [...prev, ...newRows];
+      });
+      setTotalCount(result.total);
+    }
 
-          if (normalizedPage !== safePage) {
-            setPage(normalizedPage);
-            return;
-          }
+    loadingMoreRef.current = false;
+    setLoadingMore(false);
+  }, [leaderboard.length, totalCount, selectedDuration]);
 
-          setLeaderboard(entries);
+  // Auto-fetch the next chunk once the virtualizer nears the end of loaded rows.
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const lastVirtualIndex =
+    virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : -1;
 
-          const isSameContext = lastLoadedContextRef.current === currentContextKey;
-          const shouldApplyDeltas = source === 'realtime' && isSameContext;
+  useEffect(() => {
+    if (lastVirtualIndex === -1) return;
+    if (
+      lastVirtualIndex >= leaderboard.length - LOAD_MORE_LOOKAHEAD &&
+      leaderboard.length < totalCount
+    ) {
+      void loadMore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastVirtualIndex, leaderboard.length, totalCount]);
 
-          if (shouldApplyDeltas) {
-            const previousRows = leaderboardRef.current;
-            const deltaResult = computeRowDeltas(previousRows, entries);
-            setRowDeltas(deltaResult.deltas);
-            setRemovedRowsCount(deltaResult.removedCount);
-          } else {
-            setRowDeltas({});
-            setRemovedRowsCount(0);
-          }
+  // Refetch just the top chunk (rank 1..CHUNK_SIZE). Anything loaded beyond it is
+  // dropped since a new insert shifts every rank below it - stale chunks would show
+  // wrong ranks. Scrolling back down naturally re-fetches fresh chunks.
+  const refreshTop = useCallback(
+    async (source: 'manual' | 'realtime') => {
+      if (source === 'manual') setRefreshing(true);
 
-          setTotalCount(total);
-          lastLoadedContextRef.current = currentContextKey;
+      const result = await fetchLeaderboardChunk(selectedDuration, 1, CHUNK_SIZE);
 
-          setHasNewScores(false);
+      if (result) {
+        if (source === 'realtime') {
+          const deltaResult = computeRowDeltas(
+            leaderboardRef.current.slice(0, CHUNK_SIZE),
+            result.entries
+          );
+          setRowDeltas(deltaResult.deltas);
+          setRemovedRowsCount(deltaResult.removedCount);
         } else {
-          console.error('Leaderboard API returned error:', result.error);
+          setRowDeltas({});
+          setRemovedRowsCount(0);
         }
-      } catch (error) {
-        console.error('Error loading leaderboard:', error);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+
+        setLeaderboard(result.entries);
+        setTotalCount(result.total);
+        setHasNewScores(false);
       }
+
+      if (source === 'manual') setRefreshing(false);
     },
     [selectedDuration, computeRowDeltas]
   );
-
-  useEffect(() => {
-    loadLeaderboard(page);
-  }, [loadLeaderboard, page]);
-
-  useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
-
-  useEffect(() => {
-    setHasNewScores(false);
-    setRowDeltas({});
-    setRemovedRowsCount(0);
-    realtimePendingRef.current = false;
-    clearRealtimeTimer();
-  }, [page, selectedDuration, clearRealtimeTimer]);
 
   const runRealtimeRefresh = useCallback(async () => {
     if (realtimeRefreshInFlightRef.current) {
@@ -215,36 +261,28 @@ export default function LeaderboardClient() {
     realtimeRefreshInFlightRef.current = true;
 
     try {
-      await loadLeaderboard(pageRef.current, { showLoader: false, source: 'realtime' });
+      await refreshTop('realtime');
     } finally {
       realtimeRefreshInFlightRef.current = false;
 
       if (realtimePendingRef.current) {
         realtimePendingRef.current = false;
 
-        if (pageRef.current === 1) {
+        if (isNearTopRef.current) {
           void runRealtimeRefresh();
-        } else if (realtimeTimerRef.current === null) {
+        } else {
           setHasNewScores(true);
-          realtimeTimerRef.current = window.setTimeout(() => {
-            realtimeTimerRef.current = null;
-            void runRealtimeRefresh();
-          }, REALTIME_COALESCE_MS);
         }
       }
     }
-  }, [REALTIME_COALESCE_MS, loadLeaderboard]);
+  }, [refreshTop]);
 
-  const scheduleCoalescedRefresh = useCallback(() => {
-    if (realtimeTimerRef.current !== null) {
-      return;
-    }
-
-    realtimeTimerRef.current = window.setTimeout(() => {
-      realtimeTimerRef.current = null;
-      void runRealtimeRefresh();
-    }, REALTIME_COALESCE_MS);
-  }, [REALTIME_COALESCE_MS, runRealtimeRefresh]);
+  const resolveNewScores = useCallback(() => {
+    isNearTopRef.current = true;
+    rowVirtualizer.scrollToOffset(0);
+    void runRealtimeRefresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runRealtimeRefresh]);
 
   const loadUserRank = useCallback(async () => {
     if (!user) {
@@ -258,7 +296,6 @@ export default function LeaderboardClient() {
 
   // Subscribe to Supabase Realtime for live leaderboard updates
   useEffect(() => {
-    // Create a channel for leaderboard updates
     if (!supabase || !isInitialized) return () => {};
 
     const channel = supabase
@@ -271,56 +308,40 @@ export default function LeaderboardClient() {
           table: 'typing_results',
           filter: `duration=eq.${selectedDuration}`,
         },
-        (payload) => {
-          console.log('🔥 New typing result detected, refreshing leaderboard...', payload);
-
-          if (pageRef.current === 1) {
+        () => {
+          if (isNearTopRef.current) {
             void runRealtimeRefresh();
-            return;
+          } else {
+            setHasNewScores(true);
           }
-
-          setHasNewScores(true);
-          scheduleCoalescedRefresh();
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Subscribed to live leaderboard updates for duration:', selectedDuration);
           setLiveUpdatesEnabled(true);
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          console.log('❌ Live updates disconnected, status:', status);
           setLiveUpdatesEnabled(false);
         } else if (status === 'TIMED_OUT') {
-          console.log('⏱️ Live updates timed out, will retry...');
           setLiveUpdatesEnabled(false);
         }
       });
 
     return () => {
-      console.log('🔌 Unsubscribing from leaderboard updates');
-      clearRealtimeTimer();
       realtimePendingRef.current = false;
       supabase.removeChannel(channel);
       setLiveUpdatesEnabled(false);
     };
-  }, [
-    selectedDuration,
-    scheduleCoalescedRefresh,
-    runRealtimeRefresh,
-    supabase,
-    isInitialized,
-    clearRealtimeTimer,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      clearRealtimeTimer();
-    };
-  }, [clearRealtimeTimer]);
+  }, [selectedDuration, runRealtimeRefresh, supabase, isInitialized]);
 
   useEffect(() => {
     loadUserRank();
   }, [loadUserRank]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollParentRef.current;
+    if (!el) return;
+    isNearTopRef.current = el.scrollTop < NEAR_TOP_THRESHOLD_PX;
+  }, [NEAR_TOP_THRESHOLD_PX]);
 
   const getMedalIcon = (rank: number) => {
     if (rank === 1) {
@@ -369,9 +390,7 @@ export default function LeaderboardClient() {
     return date.toLocaleDateString();
   };
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const showingFrom = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const showingTo = totalCount === 0 ? 0 : Math.min(page * PAGE_SIZE, totalCount);
+  const GRID_COLUMNS = 'grid-cols-[5rem_1fr_9rem_9rem_8rem]';
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
@@ -420,10 +439,7 @@ export default function LeaderboardClient() {
             {[15, 30, 60, 120].map((duration) => (
               <button
                 key={duration}
-                onClick={() => {
-                  setPage(1);
-                  setSelectedDuration(duration as DurationOption);
-                }}
+                onClick={() => setSelectedDuration(duration as DurationOption)}
                 className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-smooth ${
                   selectedDuration === duration
                     ? 'border-yellow-500/70 bg-yellow-500/10 text-yellow-400 shadow-[0_15px_40px_-30px_rgba(234,179,8,0.8)] scale-105'
@@ -436,13 +452,13 @@ export default function LeaderboardClient() {
           </div>
         </div>
 
-        {/* Leaderboard Table */}
+        {/* Leaderboard */}
         <div className="bg-zinc-800/60 border border-zinc-700/50 rounded-3xl overflow-hidden backdrop-blur-sm animate-slideInUp animation-delay-300">
           <div className="flex flex-col gap-4 border-b border-zinc-700/60 bg-zinc-900/40 p-6 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="flex items-center gap-3">
                 <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-                  Top scores • Showing {showingFrom}-{showingTo} of {totalCount || 0}
+                  Top scores • Loaded {leaderboard.length} of {totalCount || 0}
                 </p>
                 {liveUpdatesEnabled && (
                   <div
@@ -458,9 +474,9 @@ export default function LeaderboardClient() {
                     </span>
                   </div>
                 )}
-                {hasNewScores && page > 1 && (
+                {hasNewScores && (
                   <button
-                    onClick={() => void runRealtimeRefresh()}
+                    onClick={resolveNewScores}
                     className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-yellow-300 transition-smooth hover:bg-yellow-500/20"
                     title="New scores detected"
                   >
@@ -478,14 +494,16 @@ export default function LeaderboardClient() {
               </h2>
               <p className="text-sm text-zinc-500">
                 {liveUpdatesEnabled
-                  ? page === 1
-                    ? 'Auto-updating instantly for new results'
-                    : 'New scores are detected instantly and reconciled every 5s'
+                  ? 'New scores appear instantly at the top; scroll up or tap "New scores" to refresh further down'
                   : 'Best verified runs from the community'}
               </p>
             </div>
             <button
-              onClick={() => loadLeaderboard(page, { showLoader: false, source: 'manual' })}
+              onClick={() => {
+                isNearTopRef.current = true;
+                rowVirtualizer.scrollToOffset(0);
+                void refreshTop('manual');
+              }}
               disabled={loading || refreshing}
               className="inline-flex items-center gap-2 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -513,113 +531,142 @@ export default function LeaderboardClient() {
               </AppLink>
             </div>
           ) : (
-            <div className="overflow-x-auto animate-fadeIn">
-              <table className="w-full">
-                <thead className="bg-zinc-900/40 text-left text-xs uppercase tracking-[0.3em] text-zinc-500">
-                  <tr>
-                    <th className="px-6 py-4 w-20">Rank</th>
-                    <th className="px-6 py-4">Player</th>
-                    <th className="px-6 py-4">WPM</th>
-                    <th className="px-6 py-4">Accuracy</th>
-                    <th className="px-6 py-4">When</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/80">
-                  {leaderboard.map((entry) => (
-                    <tr
-                      key={entry.id}
-                      className={`transition-smooth ${
-                        rowDeltas[entry.id]?.type === 'insert'
-                          ? 'bg-emerald-500/10'
-                          : rowDeltas[entry.id]?.type === 'move'
-                            ? 'bg-sky-500/10'
-                            : isCurrentUser(entry.user_id)
-                              ? 'bg-yellow-500/10'
-                              : 'hover:bg-zinc-900/40'
-                      }`}
-                      style={{
-                        transitionDuration: prefersReducedMotion ? '0ms' : `${ROW_TRANSITION_MS}ms`,
-                      }}
-                    >
-                      <td className="px-6 py-5 text-lg font-semibold">
-                        <div className={`flex items-center gap-3 ${getRankColor(entry.rank || 0)}`}>
-                          {getMedalIcon(entry.rank || 0)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 text-sm font-semibold text-zinc-200">
-                            {entry.username.charAt(0).toUpperCase()}
+            <div role="table" aria-label="Leaderboard" className="animate-fadeIn">
+              <div
+                role="row"
+                className={`grid ${GRID_COLUMNS} bg-zinc-900/40 text-left text-xs uppercase tracking-[0.3em] text-zinc-500`}
+              >
+                <div role="columnheader" className="px-6 py-4">
+                  Rank
+                </div>
+                <div role="columnheader" className="px-6 py-4">
+                  Player
+                </div>
+                <div role="columnheader" className="px-6 py-4">
+                  WPM
+                </div>
+                <div role="columnheader" className="px-6 py-4">
+                  Accuracy
+                </div>
+                <div role="columnheader" className="px-6 py-4">
+                  When
+                </div>
+              </div>
+
+              <div
+                ref={scrollParentRef}
+                onScroll={handleScroll}
+                tabIndex={0}
+                role="rowgroup"
+                aria-label="Leaderboard rows, scrollable"
+                className="h-[640px] overflow-y-auto overflow-x-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-yellow-500/50"
+              >
+                <div
+                  style={{
+                    height: rowVirtualizer.getTotalSize(),
+                    position: 'relative',
+                    minWidth: '720px',
+                  }}
+                >
+                  {virtualItems.map((virtualRow) => {
+                    const entry = leaderboard[virtualRow.index];
+                    if (!entry) return null;
+
+                    return (
+                      <div
+                        key={entry.id}
+                        data-index={virtualRow.index}
+                        ref={rowVirtualizer.measureElement}
+                        role="row"
+                        className={`absolute top-0 left-0 w-full grid ${GRID_COLUMNS} border-b border-zinc-800/80 transition-smooth ${
+                          rowDeltas[entry.id]?.type === 'insert'
+                            ? 'bg-emerald-500/10'
+                            : rowDeltas[entry.id]?.type === 'move'
+                              ? 'bg-sky-500/10'
+                              : isCurrentUser(entry.user_id)
+                                ? 'bg-yellow-500/10'
+                                : 'hover:bg-zinc-900/40'
+                        }`}
+                        style={{
+                          transform: `translateY(${virtualRow.start}px)`,
+                          transitionDuration: prefersReducedMotion
+                            ? '0ms'
+                            : `${ROW_TRANSITION_MS}ms`,
+                        }}
+                      >
+                        <div role="cell" className="px-6 py-5 text-lg font-semibold">
+                          <div
+                            className={`flex items-center gap-3 ${getRankColor(entry.rank || 0)}`}
+                          >
+                            {getMedalIcon(entry.rank || 0)}
                           </div>
-                          <div>
-                            <p className="font-medium text-zinc-100">{entry.username}</p>
-                            {isCurrentUser(entry.user_id) && (
-                              <p className="text-xs text-yellow-400">This is you</p>
+                        </div>
+                        <div role="cell" className="px-6 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 text-sm font-semibold text-zinc-200">
+                              {entry.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium text-zinc-100">{entry.username}</p>
+                              {isCurrentUser(entry.user_id) && (
+                                <p className="text-xs text-yellow-400">This is you</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div role="cell" className="px-6 py-5">
+                          <div className="flex items-baseline gap-3">
+                            <span className={`text-3xl font-semibold ${getWpmColor(entry.wpm)}`}>
+                              {entry.wpm}
+                            </span>
+                            <span className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+                              WPM
+                            </span>
+                          </div>
+                        </div>
+                        <div role="cell" className="px-6 py-5">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-lg font-semibold text-zinc-100">
+                              {entry.accuracy}%
+                            </span>
+                            {entry.accuracy >= 95 && (
+                              <span className="text-green-400 text-sm">precise</span>
                             )}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-baseline gap-3">
-                          <span className={`text-3xl font-semibold ${getWpmColor(entry.wpm)}`}>
-                            {entry.wpm}
-                          </span>
-                          <span className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-                            WPM
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-semibold text-zinc-100">
-                            {entry.accuracy}%
-                          </span>
-                          {entry.accuracy >= 95 && (
-                            <span className="text-green-400 text-sm">precise</span>
+                        <div role="cell" className="px-6 py-5 text-sm text-zinc-500">
+                          {formatDate(entry.created_at)}
+                          {rowDeltas[entry.id]?.type === 'insert' && (
+                            <span className="ml-2 text-emerald-400 font-semibold">new</span>
+                          )}
+                          {rowDeltas[entry.id]?.type === 'move' && (
+                            <span className="ml-2 text-sky-400 font-semibold">moved</span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-5 text-sm text-zinc-500">
-                        {formatDate(entry.created_at)}
-                        {rowDeltas[entry.id]?.type === 'insert' && (
-                          <span className="ml-2 text-emerald-400 font-semibold">new</span>
-                        )}
-                        {rowDeltas[entry.id]?.type === 'move' && (
-                          <span className="ml-2 text-sky-400 font-semibold">moved</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-t border-zinc-700/60 bg-zinc-900/40 px-6 py-4 text-xs uppercase tracking-[0.3em] text-zinc-500">
+                <span>
+                  Loaded {leaderboard.length} of {totalCount}
+                </span>
+                {leaderboard.length < totalCount ? (
+                  <button
+                    onClick={() => void loadMore()}
+                    disabled={loadingMore}
+                    className="rounded-2xl border border-zinc-700/60 px-4 py-2 text-xs font-semibold normal-case tracking-normal text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loadingMore ? 'Loading…' : 'Load more'}
+                  </button>
+                ) : (
+                  <span>End of leaderboard</span>
+                )}
+              </div>
             </div>
           )}
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-zinc-800/60 border border-zinc-700/50 rounded-3xl px-6 py-4 backdrop-blur-sm animate-fadeIn animation-delay-350">
-          <div className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-            Page {page} of {totalPages}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              disabled={page === 1 || loading}
-              className="rounded-2xl border border-zinc-700/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-4 py-2 text-sm font-semibold text-zinc-200">
-              {page}
-            </div>
-            <button
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={page >= totalPages || loading}
-              className="rounded-2xl border border-zinc-700/60 px-4 py-2 text-sm font-medium text-zinc-300 transition-smooth hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
         </div>
 
         {/* Call to Action */}
