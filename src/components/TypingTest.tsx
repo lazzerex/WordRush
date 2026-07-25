@@ -254,35 +254,20 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     testStartTimeRef.current = 0;
   };
 
-  // Complete test and save results
-  const completeTest = async () => {
-    if (resultSavedRef.current) return;
+  // POST the already-computed result to the server. Shared by the initial
+  // completion path and the manual retry button (TestResults) so a failed
+  // save doesn't require redoing the whole test - it reuses the same refs.
+  const submitResult = async () => {
+    const testId = testIdRef.current;
+    if (!testId) {
+      console.error('[TestID] No test ID found - cannot submit results');
+      return;
+    }
 
-    setTestActive(false);
-    setTestComplete(true);
-
-    const stats = calculateStats(
-      correctCharsRef.current,
-      incorrectCharsRef.current,
-      selectedDuration,
-      0
-    );
-    setWpm(stats.wpm);
-    setAccuracy(stats.accuracy);
+    setIsSavingResult(true);
+    setSaveFailed(false);
 
     try {
-      resultSavedRef.current = true;
-
-      // CRITICAL: Validate test ID exists before submission
-      const testId = testIdRef.current;
-      if (!testId) {
-        console.error('[TestID] No test ID found - cannot submit results');
-        return;
-      }
-
-      setIsSavingResult(true);
-      setSaveFailed(false);
-
       const response = await fetch('/api/submit-result', {
         method: 'POST',
         headers: {
@@ -359,6 +344,33 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
     } finally {
       setIsSavingResult(false);
     }
+  };
+
+  // Complete test and save results
+  const completeTest = async () => {
+    if (resultSavedRef.current) return;
+
+    setTestActive(false);
+    setTestComplete(true);
+
+    const stats = calculateStats(
+      correctCharsRef.current,
+      incorrectCharsRef.current,
+      selectedDuration,
+      0
+    );
+    setWpm(stats.wpm);
+    setAccuracy(stats.accuracy);
+
+    resultSavedRef.current = true;
+    await submitResult();
+  };
+
+  // Manual retry after a failed save - reuses the same keystroke/word refs,
+  // no need to redo the test.
+  const handleRetrySave = () => {
+    if (isSavingResult) return;
+    void submitResult();
   };
 
   // Handle input changes
@@ -610,6 +622,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ onOpenMenu }) => {
           coinsEarned={coinsEarned}
           isSaving={isSavingResult}
           saveFailed={saveFailed}
+          onRetrySave={handleRetrySave}
           latestResultId={latestResultMeta?.id || null}
           latestResultUserId={latestResultMeta?.userId || null}
           latestResultCreatedAt={latestResultMeta?.createdAt || null}
