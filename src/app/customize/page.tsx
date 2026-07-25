@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import CustomizeClient from './CustomizeClient';
 
 // Force dynamic rendering (uses cookies for auth)
@@ -10,9 +11,12 @@ export default async function CustomizePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Middleware ensures user exists, but double-check for type safety
+  // Middleware already redirects unauthenticated requests, but this route's
+  // own getUser() is a second independent call to the Supabase auth server -
+  // a transient hiccup here must not render a blank page (see results/page.tsx
+  // for the same pattern).
   if (!user) {
-    return null;
+    redirect('/login');
   }
 
   return <CustomizeClient />;
