@@ -147,7 +147,7 @@ export default function Navigation() {
               className="px-4 py-2 text-zinc-400 hover:text-yellow-500 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-zinc-800/50 wr-text-secondary"
             >
               <Trophy className="w-4 h-4" />
-              <span className="hidden sm:inline">Leaderboard</span>
+              <span className="sr-only sm:not-sr-only sm:inline">Leaderboard</span>
             </AppLink>
 
             {user ? (
@@ -159,7 +159,7 @@ export default function Navigation() {
                     className="px-4 py-2 text-yellow-400 hover:text-yellow-300 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-yellow-500/10 border border-yellow-500/20"
                   >
                     <Shield className="w-4 h-4" />
-                    <span className="hidden sm:inline">Admin</span>
+                    <span className="sr-only sm:not-sr-only sm:inline">Admin</span>
                   </AppLink>
                 )}
                 {isAdmin && (
@@ -169,7 +169,7 @@ export default function Navigation() {
                     className="px-4 py-2 text-yellow-400 hover:text-yellow-300 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-yellow-500/10 border border-yellow-500/20"
                   >
                     <FileText className="w-4 h-4" />
-                    <span className="hidden sm:inline">API Docs</span>
+                    <span className="sr-only sm:not-sr-only sm:inline">API Docs</span>
                   </AppLink>
                 )}
                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-zinc-800/50 rounded-lg wr-surface">
@@ -184,12 +184,13 @@ export default function Navigation() {
                   className="px-4 py-2 bg-zinc-800 text-zinc-200 rounded-lg hover:bg-zinc-700 transition-all font-medium flex items-center gap-2 wr-surface"
                 >
                   <UserIcon className="w-4 h-4" />
-                  <span className="hidden sm:inline">Account</span>
+                  <span className="sr-only sm:not-sr-only sm:inline">Account</span>
                 </AppLink>
                 <button
                   onClick={handleSignOut}
                   className="p-2 text-zinc-400 hover:text-red-400 transition-colors rounded-lg hover:bg-zinc-800/50 wr-text-secondary"
                   title="Sign Out"
+                  aria-label="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -202,7 +203,7 @@ export default function Navigation() {
                   className="px-4 py-2 text-zinc-400 hover:text-zinc-200 transition-colors font-medium flex items-center gap-2 rounded-lg hover:bg-zinc-800/50 wr-text-secondary"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">Login</span>
+                  <span className="sr-only sm:not-sr-only sm:inline">Login</span>
                 </AppLink>
                 <AppLink
                   href={`/register${pathname && pathname !== '/login' && pathname !== '/register' ? `?returnTo=${encodeURIComponent(pathname)}` : ''}`}
@@ -210,7 +211,7 @@ export default function Navigation() {
                   className="px-4 py-2 bg-yellow-600 text-zinc-900 rounded-lg hover:bg-yellow-500 transition-all font-medium flex items-center gap-2 glow-yellow-sm wr-accent-bg"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign Up</span>
+                  <span className="sr-only sm:not-sr-only sm:inline">Sign Up</span>
                 </AppLink>
               </>
             )}
