@@ -20,6 +20,7 @@ interface TestResultsProps {
   coinsEarned?: number | null;
   isSaving?: boolean;
   saveFailed?: boolean;
+  onRetrySave?: () => void;
   latestResultId?: string | null;
   latestResultUserId?: string | null;
   latestResultCreatedAt?: string | null;
@@ -35,6 +36,7 @@ export const TestResults: React.FC<TestResultsProps> = ({
   coinsEarned,
   isSaving,
   saveFailed,
+  onRetrySave,
   latestResultId,
   latestResultUserId,
   latestResultCreatedAt,
@@ -431,8 +433,18 @@ export const TestResults: React.FC<TestResultsProps> = ({
               </div>
             )}
             {!isSaving && saveFailed && (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-400 animate-fadeIn">
-                Result not saved to your account — the stats above are still yours.
+              <div className="flex items-center justify-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-400 animate-fadeIn">
+                <span>Result not saved to your account — the stats above are still yours.</span>
+                {onRetrySave && (
+                  <button
+                    type="button"
+                    onClick={onRetrySave}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-600 px-2.5 py-1 font-semibold text-zinc-200 transition-smooth hover:border-zinc-500 hover:bg-zinc-800"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Retry
+                  </button>
+                )}
               </div>
             )}
 
