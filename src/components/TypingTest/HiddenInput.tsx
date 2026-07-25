@@ -27,6 +27,7 @@ export const HiddenInput: React.FC<HiddenInputProps> = ({
       value={currentInput}
       onChange={onInputChange}
       className="sr-only"
+      aria-label="Typing test input"
       autoFocus
       autoComplete="off"
       autoCapitalize="off"
